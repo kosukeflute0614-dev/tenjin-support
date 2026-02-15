@@ -1,0 +1,138 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id          String       @id @default(uuid())
+  name        String
+  members     Member[]
+  productions Production[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Member {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  role           String       // "ADMIN", "MEMBER"
+  expenses       Expense[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Production {
+  id              String        @id @default(uuid())
+  organizationId  String
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  title           String
+  receptionStatus String        @default("CLOSED") // OPEN, CLOSED, PAUSED
+  receptionStart  DateTime?
+  receptionEnd    DateTime?
+  receptionEndMode String        @default("MANUAL") // MANUAL, PERFORMANCE_START, BEFORE_PERFORMANCE, DAY_BEFORE
+  receptionEndMinutes Int           @default(0)
+  performances    Performance[]
+  ticketTypes     TicketType[]
+  actors          Actor[]
+  expenses        Expense[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model Performance {
+  id           String        @id @default(uuid())
+  productionId String
+  production   Production    @relation(fields: [productionId], references: [id])
+  startTime    DateTime
+  capacity     Int
+  reservations Reservation[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model TicketType {
+  id           String        @id @default(uuid())
+  productionId String
+  production   Production    @relation(fields: [productionId], references: [id])
+  name         String
+  price        Int           // 旧価格（移行用）
+  advancePrice Int           @default(0)
+  doorPrice    Int           @default(0)
+  reservationTickets ReservationTicket[]
+}
+
+model Actor {
+  id           String        @id @default(uuid())
+  productionId String
+  production   Production    @relation(fields: [productionId], references: [id])
+  name         String
+  reservations Reservation[]
+}
+
+model Reservation {
+  id            String      @id @default(uuid())
+  performanceId String
+  performance   Performance @relation(fields: [performanceId], references: [id])
+  tickets       ReservationTicket[]
+  actorId       String?
+  actor         Actor?      @relation(fields: [actorId], references: [id])
+  customerName  String
+  customerNameKana String?   // added for sorting
+  customerEmail String?
+  remarks       String?     // Free text notes
+  // count removed, calculation required
+  status        String      @default("CONFIRMED") // PENDING, CONFIRMED, CANCELED
+  paymentStatus String      @default("UNPAID")  // UNPAID, PARTIAL, PAID
+  paidAmount    Int         @default(0)
+  source        String      @default("PRE_RESERVATION") // PRE_RESERVATION, SAME_DAY
+  checkedInAt   DateTime?   // First check-in timestamp
+  checkedInTickets Int      @default(0)  // Number of people entered
+  checkinStatus String      @default("NOT_CHECKED_IN") // NOT_CHECKED_IN, PARTIALLY_CHECKED_IN, CHECKED_IN
+  logs          CheckinLog[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model CheckinLog {
+  id            String      @id @default(uuid())
+  reservationId String
+  reservation   Reservation @relation(fields: [reservationId], references: [id])
+  type          String      // CHECKIN, RESET
+  count         Int         // Number of tickets in this action
+  paymentInfo   String?     // Optional JSON string recording payment breakdown
+  createdAt     DateTime    @default(now())
+}
+
+model ReservationTicket {
+  id            String      @id @default(uuid())
+  reservationId String
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  ticketTypeId  String
+  ticketType    TicketType  @relation(fields: [ticketTypeId], references: [id])
+  count         Int
+  paidCount     Int         @default(0) // Number of tickets already paid
+  price         Int         // Price snapshot
+}
+
+model Expense {
+  id           String     @id @default(uuid())
+  productionId String
+  production   Production @relation(fields: [productionId], references: [id])
+  memberId     String
+  member       Member     @relation(fields: [memberId], references: [id])
+  description  String
+  amount       Int
+  receiptImage String?
+  approved     Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}

@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 演劇制作サポートアプリ (Theater Production Support)
 
-## Getting Started
+演劇公演の制作業務（予約・当日受付・会計・決算・進行管理）を統合するWebアプリケーション。
 
-First, run the development server:
+## 技術スタック
+- Framework: Next.js 15 (App Router)
+- Language: TypeScript
+- Database: SQLite (Development) / PostgreSQL (Production)
+- ORM: Prisma (v5.22.0)
+- Styling: Vanilla CSS (CSS Modules)
 
+## ローカル起動手順
+
+### 前提条件
+- Node.js (v18+)
+- npm
+
+### セットアップ
+1. 依存関係のインストール:
+   ```bash
+   npm install
+   ```
+2. 環境変数の設定:
+   `.env` ファイルがルートディレクトリにあることを確認してください。
+   ```env
+   DATABASE_URL="file:./dev.db" # または絶対パス
+   ```
+3. データベースの準備 (Prisma):
+   SQLiteデータベースを作成し、クライアントを生成します。
+   ```bash
+   npx prisma generate
+   npx prisma db push
+   ```
+
+### 開発サーバー起動
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
+これで `http://localhost:3000` にアクセスできます。
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 主な機能
+- **ダッシュボード**: 今後の公演スケジュール、予約状況（定員・残席）、重複予約検知通知の統合表示
+- **公演管理 (`/productions`)**: 公演の作成、基本情報設定、チケット券種（前売・当日）管理、公演回スケジュール管理
+- **予約管理 (`/reservations`)**: 全予約の検索、新規登録、編集、キャンセル対応
+- **当日受付 (`/reception`)**: QRコード（予定）やリストによる来場処理、一部入場対応、当日券発行、精算管理
+- **重複予約検知**: 名前やメールアドレス、公演回の一致による重複予約の自動警告と管理
+- **設定**: 公演情報の詳細設定、タブ切り替えによる整理されたUI
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 開発ガイド
+- **環境変数**: `.env` で `DATABASE_URL` を定義してください。
+- **Git管理**: `.gitignore` により `dev.db` などの環境依存ファイルは除外されています。
+- **Prisma**: スキーマ変更後は `npx prisma migrate dev` または `db push` を実行してください。
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## トラブルシューティング
+- **Prisma Client Error**:
+  もし実行時にエラーが出る場合は、以下を試してください：
+  ```bash
+  rm -rf node_modules/.prisma
+  npx prisma generate
+  ```

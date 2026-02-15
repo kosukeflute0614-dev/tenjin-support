@@ -39,3 +39,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+# sqlite
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# temp scripts
+check-data.ts
+test-db.ts
+update-status.ts
+check-db.js
+seed-duplicates.js
