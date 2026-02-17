@@ -9,9 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@prisma/client": "5.22.0",
     "@types/qrcode.react": "^1.0.5",
     "date-fns": "^4.1.0",
+    "firebase": "^12.9.0",
     "next": "16.1.6",
     "qrcode.react": "^4.2.0",
     "react": "19.2.3",
@@ -25,7 +25,6 @@
     "dotenv": "^17.2.4",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
-    "prisma": "5.22.0",
     "typescript": "^5"
   }
 }

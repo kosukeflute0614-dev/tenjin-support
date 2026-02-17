@@ -54,3 +54,7 @@ test-db.ts
 update-status.ts
 check-db.js
 seed-duplicates.js
+
+# Firebase
+.firebase/
+firebase-debug.log

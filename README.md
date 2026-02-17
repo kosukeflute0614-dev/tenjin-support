@@ -1,4 +1,4 @@
-# 演劇制作サポートアプリ (Tenjin-Support)
+# 演劇制作サポートアプリ (Theater Production Support)
 
 演劇公演の制作業務（予約・当日受付・会計・決算・進行管理）を統合するWebアプリケーション。
 
