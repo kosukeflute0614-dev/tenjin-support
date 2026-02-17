@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getActiveProductionId } from '@/app/actions/production-context';
-import { getProductionDetails } from '@/app/actions/production-details';
+import { fetchProductionDetailsClient } from '@/lib/client-firestore';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatDateTime } from '@/lib/format';
@@ -23,7 +23,7 @@ export default function ReceptionSelectionPage() {
                     router.push('/productions');
                     return;
                 }
-                const data = await getProductionDetails(activeId, user.uid);
+                const data = await fetchProductionDetailsClient(activeId, user.uid);
                 setDetails(data);
             }
             setIsInitialLoading(false);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { getProductionDetails } from '@/app/actions/production-details';
+import { fetchProductionDetailsClient } from '@/lib/client-firestore';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ReceptionLinkManager from '@/components/ReceptionLinkManager';
@@ -17,7 +17,7 @@ export default function ReceptionPage({ params }: { params: Promise<{ id: string
     useEffect(() => {
         const fetchDetails = async () => {
             if (user) {
-                const data = await getProductionDetails(id, user.uid);
+                const data = await fetchProductionDetailsClient(id, user.uid);
                 setDetails(data);
             }
             setIsInitialLoading(false);

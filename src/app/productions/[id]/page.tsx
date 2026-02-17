@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { getProductionDetails } from '@/app/actions/production-details';
+import { fetchProductionDetailsClient } from '@/lib/client-firestore';
 import Link from 'next/link';
 import ProductionSettingsTabs from '@/components/ProductionSettingsTabs';
 import { useAuth } from '@/components/AuthProvider';
@@ -16,7 +16,7 @@ export default function ProductionDetailPage({ params }: { params: Promise<{ id:
     useEffect(() => {
         const fetchDetails = async () => {
             if (user) {
-                const data = await getProductionDetails(id, user.uid);
+                const data = await fetchProductionDetailsClient(id, user.uid);
                 setDetails(data);
             }
             setIsInitialLoading(false);
