@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { createSameDayTicket } from '@/app/actions/sameDayTicket'
+import { createSameDayTicketClient } from '@/lib/client-firestore'
 import { NumberStepper, SoftKeypad } from './TouchInputs'
 import { useAuth } from './AuthProvider'
 
@@ -50,15 +50,17 @@ export default function SameDayTicketForm({
         setIsSubmitting(true)
         setError('')
 
-        const formData = new FormData()
-        formData.append('performanceId', performanceId)
-        formData.append('productionId', productionId)
-        formData.append('customerName', customerName)
-        formData.append('breakdown', JSON.stringify(ticketCounts))
-
         try {
             if (!user) throw new Error('ログインが必要です')
-            await createSameDayTicket(formData, user.uid)
+
+            await createSameDayTicketClient(
+                performanceId,
+                productionId,
+                customerName,
+                ticketCounts,
+                user.uid
+            )
+
             // Reset form
             setCustomerName('')
             const resetCounts: any = {}

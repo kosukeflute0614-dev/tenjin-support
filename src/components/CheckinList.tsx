@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, Fragment, useRef } from 'react'
-import { addCheckedInTickets, resetCheckIn, processCheckinWithPayment, processPartialReset } from '@/app/actions/checkin'
+import { processCheckinWithPaymentClient, resetCheckInClient, processPartialResetClient } from '@/lib/client-firestore'
 import { formatTime } from '@/lib/format'
 import { NumberStepper, SoftKeypad } from './TouchInputs'
 import { useAuth } from './AuthProvider'
@@ -128,14 +128,19 @@ export default function CheckinList({
                                     const remainingToPay = t.count - (t.paidCount || 0)
                                     if (remainingToPay > 0) fullBreakdown[t.ticketTypeId] = remainingToPay
                                 })
-                                processCheckinWithPayment(selectedRes.id, count, additionalPayment || 0, fullBreakdown, performanceId, productionId, user.uid)
+                                processCheckinWithPaymentClient(selectedRes.id, count, additionalPayment || 0, fullBreakdown, performanceId, productionId, user.uid)
+                                    .then(() => setSelectedRes(null))
+                                    .catch(err => alert(err.message))
                             } else if (type === 'complex_checkin') {
-                                processCheckinWithPayment(selectedRes.id, count, additionalPayment || 0, breakdown || {}, performanceId, productionId, user.uid)
+                                processCheckinWithPaymentClient(selectedRes.id, count, additionalPayment || 0, breakdown || {}, performanceId, productionId, user.uid)
+                                    .then(() => setSelectedRes(null))
+                                    .catch(err => alert(err.message))
                             } else if (type === 'reset') {
-                                resetCheckIn(selectedRes.id, performanceId, productionId, user.uid)
+                                resetCheckInClient(selectedRes.id, user.uid)
+                                    .then(() => setSelectedRes(null))
+                                    .catch(err => alert(err.message))
                             }
                         })
-                        setSelectedRes(null)
                     }}
                     isPending={isPending}
                 />
@@ -228,8 +233,9 @@ function DetailModal({
     const handlePartialReset = () => {
         if (!user) return
         startTransition(() => {
-            processPartialReset(res.id, resetCount, totalRefund, refundBreakdown, performanceId, productionId, user.uid)
+            processPartialResetClient(res.id, resetCount, totalRefund, refundBreakdown, user.uid)
                 .then(() => onClose())
+                .catch(err => alert(err.message))
         })
     }
 

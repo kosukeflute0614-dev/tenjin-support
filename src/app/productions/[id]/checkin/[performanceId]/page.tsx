@@ -8,7 +8,8 @@ import {
     getDoc,
     doc,
     query,
-    where
+    where,
+    onSnapshot
 } from "firebase/firestore";
 import { notFound, useRouter } from 'next/navigation';
 import { formatDateTime } from '@/lib/format';
@@ -32,69 +33,83 @@ export default function CheckinPage({ params }: { params: any }) {
     const [isInitialLoading, setIsInitialLoading] = useState(true);
 
     useEffect(() => {
+        let unsubscribe: () => void;
+
         const fetchData = async () => {
             if (user) {
-                // Unwrap params (Next.js 15 behavior if using async params, though for client components it's usually passed)
                 const resolvedParams = await params;
                 const { id: productionId, performanceId } = resolvedParams;
 
-                // 1. Get Production
-                const productionRef = doc(db, "productions", productionId);
-                const productionSnap = await getDoc(productionRef);
-                if (!productionSnap.exists()) {
+                try {
+                    // 1. Get Production
+                    const productionRef = doc(db, "productions", productionId);
+                    const productionSnap = await getDoc(productionRef);
+                    if (!productionSnap.exists()) {
+                        setIsInitialLoading(false);
+                        return;
+                    }
+                    const production = serializeDoc<Production>(productionSnap);
+
+                    // Check Ownership
+                    if (production.userId !== user.uid) {
+                        router.push('/productions');
+                        return;
+                    }
+
+                    // 2. Get Performance
+                    const performanceRef = doc(db, "performances", performanceId);
+                    const performanceSnap = await getDoc(performanceRef);
+                    if (!performanceSnap.exists()) {
+                        setIsInitialLoading(false);
+                        return;
+                    }
+                    const performance = serializeDoc<Performance>(performanceSnap);
+
+                    // 3. Set up Real-time listener for Reservations
+                    const reservationsRef = collection(db, "reservations");
+                    const qRes = query(
+                        reservationsRef,
+                        where("userId", "==", user.uid),
+                        where("performanceId", "==", performanceId)
+                    );
+
+                    unsubscribe = onSnapshot(qRes, (snapshot) => {
+                        const allRes = serializeDocs<FirestoreReservation>(snapshot.docs);
+                        const reservations = allRes
+                            .filter(res => res.status !== 'CANCELED')
+                            .map(res => ({
+                                ...res,
+                                tickets: (res.tickets || []).map((t: any) => ({
+                                    ...t,
+                                    ticketType: production.ticketTypes.find((tt: any) => tt.id === t.ticketTypeId)
+                                }))
+                            }));
+
+                        const bookedCount = reservations.reduce((sum, res) => {
+                            return sum + (res.tickets || []).reduce((tSum, t) => tSum + (t.count || 0), 0);
+                        }, 0);
+                        const remainingCount = performance.capacity - bookedCount;
+
+                        setData({ production, performance, reservations, remainingCount });
+                        setIsInitialLoading(false);
+                    }, (err) => {
+                        console.error("Snapshot error:", err);
+                        setIsInitialLoading(false);
+                    });
+                } catch (err) {
+                    console.error("Fetch error:", err);
                     setIsInitialLoading(false);
-                    return;
                 }
-                const production = serializeDoc<Production>(productionSnap);
-
-                // Check Ownership
-                if (production.userId !== user.uid) {
-                    router.push('/productions');
-                    return;
-                }
-
-                // 2. Get Performance
-                const performanceRef = doc(db, "performances", performanceId);
-                const performanceSnap = await getDoc(performanceRef);
-                if (!performanceSnap.exists()) {
-                    setIsInitialLoading(false);
-                    return;
-                }
-                const performance = serializeDoc<Performance>(performanceSnap);
-
-                // 3. Get Reservations
-                const reservationsRef = collection(db, "reservations");
-                const qRes = query(
-                    reservationsRef,
-                    where("userId", "==", user.uid)
-                );
-                const resSnapshot = await getDocs(qRes);
-                const allRes = serializeDocs<FirestoreReservation>(resSnapshot.docs);
-
-                // Filter by performanceId, exclude canceled, and map ticket types in memory
-                const reservations = allRes
-                    .filter(res => res.performanceId === performanceId && res.status !== 'CANCELED')
-                    .map(res => ({
-                        ...res,
-                        tickets: (res.tickets || []).map((t: any) => ({
-                            ...t,
-                            ticketType: production.ticketTypes.find((tt: any) => tt.id === t.ticketTypeId)
-                        }))
-                    }));
-
-                const bookedCount = reservations.reduce((sum, res) => {
-                    return sum + (res.tickets || []).reduce((tSum, t) => tSum + (t.count || 0), 0);
-                }, 0);
-                const remainingCount = performance.capacity - bookedCount;
-
-                setData({ production, performance, reservations, remainingCount });
+            } else if (!loading) {
+                setIsInitialLoading(false);
             }
-            setIsInitialLoading(false);
         };
 
-        if (!loading) {
-            fetchData();
-        }
+        fetchData();
+
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
     }, [user, loading, params, router]);
 
     if (loading || isInitialLoading) {
