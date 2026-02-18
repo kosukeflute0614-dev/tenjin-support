@@ -8,28 +8,59 @@ import {
     GoogleAuthProvider,
     signOut
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { AppUser } from '@/types';
 
 interface AuthContextType {
     user: User | null;
+    profile: AppUser | null;
     loading: boolean;
+    isNewUser: boolean;
     loginWithGoogle: () => Promise<void>;
     logout: () => Promise<void>;
+    refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
+    const [profile, setProfile] = useState<AppUser | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isNewUser, setIsNewUser] = useState(false);
+
+    const fetchProfile = async (uid: string) => {
+        const docRef = doc(db, 'users', uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            setProfile(docSnap.data() as AppUser);
+            setIsNewUser(false);
+        } else {
+            setProfile(null);
+            setIsNewUser(true);
+        }
+    };
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
             setUser(user);
+            if (user) {
+                await fetchProfile(user.uid);
+            } else {
+                setProfile(null);
+                setIsNewUser(false);
+            }
             setLoading(false);
         });
         return () => unsubscribe();
     }, []);
+
+    const refreshProfile = async () => {
+        if (user) {
+            await fetchProfile(user.uid);
+        }
+    };
 
     const loginWithGoogle = async () => {
         const provider = new GoogleAuthProvider();
@@ -49,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, loginWithGoogle, logout }}>
+        <AuthContext.Provider value={{ user, profile, loading, isNewUser, loginWithGoogle, logout, refreshProfile }}>
             {children}
         </AuthContext.Provider>
     );

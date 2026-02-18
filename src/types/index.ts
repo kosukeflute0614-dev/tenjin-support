@@ -90,3 +90,11 @@ export interface ProductionDetails {
     production: Production;
     performances: Performance[];
 }
+
+export interface AppUser {
+    uid: string;
+    email: string | null;
+    troupeName: string;
+    createdAt: any;
+    updatedAt: any;
+}

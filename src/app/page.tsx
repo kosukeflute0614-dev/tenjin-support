@@ -1,215 +1,93 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getActiveProductionId } from '@/app/actions/production-context';
-import { fetchDashboardStatsClient, fetchDuplicateReservationsClient } from '@/lib/client-firestore';
-import { formatDate, formatTime } from '@/lib/format';
-import DuplicateNotification from '@/components/DuplicateNotification';
 import { useAuth } from '@/components/AuthProvider';
-import { PerformanceStats, DuplicateGroup } from '@/types';
-import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
-export default function Home() {
-  const { user, loading } = useAuth();
+export default function LandingPage() {
+  const { user, profile, loading, isNewUser, loginWithGoogle } = useAuth();
   const router = useRouter();
-  const [activeProductionId, setActiveProductionId] = useState<string | null>(null);
-  const [stats, setStats] = useState<PerformanceStats[]>([]);
-  const [duplicateGroups, setDuplicateGroups] = useState<DuplicateGroup[]>([]);
-  const [isDataLoading, setIsDataLoading] = useState(true);
 
   useEffect(() => {
-    let unsubscribe: () => void = () => { };
-
-    const fetchData = async () => {
-      if (!user) return;
-      const activeId = await getActiveProductionId();
-      if (!activeId) {
-        router.push('/productions');
-        return;
-      }
-      setActiveProductionId(activeId);
-
-      try {
-        const [dashboardStats, duplicates] = await Promise.all([
-          fetchDashboardStatsClient(activeId, user.uid),
-          fetchDuplicateReservationsClient(activeId, user.uid)
-        ]);
-        setStats(dashboardStats);
-        setDuplicateGroups(duplicates);
-      } catch (error) {
-        console.error("Dashboard data fetch failed:", error);
-      } finally {
-        setIsDataLoading(false);
-      }
-    };
-
     if (!loading && user) {
-      fetchData();
-
-      // Listen for changes in reservations to trigger refresh
-      if (activeProductionId) {
-        const reservationsRef = collection(db, "reservations");
-        const q = query(
-          reservationsRef,
-          where("userId", "==", user.uid)
-        );
-        unsubscribe = onSnapshot(q, () => {
-          // When any reservation changes, refresh stats
-          fetchData();
-        });
+      if (isNewUser) {
+        router.push('/onboarding');
+      } else {
+        router.push('/dashboard');
       }
-    } else if (!loading && !user) {
-      setIsDataLoading(false);
     }
+  }, [user, profile, loading, isNewUser, router]);
 
-    return () => unsubscribe();
-  }, [user, loading, router, activeProductionId]); // Added activeProductionId to dependencies
-
-  if (loading || (user && isDataLoading)) {
+  if (loading) {
     return <div className="flex-center" style={{ height: '50vh' }}>読み込み中...</div>;
   }
 
-  if (!user) {
-    return (
-      <div className="container" style={{ textAlign: 'center', padding: '4rem' }}>
-        <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>🎭</div>
-        <h2 className="heading-md">制作者ログイン</h2>
-        <p className="text-muted">ダッシュボードを利用するにはログインしてください。</p>
-        <Link href="/" className="btn btn-primary" style={{ marginTop: '1.5rem' }}>ホームへ</Link>
-      </div>
-    );
-  }
-
-  if (!activeProductionId && !isDataLoading) {
-    return null; // Will redirect via useEffect
-  }
-
   return (
-    <div className="dashboard">
-      <h2 className="heading-lg">ダッシュボード</h2>
-
-      <DuplicateNotification groups={duplicateGroups} />
-
-      <div className="menu-grid">
-        <Link href={`/productions/${activeProductionId}`} className="menu-card">
-          <span className="icon">⚙️</span>
-          <h3>公演設定</h3>
-          <p>この公演の価格・回・詳細設定</p>
-        </Link>
-        <Link href="/reservations" className="menu-card">
-          <span className="icon">🎫</span>
-          <h3>予約管理</h3>
-          <p>予約の確認・追加・メール送信</p>
-        </Link>
-        <Link href={`/productions/${activeProductionId}/reception`} className="menu-card">
-          <span className="icon">🔔</span>
-          <h3>予約受付</h3>
-          <p>一般予約の開始・停止・期間設定</p>
-        </Link>
-        <Link href="/reception" className="menu-card">
-          <span className="icon">📱</span>
-          <h3>当日受付</h3>
-          <p>来場処理・当日券対応</p>
-        </Link>
+    <div className="container" style={{
+      textAlign: 'center',
+      padding: '10vh 2rem',
+      animation: 'fadeIn 1s ease-out'
+    }}>
+      <div style={{ marginBottom: '4rem' }}>
+        <div style={{ fontSize: '5rem', marginBottom: '1.5rem', display: 'inline-block' }}>🎭</div>
+        <h1 className="heading-lg" style={{
+          fontSize: '2.5rem',
+          fontWeight: '200',
+          letterSpacing: '0.15em',
+          marginBottom: '1rem'
+        }}>
+          Tenjin-Support
+        </h1>
+        <p className="text-muted" style={{ fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto', lineHeight: '1.8' }}>
+          演劇制作の、その先へ。<br />
+          シンプルで、美しく、迷いのない予約管理体験を。
+        </p>
       </div>
 
-      <div className="stats-section" style={{ marginTop: '3rem' }}>
-        <h3 className="heading-md" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <span style={{ fontSize: '1.4rem' }}>📊</span> 公演の予約状況
-        </h3>
+      <div style={{
+        padding: '3rem',
+        backgroundColor: 'var(--card-bg)',
+        borderRadius: 'var(--border-radius)',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.05)',
+        display: 'inline-block',
+        minWidth: '320px'
+      }}>
+        <h2 className="heading-md" style={{ marginBottom: '2rem', fontWeight: '400' }}>制作者ログイン</h2>
 
-        {stats.length === 0 ? (
-          <p className="text-muted">公演スケジュールが設定されていません。</p>
-        ) : (
-          <div style={{
-            backgroundColor: 'var(--card-bg)',
-            borderRadius: 'var(--border-radius)',
-            border: '1px solid var(--card-border)',
-            overflow: 'hidden',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-          }}>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.95rem', minWidth: '500px' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid var(--card-border)', background: '#f8f9fa' }}>
-                    <th style={{ padding: '0.8rem 1.2rem', color: '#666', fontWeight: 'bold', fontSize: '0.8rem', width: '25%' }}>開演時間</th>
-                    <th style={{ padding: '0.8rem 1.2rem', color: '#666', fontWeight: 'bold', fontSize: '0.8rem', width: '45%' }}>予約状況 / 定員</th>
-                    <th style={{ padding: '0.8rem 1.2rem', color: '#666', fontWeight: 'bold', fontSize: '0.8rem', width: '30%' }}>残席</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(() => {
-                    // 日付ごとにグループ化
-                    const grouped = stats.reduce((acc, perf) => {
-                      const dateKey = formatDate(perf.startTime);
-                      if (!acc[dateKey]) acc[dateKey] = [];
-                      acc[dateKey].push(perf);
-                      return acc;
-                    }, {} as Record<string, typeof stats>);
+        <button
+          onClick={loginWithGoogle}
+          className="btn btn-primary"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.75rem',
+            width: '100%',
+            padding: '1rem 2rem',
+            fontSize: '1.05rem',
+            borderRadius: '12px'
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18">
+            <path fill="#ffffff" d="M17.64 8.2v3.6c0 .5-.4.9-.9.9h-8.5v-3.6h5.8c-.2-1.1-.9-2-1.8-2.6v-2c1.3.6 2.4 1.6 3 2.9.2.3.3.6.4.8z" />
+            <path fill="#ffffff" d="M9.1 18c-2.4 0-4.6-.9-6.3-2.5l2.1-1.6c1.1.7 2.6 1.2 4.2 1.2 3.1 0 5.8-2.1 6.7-4.9h3.7c-1 5.3-5.5 9-10.4 9z" />
+            <path fill="#ffffff" d="M2.8 15.5c-1.8-1.6-2.8-3.9-2.8-6.4 0-2.5 1-4.8 2.8-6.4l2.1 1.6C4.1 5.3 3.6 6.8 3.6 9.1c0 2.3.5 3.8 1.3 4.8l-2.1 1.6z" />
+            <path fill="#ffffff" d="M9.1 3.6c1.6 0 3.1.5 4.2 1.2l2.1-1.6C13.7.9 11.5 0 9.1 0 4.2 0 .5 3.7 0 8.2l3.7 0c.9-2.8 3.6-4.6 5.4-4.6z" />
+          </svg>
+          Google でログイン
+        </button>
 
-                    const sortedDates = Object.keys(grouped).sort();
-
-                    return sortedDates.map(dateKey => {
-                      const dateObj = new Date(grouped[dateKey][0].startTime);
-                      const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()];
-
-                      return (
-                        <React.Fragment key={dateKey}>
-                          {/* 日付セパレーター行 */}
-                          <tr style={{ background: '#fcfcfc', borderBottom: '1px solid var(--card-border)' }}>
-                            <td colSpan={3} style={{ padding: '0.6rem 1.2rem', fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
-                              📅 {dateKey} ({dayOfWeek})
-                            </td>
-                          </tr>
-                          {/* 公演回行 */}
-                          {grouped[dateKey].map(perf => (
-                            <tr key={perf.id} style={{ borderBottom: '1px solid var(--card-border)', transition: 'background-color 0.2s' }}>
-                              <td style={{ padding: '1rem 1.2rem' }}>
-                                <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--foreground)' }}>{formatTime(perf.startTime)}</div>
-                              </td>
-                              <td style={{ padding: '1rem 1.2rem' }}>
-                                <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                                  <span style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{perf.bookedCount}</span>
-                                  <span style={{ fontSize: '0.8rem', color: '#888' }}>/ {perf.capacity} 席</span>
-                                </div>
-                                <div style={{ width: '100%', height: '6px', backgroundColor: '#eeeff1', borderRadius: '3px', maxWidth: '140px', overflow: 'hidden' }}>
-                                  <div style={{
-                                    height: '100%',
-                                    width: `${Math.min(perf.occupancyRate, 100)}%`,
-                                    backgroundColor: perf.occupancyRate >= 90 ? '#8b0000' : perf.occupancyRate >= 70 ? '#f9a825' : '#2e7d32',
-                                    transition: 'width 0.5s ease-out'
-                                  }} />
-                                </div>
-                              </td>
-                              <td style={{ padding: '1rem 1.2rem' }}>
-                                <div style={{
-                                  display: 'inline-block',
-                                  fontWeight: 'bold',
-                                  padding: '4px 10px',
-                                  borderRadius: '6px',
-                                  fontSize: '0.9rem',
-                                  backgroundColor: perf.remainingCount <= 5 ? 'rgba(139, 0, 0, 0.1)' : '#f8f9fa',
-                                  color: perf.remainingCount <= 5 ? '#8b0000' : '#444',
-                                  border: perf.remainingCount <= 5 ? '1px solid rgba(139, 0, 0, 0.2)' : '1px solid #eee'
-                                }}>
-                                  あと {perf.remainingCount} 席
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </React.Fragment>
-                      );
-                    });
-                  })()}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        <p className="text-muted" style={{ marginTop: '1.5rem', fontSize: '0.8rem' }}>
+          ※劇団・団体代表者としてのアカウントを作成します。
+        </p>
       </div>
+
+      <style jsx>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+            `}</style>
     </div>
   );
 }
