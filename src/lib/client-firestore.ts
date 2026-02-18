@@ -370,13 +370,29 @@ export async function deletePerformanceClient(id: string, userId: string) {
  * 券種を追加する（クライアント側）
  */
 export async function addTicketTypeClient(productionId: string, name: string, advancePrice: number, doorPrice: number, userId: string) {
+    console.log("[DEBUG] lib: addTicketTypeClient 開始", { productionId, name, userId });
+
     const docRef = doc(db, "productions", productionId);
     const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) throw new Error('Production not found');
-    if (docSnap.data().userId !== userId) throw new Error('Unauthorized');
+    if (!docSnap.exists()) {
+        console.error("[DEBUG] lib: Production が見つかりません", productionId);
+        throw new Error('Production not found');
+    }
+
+    const prodData = docSnap.data();
+    console.log("[DEBUG] lib: 所有権チェック", { docUserId: prodData.userId, requestUserId: userId });
+
+    if (prodData.userId !== userId) {
+        console.error("[DEBUG] lib: Unauthorized - userId が一致しません");
+        throw new Error('Unauthorized');
+    }
+
+    // Firestore 標準の方式で ID を生成 (ランダム文字列)
+    const newId = doc(collection(db, "_temp_")).id;
+    console.log("[DEBUG] lib: 生成された新チケットID:", newId);
 
     const newTicketType: TicketType = {
-        id: crypto.randomUUID(),
+        id: newId,
         name,
         price: advancePrice,
         advancePrice,
@@ -388,6 +404,7 @@ export async function addTicketTypeClient(productionId: string, name: string, ad
         ticketTypes: arrayUnion(newTicketType),
         updatedAt: serverTimestamp()
     });
+    console.log("[DEBUG] lib: updateDoc 成功");
 }
 
 /**
@@ -554,26 +571,26 @@ export async function processCheckinWithPaymentClient(
         if (reservation.userId !== userId) throw new Error('Unauthorized');
 
         const totalTickets = (reservation.tickets || []).reduce((sum: number, t: any) => sum + (t.count || 0), 0);
-        const totalAmount = (reservation.tickets || []).reduce((sum: number, t: any) => sum + (t.price * t.count), 0);
+        const totalAmount = (reservation.tickets || []).reduce((sum: number, t: any) => sum + ((t.price || 0) * (t.count || 0)), 0);
 
         const newCheckedInTickets = Math.min((reservation.checkedInTickets || 0) + checkinCount, totalTickets);
         const newPaidAmount = (reservation.paidAmount || 0) + additionalPaidAmount;
 
         let checkinStatus = "PARTIALLY_CHECKED_IN";
-        if (newCheckedInTickets === totalTickets) {
+        if (newCheckedInTickets === totalTickets && totalTickets > 0) {
             checkinStatus = "CHECKED_IN";
         } else if (newCheckedInTickets === 0) {
             checkinStatus = "NOT_CHECKED_IN";
         }
 
         let paymentStatus = "UNPAID";
-        if (newPaidAmount >= totalAmount) {
+        if (newPaidAmount >= totalAmount && totalAmount > 0) {
             paymentStatus = "PAID";
         } else if (newPaidAmount > 0) {
             paymentStatus = "PARTIALLY_PAID";
         }
 
-        const updatedTickets = reservation.tickets.map(t => {
+        const updatedTickets = (reservation.tickets || []).map(t => {
             const added = paymentBreakdown[t.ticketTypeId] || 0;
             return {
                 ...t,
@@ -672,20 +689,20 @@ export async function processPartialResetClient(
         if (reservation.userId !== userId) throw new Error('Unauthorized');
 
         const totalTickets = (reservation.tickets || []).reduce((sum: number, t: any) => sum + (t.count || 0), 0);
-        const totalAmount = (reservation.tickets || []).reduce((sum: number, t: any) => sum + (t.price * t.count), 0);
+        const totalAmount = (reservation.tickets || []).reduce((sum: number, t: any) => sum + ((t.price || 0) * (t.count || 0)), 0);
 
         const newCheckedInTickets = Math.max((reservation.checkedInTickets || 0) - resetCheckinCount, 0);
         const newPaidAmount = Math.max((reservation.paidAmount || 0) - refundAmount, 0);
 
         let checkinStatus = "PARTIALLY_CHECKED_IN";
-        if (newCheckedInTickets === totalTickets) {
+        if (newCheckedInTickets === totalTickets && totalTickets > 0) {
             checkinStatus = "CHECKED_IN";
         } else if (newCheckedInTickets === 0) {
             checkinStatus = "NOT_CHECKED_IN";
         }
 
         let paymentStatus = "UNPAID";
-        if (newPaidAmount >= totalAmount) {
+        if (newPaidAmount >= totalAmount && totalAmount > 0) {
             paymentStatus = "PAID";
         } else if (newPaidAmount > 0) {
             paymentStatus = "PARTIALLY_PAID";

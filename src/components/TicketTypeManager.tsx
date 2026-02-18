@@ -230,15 +230,28 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                 </h4>
                 <form onSubmit={async (e) => {
                     e.preventDefault();
-                    if (!user) return;
+                    console.log("[DEBUG] Click: 券種追加ボタンが押されました");
+
+                    if (!user) {
+                        console.error("[DEBUG] Error: ユーザーがログインしていません");
+                        setError("ログイン状態が確認できません。再度ログインしてください。");
+                        return;
+                    }
+
                     setIsProcessing(true);
                     const formData = new FormData(e.currentTarget);
                     const name = formData.get('name') as string;
                     const advancePrice = parseInt(formData.get('advancePrice') as string);
                     const doorPrice = parseInt(formData.get('doorPrice') as string);
+
+                    console.log("[DEBUG] Saving Payload:", { productionId, name, advancePrice, doorPrice, userId: user.uid });
+
                     try {
                         await addTicketTypeClient(productionId, name, advancePrice, doorPrice, user.uid);
+                        console.log("[DEBUG] Success: 券種の追加に成功しました");
+                        (e.target as HTMLFormElement).reset(); // フォームをクリア
                     } catch (error: any) {
+                        console.error("[DEBUG] Error: 保存に失敗しました", error);
                         setError(error.message || '追加に失敗しました。');
                     } finally {
                         setIsProcessing(false);

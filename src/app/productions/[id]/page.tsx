@@ -1,31 +1,77 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { fetchProductionDetailsClient } from '@/lib/client-firestore';
+import { db } from '@/lib/firebase';
+import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
+import { serializeDoc, serializeDocs } from '@/lib/firestore-utils';
 import Link from 'next/link';
 import ProductionSettingsTabs from '@/components/ProductionSettingsTabs';
 import { useAuth } from '@/components/AuthProvider';
 import { Production, Performance } from '@/types';
+import { useRouter } from 'next/navigation';
 
 export default function ProductionDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const { user, loading } = useAuth();
+    const router = useRouter();
     const [details, setDetails] = useState<{ production: Production, performances: Performance[] } | null>(null);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
 
     useEffect(() => {
-        const fetchDetails = async () => {
+        let unsubscribeProd: () => void;
+        let unsubscribePerf: () => void;
+
+        const setupListeners = async () => {
             if (user) {
-                const data = await fetchProductionDetailsClient(id, user.uid);
-                setDetails(data);
+                // 1. Production の監視
+                const prodRef = doc(db, "productions", id);
+                unsubscribeProd = onSnapshot(prodRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const prodData = serializeDoc<Production>(docSnap);
+
+                        // 所有権チェック
+                        if (prodData.userId !== user.uid) {
+                            console.error("所有権がありません");
+                            router.push('/productions');
+                            return;
+                        }
+
+                        // 2. Performances の監視 (Production が取得できた後に開始)
+                        const perfsRef = collection(db, "performances");
+                        const q = query(perfsRef, where("productionId", "==", id));
+                        unsubscribePerf = onSnapshot(q, (perfSnap) => {
+                            const performances = serializeDocs<Performance>(perfSnap.docs)
+                                .sort((a, b) => {
+                                    const tA = new Date(a.startTime).getTime();
+                                    const tB = new Date(b.startTime).getTime();
+                                    return tA - tB;
+                                });
+
+                            setDetails({ production: prodData, performances });
+                            setIsInitialLoading(false);
+                        }, (err) => {
+                            console.error("Performances listener error:", err);
+                        });
+                    } else {
+                        console.error("Production が存在しません");
+                        setIsInitialLoading(false);
+                    }
+                }, (err) => {
+                    console.error("Production listener error:", err);
+                    setIsInitialLoading(false);
+                });
+            } else if (!loading) {
+                setIsInitialLoading(false);
             }
-            setIsInitialLoading(false);
         };
 
-        if (!loading) {
-            fetchDetails();
-        }
-    }, [id, user, loading]);
+        setupListeners();
+
+        return () => {
+            if (unsubscribeProd) unsubscribeProd();
+            if (unsubscribePerf) unsubscribePerf();
+        };
+    }, [id, user, loading, router]);
 
     if (loading || isInitialLoading) {
         return <div className="flex-center" style={{ height: '50vh' }}>読み込み中...</div>;

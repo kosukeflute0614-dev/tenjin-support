@@ -58,12 +58,12 @@ export default function CheckinList({
                 </thead>
                 <tbody>
                     {sorted.map((res) => {
-                        const kana = res.customerNameKana || res.customerName
+                        const kana = res.customerNameKana || res.customerName || ""
                         const group = getKanaGroup(kana)
                         const showHeader = group !== lastGroup
                         lastGroup = group
 
-                        const totalTickets = res.tickets.reduce((sum: number, t: any) => sum + (t.count || 0), 0)
+                        const totalTickets = (res.tickets || []).reduce((sum: number, t: any) => sum + (t.count || 0), 0)
 
                         return (
                             <Fragment key={res.id}>
@@ -179,7 +179,7 @@ function DetailModal({
     const [isTransitionPending, startTransition] = useTransition()
     const tickets = res.tickets || []
     const totalTickets = tickets.reduce((sum: number, t: any) => sum + (t.count || 0), 0)
-    const totalAmount = tickets.reduce((sum: number, t: any) => sum + (t.price * t.count), 0)
+    const totalAmount = tickets.reduce((sum: number, t: any) => sum + ((t.price || 0) * (t.count || 0)), 0)
 
     // 入場済み人数（DB値）
     const checkedInCount = res.checkedInTickets || 0
@@ -227,7 +227,7 @@ function DetailModal({
 
     const totalRefund = Object.entries(refundBreakdown).reduce((sum, [id, count]) => {
         const ticket = tickets.find((t: any) => t.ticketTypeId === id)
-        return sum + (ticket ? ticket.price * count : 0)
+        return sum + (ticket ? (ticket.price || 0) * (count || 0) : 0)
     }, 0)
 
     const handlePartialReset = () => {
@@ -245,8 +245,8 @@ function DetailModal({
     let tempCheckin = totalCheckinAfter
     let requiredMinAmount = 0
     sortedByPriceAsc.forEach(t => {
-        const count = Math.min(t.count, tempCheckin)
-        requiredMinAmount += count * t.price
+        const count = Math.min(t.count || 0, tempCheckin)
+        requiredMinAmount += count * (t.price || 0)
         tempCheckin -= count
     })
     const isAmountValid = (currentPaidAmount + currentTransactionAmount) >= requiredMinAmount
@@ -324,8 +324,8 @@ function DetailModal({
                                         {ticketPaymentStatus.map((t: any) => (
                                             <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fcfcfc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #eee' }}>
                                                 <div style={{ fontSize: '0.85rem' }}>
-                                                    <div style={{ fontWeight: 'bold' }}>{t.ticketType.name} (¥{t.price.toLocaleString()})</div>
-                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>残交付: {t.remainingCount}枚</div>
+                                                    <div style={{ fontWeight: 'bold' }}>{(t.ticketType?.name) || '不明な券種'} (¥{(t.price || 0).toLocaleString()})</div>
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>残交付: {t.remainingCount || 0}枚</div>
                                                 </div>
                                                 <div style={{ width: '150px' }}>
                                                     <NumberStepper
@@ -561,11 +561,11 @@ function DetailModal({
                                 <div>
                                     <label style={{ fontSize: '0.85rem', fontWeight: 'bold', display: 'block', marginBottom: '0.75rem', color: '#666' }}>2. 返金する枚数 (券種ごと)</label>
                                     <div style={{ background: '#fcfcfc', border: '1px solid #eee', borderRadius: '8px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                        {ticketPaymentStatus.filter((t: any) => t.paidCount > 0).map((t: any) => (
+                                        {ticketPaymentStatus.filter((t: any) => (t.paidCount || 0) > 0).map((t: any) => (
                                             <div key={t.id}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                                    <div style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{t.ticketType.name}</div>
-                                                    <div style={{ fontSize: '0.75rem', color: '#888' }}>支払い済み: {t.paidCount}枚</div>
+                                                    <div style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{(t.ticketType?.name) || '不明な券種'}</div>
+                                                    <div style={{ fontSize: '0.75rem', color: '#888' }}>支払い済み: {t.paidCount || 0}枚</div>
                                                 </div>
                                                 <NumberStepper
                                                     value={refundBreakdown[t.ticketTypeId] || 0}
@@ -659,7 +659,7 @@ function DetailModal({
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: '#333', marginBottom: '0.1rem' }}>{t.ticketType?.name || '不明な券種'}</div>
                                                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                                    <span style={{ fontSize: '0.8rem', color: '#666' }}>¥{t.price.toLocaleString()}</span>
+                                                    <span style={{ fontSize: '0.8rem', color: '#666' }}>¥{(t.price || 0).toLocaleString()}</span>
                                                     <span style={{ fontSize: '0.75rem', color: '#ccc' }}>×</span>
                                                     <span style={{
                                                         fontSize: '0.85rem',
@@ -668,17 +668,17 @@ function DetailModal({
                                                         padding: '0.05rem 0.4rem',
                                                         borderRadius: '3px',
                                                         color: '#000'
-                                                    }}>{t.count}枚</span>
-                                                    {currentPaidAmount > 0 && (
+                                                    }}>{t.count || 0}枚</span>
+                                                    {(currentPaidAmount || 0) > 0 && (
                                                         <div style={{ display: 'flex', gap: '0.2rem', marginLeft: '0.5rem' }}>
-                                                            {t.paidCount > 0 && <span style={{ color: '#1e8e3e', background: '#e6f4ea', padding: '0 0.3rem', borderRadius: '2px', fontSize: '0.65rem', border: '1px solid #ceead6' }}>済:{t.paidCount}</span>}
-                                                            {t.remainingCount > 0 && <span style={{ color: '#d93025', background: '#fce8e6', padding: '0 0.3rem', borderRadius: '2px', fontSize: '0.65rem', border: '1px solid #fad2cf' }}>未:{t.remainingCount}</span>}
+                                                            {(t.paidCount || 0) > 0 && <span style={{ color: '#1e8e3e', background: '#e6f4ea', padding: '0 0.3rem', borderRadius: '2px', fontSize: '0.65rem', border: '1px solid #ceead6' }}>済:{t.paidCount}</span>}
+                                                            {(t.remainingCount || 0) > 0 && <span style={{ color: '#d93025', background: '#fce8e6', padding: '0 0.3rem', borderRadius: '2px', fontSize: '0.65rem', border: '1px solid #fad2cf' }}>未:{t.remainingCount}</span>}
                                                         </div>
                                                     )}
                                                 </div>
                                             </div>
                                             <div style={{ fontSize: '1rem', fontWeight: '900', color: '#111' }}>
-                                                ¥{(t.price * t.count).toLocaleString()}
+                                                ¥{((t.price || 0) * (t.count || 0)).toLocaleString()}
                                             </div>
                                         </div>
                                     ))}
