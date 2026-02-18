@@ -594,6 +594,8 @@ export async function processCheckinWithPaymentClient(
         const logsRef = doc(collection(db, "checkinLogs"));
         transaction.set(logsRef, {
             reservationId,
+            userId,
+            productionId,
             type: 'CHECKIN',
             count: checkinCount,
             paymentInfo: JSON.stringify(paymentBreakdown),
@@ -605,7 +607,7 @@ export async function processCheckinWithPaymentClient(
 /**
  * 入場リセット（クライアント版）
  */
-export async function resetCheckInClient(reservationId: string, userId: string) {
+export async function resetCheckInClient(reservationId: string, productionId: string, userId: string) {
     const resRef = doc(db, "reservations", reservationId);
 
     await runTransaction(db, async (transaction) => {
@@ -614,7 +616,7 @@ export async function resetCheckInClient(reservationId: string, userId: string) 
         const reservation = resSnap.data() as FirestoreReservation;
         if (reservation.userId !== userId) throw new Error('Unauthorized');
 
-        const updatedTickets = reservation.tickets.map(t => ({
+        const updatedTickets = (reservation.tickets || []).map(t => ({
             ...t,
             paidCount: 0
         }));
@@ -632,6 +634,8 @@ export async function resetCheckInClient(reservationId: string, userId: string) 
         const logsRef = doc(collection(db, "checkinLogs"));
         transaction.set(logsRef, {
             reservationId,
+            userId,
+            productionId,
             type: 'RESET',
             count: reservation.checkedInTickets || 0,
             createdAt: serverTimestamp()
@@ -647,6 +651,7 @@ export async function processPartialResetClient(
     resetCheckinCount: number,
     refundAmount: number,
     refundBreakdown: { [ticketTypeId: string]: number },
+    productionId: string,
     userId: string
 ) {
     const resRef = doc(db, "reservations", reservationId);
@@ -677,7 +682,7 @@ export async function processPartialResetClient(
             paymentStatus = "PARTIALLY_PAID";
         }
 
-        const updatedTickets = reservation.tickets.map(t => {
+        const updatedTickets = (reservation.tickets || []).map(t => {
             const subtracted = refundBreakdown[t.ticketTypeId] || 0;
             return {
                 ...t,
@@ -698,6 +703,8 @@ export async function processPartialResetClient(
         const logsRef = doc(collection(db, "checkinLogs"));
         transaction.set(logsRef, {
             reservationId,
+            userId,
+            productionId,
             type: 'RESET',
             count: resetCheckinCount,
             paymentInfo: JSON.stringify(Object.fromEntries(
