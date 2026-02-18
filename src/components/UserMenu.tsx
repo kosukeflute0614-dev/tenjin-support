@@ -35,28 +35,21 @@ export default function UserMenu() {
                     style={{
                         background: 'none',
                         border: 'none',
-                        color: 'var(--foreground)',
-                        fontWeight: '500',
+                        color: '#334155', // slate-700
+                        fontWeight: '600',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '0.6rem',
-                        fontSize: '0.95rem',
+                        gap: '0.4rem',
+                        fontSize: '0.875rem', // text-sm
                         padding: '0.5rem 0',
-                        letterSpacing: '0.02em',
-                        transition: 'opacity 0.2s'
+                        transition: 'opacity 0.2s',
+                        fontFamily: 'system-ui, -apple-system, sans-serif'
                     }}
                     className="menu-trigger"
                 >
-                    <span style={{
-                        fontFamily: 'var(--font-serif)',
-                        fontSize: '1.05rem',
-                        color: 'var(--primary)',
-                        fontWeight: '600'
-                    }}>
-                        {profile?.troupeName || '劇団未設定'}
-                    </span>
-                    {isOpen ? <ChevronUp size={16} strokeWidth={1.5} opacity={0.5} /> : <ChevronDown size={16} strokeWidth={1.5} opacity={0.5} />}
+                    <span>{profile?.troupeName || '劇団未設定'}</span>
+                    {isOpen ? <ChevronUp size={14} strokeWidth={2} opacity={0.4} /> : <ChevronDown size={14} strokeWidth={2} opacity={0.4} />}
                 </button>
 
                 {isOpen && (
@@ -64,52 +57,54 @@ export default function UserMenu() {
                         position: 'absolute',
                         top: '100%',
                         right: 0,
-                        backgroundColor: 'var(--card-bg)',
-                        border: '1px solid rgba(0,0,0,0.03)',
-                        borderRadius: '12px',
-                        boxShadow: '0 20px 40px -15px rgba(0,0,0,0.12)',
+                        backgroundColor: '#FFFFFF',
+                        border: '1px solid #f1f5f9', // border-slate-100
+                        borderRadius: '12px', // rounded-xl
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)', // shadow-xl
                         width: '240px',
                         zIndex: 100,
                         overflow: 'hidden',
                         marginTop: '0.75rem',
                         animation: 'softFadeIn 0.2s ease-out'
                     }}>
+                        {/* ヘッダーセクション */}
                         <div style={{
-                            padding: '1.25rem 1.5rem',
-                            borderBottom: '1px solid rgba(0,0,0,0.04)',
-                            backgroundColor: 'rgba(0,0,0,0.01)'
+                            padding: '1rem 1rem',
+                            borderBottom: '1px solid #f1f5f9', // border-slate-100
+                            backgroundColor: 'rgba(248, 250, 252, 0.5)' // bg-slate-50/50
                         }}>
                             <div style={{
-                                fontSize: '0.65rem',
-                                color: '#999',
+                                fontSize: '10px',
+                                color: '#94a3b8', // text-slate-400
                                 textTransform: 'uppercase',
                                 letterSpacing: '0.1em',
-                                marginBottom: '0.4rem',
-                                fontWeight: '600'
+                                marginBottom: '0.25rem',
+                                fontWeight: '700',
+                                fontFamily: 'system-ui, -apple-system, sans-serif'
                             }}>
-                                Current Troupe
+                                CURRENT TROUPE
                             </div>
                             <div style={{
-                                fontSize: '1.1rem',
+                                fontSize: '0.875rem', // text-sm
                                 fontWeight: '600',
-                                color: 'var(--foreground)',
-                                fontFamily: 'var(--font-serif)',
+                                color: '#334155', // text-slate-700
                                 whiteSpace: 'nowrap',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
-                                letterSpacing: '0.02em'
+                                fontFamily: 'system-ui, -apple-system, sans-serif'
                             }}>
                                 {profile?.troupeName || '劇団未設定'}
                             </div>
                         </div>
 
-                        <div style={{ padding: '0.4rem 0' }}>
+                        {/* メニュー項目 */}
+                        <div style={{ padding: '0.25rem 0' }}>
                             <Link
                                 href="/productions"
                                 className="dropdown-item"
                                 onClick={() => setIsOpen(false)}
                             >
-                                <Theater size={18} strokeWidth={1.5} />
+                                <Theater size={18} strokeWidth={1.5} color="#94a3b8" />
                                 <span>公演一覧</span>
                             </Link>
                             <Link
@@ -117,18 +112,18 @@ export default function UserMenu() {
                                 className="dropdown-item"
                                 onClick={() => setIsOpen(false)}
                             >
-                                <Settings size={18} strokeWidth={1.5} />
+                                <Settings size={18} strokeWidth={1.5} color="#94a3b8" />
                                 <span>団体設定</span>
                             </Link>
 
+                            {/* ログアウト項目 */}
                             <div style={{
-                                borderTop: '1px solid rgba(0,0,0,0.04)',
-                                marginTop: '0.4rem',
-                                paddingTop: '0.4rem'
+                                borderTop: '1px solid #f1f5f9', // border-slate-100
+                                marginTop: '0.25rem'
                             }}>
                                 <button
                                     onClick={() => { handleLogout(); setIsOpen(false); }}
-                                    className="dropdown-item logout-btn"
+                                    className="dropdown-item logout-link"
                                     style={{
                                         width: '100%',
                                         textAlign: 'left',
@@ -137,7 +132,7 @@ export default function UserMenu() {
                                         cursor: 'pointer'
                                     }}
                                 >
-                                    <LogOut size={18} strokeWidth={1.5} />
+                                    <LogOut size={18} strokeWidth={1.5} color="#94a3b8" className="logout-icon" />
                                     <span>ログアウト</span>
                                 </button>
                             </div>
@@ -149,29 +144,31 @@ export default function UserMenu() {
                     .dropdown-item {
                         display: flex;
                         align-items: center;
-                        gap: 1rem;
-                        padding: 0.9rem 1.5rem;
-                        font-size: 0.95rem;
-                        color: #444;
+                        gap: 0.75rem; /* gap-3 */
+                        padding: 0.75rem 1rem; /* py-3 px-4 */
+                        font-size: 0.875rem; /* text-sm */
+                        color: #475569; /* text-slate-600 */
                         text-decoration: none;
                         transition: all 0.2s ease;
-                        letter-spacing: 0.03em;
+                        font-family: system-ui, -apple-system, sans-serif;
                     }
                     .dropdown-item:hover {
-                        background-color: rgba(0, 0, 0, 0.03);
-                        color: var(--primary);
-                        padding-left: 1.7rem;
+                        background-color: #f8fafc; /* bg-slate-50 */
+                        color: #0f172a; /* text-slate-900 */
                     }
-                    .logout-btn:hover {
-                        background-color: rgba(220, 38, 38, 0.04);
+                    .logout-link:hover {
+                        background-color: rgba(254, 242, 242, 0.5); /* bg-red-50/50 */
                         color: #dc2626;
                     }
+                    :global(.logout-link:hover .logout-icon) {
+                        color: #dc2626 !important;
+                    }
                     @keyframes softFadeIn {
-                        from { opacity: 0; transform: translateY(12px); }
+                        from { opacity: 0; transform: translateY(8px); }
                         to { opacity: 1; transform: translateY(0); }
                     }
                     .menu-trigger:hover {
-                        opacity: 0.8;
+                        opacity: 0.7;
                     }
                 `}</style>
             </div>
@@ -184,10 +181,11 @@ export default function UserMenu() {
             className="btn btn-primary"
             style={{
                 padding: '0.6rem 1.4rem',
-                fontSize: '0.9rem',
+                fontSize: '0.875rem',
                 borderRadius: '50px',
-                boxShadow: '0 4px 15px rgba(var(--primary-rgb), 0.2)',
-                transition: 'all 0.3s ease'
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                transition: 'all 0.3s ease',
+                fontFamily: 'system-ui, -apple-system, sans-serif'
             }}
         >
             ログイン
