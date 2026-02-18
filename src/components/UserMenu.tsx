@@ -8,6 +8,7 @@ import { Theater, Settings, LogOut, ChevronDown, ChevronUp } from 'lucide-react'
 export default function UserMenu() {
     const { user, profile, loginWithGoogle, logout } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
+    const [hoverItem, setHoverItem] = useState<string | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
 
     // 外部クリックでメニューを閉じる
@@ -27,6 +28,33 @@ export default function UserMenu() {
         }
     };
 
+    // 共通のスタイル定数
+    const slate400 = '#94a3b8';
+    const slate50 = '#f8fafc';
+    const slate100 = '#f1f5f9';
+    const slate600 = '#475569';
+    const slate700 = '#334155';
+    const slate900 = '#0f172a';
+    const red50 = 'rgba(254, 242, 242, 0.5)';
+    const red600 = '#dc2626';
+
+    const itemStyle = (id: string) => ({
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.75rem',
+        padding: '0.75rem 1rem',
+        fontSize: '0.875rem',
+        color: hoverItem === id ? (id === 'logout' ? red600 : slate900) : slate600,
+        textDecoration: 'none',
+        backgroundColor: hoverItem === id ? (id === 'logout' ? red50 : slate50) : 'transparent',
+        transition: 'all 0.2s ease',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        border: 'none',
+        width: '100%',
+        textAlign: 'left' as const,
+        cursor: 'pointer'
+    });
+
     if (user) {
         return (
             <div style={{ position: 'relative' }} ref={menuRef}>
@@ -35,18 +63,17 @@ export default function UserMenu() {
                     style={{
                         background: 'none',
                         border: 'none',
-                        color: '#334155', // slate-700
+                        color: slate700,
                         fontWeight: '600',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.4rem',
-                        fontSize: '0.875rem', // text-sm
+                        fontSize: '0.875rem',
                         padding: '0.5rem 0',
                         transition: 'opacity 0.2s',
                         fontFamily: 'system-ui, -apple-system, sans-serif'
                     }}
-                    className="menu-trigger"
                 >
                     <span>{profile?.troupeName || '劇団未設定'}</span>
                     {isOpen ? <ChevronUp size={14} strokeWidth={2} opacity={0.4} /> : <ChevronDown size={14} strokeWidth={2} opacity={0.4} />}
@@ -58,24 +85,25 @@ export default function UserMenu() {
                         top: '100%',
                         right: 0,
                         backgroundColor: '#FFFFFF',
-                        border: '1px solid #f1f5f9', // border-slate-100
-                        borderRadius: '12px', // rounded-xl
-                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)', // shadow-xl
+                        border: `1px solid ${slate100}`,
+                        borderRadius: '12px',
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
                         width: '240px',
                         zIndex: 100,
                         overflow: 'hidden',
                         marginTop: '0.75rem',
-                        animation: 'softFadeIn 0.2s ease-out'
+                        display: 'flex',
+                        flexDirection: 'column'
                     }}>
                         {/* ヘッダーセクション */}
                         <div style={{
                             padding: '1rem 1rem',
-                            borderBottom: '1px solid #f1f5f9', // border-slate-100
-                            backgroundColor: 'rgba(248, 250, 252, 0.5)' // bg-slate-50/50
+                            borderBottom: `1px solid ${slate100}`,
+                            backgroundColor: 'rgba(248, 250, 252, 0.5)'
                         }}>
                             <div style={{
                                 fontSize: '10px',
-                                color: '#94a3b8', // text-slate-400
+                                color: slate400,
                                 textTransform: 'uppercase',
                                 letterSpacing: '0.1em',
                                 marginBottom: '0.25rem',
@@ -85,9 +113,9 @@ export default function UserMenu() {
                                 CURRENT TROUPE
                             </div>
                             <div style={{
-                                fontSize: '0.875rem', // text-sm
+                                fontSize: '0.875rem',
                                 fontWeight: '600',
-                                color: '#334155', // text-slate-700
+                                color: slate700,
                                 whiteSpace: 'nowrap',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
@@ -98,79 +126,46 @@ export default function UserMenu() {
                         </div>
 
                         {/* メニュー項目 */}
-                        <div style={{ padding: '0.25rem 0' }}>
+                        <div style={{ padding: '0.25rem 0', display: 'flex', flexDirection: 'column' }}>
                             <Link
                                 href="/productions"
-                                className="dropdown-item"
+                                style={itemStyle('productions')}
+                                onMouseEnter={() => setHoverItem('productions')}
+                                onMouseLeave={() => setHoverItem(null)}
                                 onClick={() => setIsOpen(false)}
                             >
-                                <Theater size={18} strokeWidth={1.5} color="#94a3b8" />
+                                <Theater size={18} strokeWidth={1.5} color={hoverItem === 'productions' ? slate900 : slate400} />
                                 <span>公演一覧</span>
                             </Link>
                             <Link
                                 href="/settings/troupe"
-                                className="dropdown-item"
+                                style={itemStyle('settings')}
+                                onMouseEnter={() => setHoverItem('settings')}
+                                onMouseLeave={() => setHoverItem(null)}
                                 onClick={() => setIsOpen(false)}
                             >
-                                <Settings size={18} strokeWidth={1.5} color="#94a3b8" />
+                                <Settings size={18} strokeWidth={1.5} color={hoverItem === 'settings' ? slate900 : slate400} />
                                 <span>団体設定</span>
                             </Link>
 
                             {/* ログアウト項目 */}
                             <div style={{
-                                borderTop: '1px solid #f1f5f9', // border-slate-100
+                                borderTop: `1px solid ${slate100}`,
                                 marginTop: '0.25rem'
                             }}>
                                 <button
                                     onClick={() => { handleLogout(); setIsOpen(false); }}
-                                    className="dropdown-item logout-link"
-                                    style={{
-                                        width: '100%',
-                                        textAlign: 'left',
-                                        border: 'none',
-                                        background: 'none',
-                                        cursor: 'pointer'
-                                    }}
+                                    style={itemStyle('logout')}
+                                    onMouseEnter={() => setHoverItem('logout')}
+                                    onMouseLeave={() => setHoverItem(null)}
                                 >
-                                    <LogOut size={18} strokeWidth={1.5} color="#94a3b8" className="logout-icon" />
+                                    <LogOut size={18} strokeWidth={1.5} color={hoverItem === 'logout' ? red600 : slate400} />
                                     <span>ログアウト</span>
                                 </button>
                             </div>
                         </div>
                     </div>
                 )}
-
-                <style jsx>{`
-                    .dropdown-item {
-                        display: flex;
-                        align-items: center;
-                        gap: 0.75rem; /* gap-3 */
-                        padding: 0.75rem 1rem; /* py-3 px-4 */
-                        font-size: 0.875rem; /* text-sm */
-                        color: #475569; /* text-slate-600 */
-                        text-decoration: none;
-                        transition: all 0.2s ease;
-                        font-family: system-ui, -apple-system, sans-serif;
-                    }
-                    .dropdown-item:hover {
-                        background-color: #f8fafc; /* bg-slate-50 */
-                        color: #0f172a; /* text-slate-900 */
-                    }
-                    .logout-link:hover {
-                        background-color: rgba(254, 242, 242, 0.5); /* bg-red-50/50 */
-                        color: #dc2626;
-                    }
-                    :global(.logout-link:hover .logout-icon) {
-                        color: #dc2626 !important;
-                    }
-                    @keyframes softFadeIn {
-                        from { opacity: 0; transform: translateY(8px); }
-                        to { opacity: 1; transform: translateY(0); }
-                    }
-                    .menu-trigger:hover {
-                        opacity: 0.7;
-                    }
-                `}</style>
             </div>
         );
     }
