@@ -55,75 +55,79 @@ export default function UserMenu() {
                         right: 0,
                         backgroundColor: 'var(--card-bg)',
                         border: '1px solid var(--card-border)',
-                        borderRadius: '12px', // More rounded
-                        boxShadow: '0 15px 40px rgba(0,0,0,0.12)', // Deeper shadow
-                        width: '200px', // Slightly wider
+                        borderRadius: '8px',
+                        boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
+                        width: '220px', // Slightly wider for safer tapping
                         zIndex: 100,
                         overflow: 'hidden',
-                        marginTop: '0.75rem',
-                        animation: 'slideUp 0.2s ease-out'
+                        marginTop: '0.5rem',
+                        animation: 'slideUp 0.15s ease-out'
                     }}>
-                        <div style={{ padding: '0.8rem 1.2rem', borderBottom: '1px solid var(--card-border)', backgroundColor: '#fcfcfc' }}>
-                            <div style={{ fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>団体管理</div>
-                            <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--foreground)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <div style={{
+                            padding: '1rem 1.25rem',
+                            borderBottom: '1px solid var(--card-border)',
+                            backgroundColor: '#f8f9fa'
+                        }}>
+                            <div style={{ fontSize: '0.7rem', color: '#717171', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
+                                管理団体
+                            </div>
+                            <div style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--foreground)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                 {profile?.troupeName || '劇団'}
                             </div>
                         </div>
 
-                        <Link
-                            href="/productions"
-                            className="dropdown-item"
-                            onClick={() => setIsOpen(false)}
-                        >
-                            <span style={{ marginRight: '0.75rem', fontSize: '1.1rem' }}>🎭</span>
-                            公演一覧
-                        </Link>
-                        <Link
-                            href="/settings/troupe"
-                            className="dropdown-item"
-                            onClick={() => setIsOpen(false)}
-                        >
-                            <span style={{ marginRight: '0.75rem', fontSize: '1.1rem' }}>⚙️</span>
-                            団体設定
-                        </Link>
-
-                        <div style={{ borderTop: '1px solid var(--card-border)', marginTop: '0.2rem' }}>
-                            <button
-                                onClick={() => { handleLogout(); setIsOpen(false); }}
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <Link
+                                href="/productions"
                                 className="dropdown-item"
-                                style={{
-                                    width: '100%',
-                                    textAlign: 'left',
-                                    border: 'none',
-                                    background: 'none',
-                                    color: 'var(--error)',
-                                    cursor: 'pointer',
-                                    padding: '0.8rem 1.2rem'
-                                }}
+                                onClick={() => setIsOpen(false)}
                             >
-                                <span style={{ marginRight: '0.75rem', fontSize: '1.1rem' }}>🚪</span>
-                                ログアウト
-                            </button>
+                                公演一覧
+                            </Link>
+                            <Link
+                                href="/settings/troupe"
+                                className="dropdown-item"
+                                onClick={() => setIsOpen(false)}
+                            >
+                                団体設定
+                            </Link>
+
+                            <div style={{ borderTop: '1px solid var(--card-border)' }}>
+                                <button
+                                    onClick={() => { handleLogout(); setIsOpen(false); }}
+                                    className="dropdown-item logout-btn"
+                                    style={{
+                                        width: '100%',
+                                        textAlign: 'left',
+                                        border: 'none',
+                                        background: 'none',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    ログアウト
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
 
                 <style jsx>{`
                     .dropdown-item {
-                        display: flex;
-                        alignItems: center;
-                        padding: 0.8rem 1.2rem;
-                        fontSize: 0.9rem;
+                        display: block;
+                        padding: 1rem 1.25rem;
+                        fontSize: 1rem;
                         color: var(--foreground);
                         textDecoration: none;
-                        transition: all 0.2s;
+                        transition: background 0.2s;
                     }
                     .dropdown-item:hover {
-                        background-color: #f5f7f9;
-                        color: var(--primary);
+                        background-color: #f1f3f5;
+                    }
+                    .logout-btn {
+                        color: var(--error);
                     }
                     @keyframes slideUp {
-                        from { opacity: 0; transform: translateY(10px); }
+                        from { opacity: 0; transform: translateY(8px); }
                         to { opacity: 1; transform: translateY(0); }
                     }
                 `}</style>
