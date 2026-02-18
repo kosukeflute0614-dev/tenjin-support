@@ -582,6 +582,9 @@ export async function processCheckinWithPaymentClient(
         });
 
         transaction.update(resRef, {
+            userId,
+            productionId,
+            performanceId,
             checkedInTickets: newCheckedInTickets,
             checkinStatus: checkinStatus,
             paidAmount: newPaidAmount,
@@ -596,6 +599,7 @@ export async function processCheckinWithPaymentClient(
             reservationId,
             userId,
             productionId,
+            performanceId,
             type: 'CHECKIN',
             count: checkinCount,
             paymentInfo: JSON.stringify(paymentBreakdown),
@@ -607,7 +611,7 @@ export async function processCheckinWithPaymentClient(
 /**
  * 入場リセット（クライアント版）
  */
-export async function resetCheckInClient(reservationId: string, productionId: string, userId: string) {
+export async function resetCheckInClient(reservationId: string, performanceId: string, productionId: string, userId: string) {
     const resRef = doc(db, "reservations", reservationId);
 
     await runTransaction(db, async (transaction) => {
@@ -622,6 +626,9 @@ export async function resetCheckInClient(reservationId: string, productionId: st
         }));
 
         transaction.update(resRef, {
+            userId,
+            productionId,
+            performanceId,
             checkedInTickets: 0,
             checkinStatus: "NOT_CHECKED_IN",
             checkedInAt: null,
@@ -636,6 +643,7 @@ export async function resetCheckInClient(reservationId: string, productionId: st
             reservationId,
             userId,
             productionId,
+            performanceId,
             type: 'RESET',
             count: reservation.checkedInTickets || 0,
             createdAt: serverTimestamp()
@@ -651,6 +659,7 @@ export async function processPartialResetClient(
     resetCheckinCount: number,
     refundAmount: number,
     refundBreakdown: { [ticketTypeId: string]: number },
+    performanceId: string,
     productionId: string,
     userId: string
 ) {
@@ -691,6 +700,9 @@ export async function processPartialResetClient(
         });
 
         transaction.update(resRef, {
+            userId,
+            productionId,
+            performanceId,
             checkedInTickets: newCheckedInTickets,
             checkinStatus: checkinStatus,
             paidAmount: newPaidAmount,
@@ -705,6 +717,7 @@ export async function processPartialResetClient(
             reservationId,
             userId,
             productionId,
+            performanceId,
             type: 'RESET',
             count: resetCheckinCount,
             paymentInfo: JSON.stringify(Object.fromEntries(

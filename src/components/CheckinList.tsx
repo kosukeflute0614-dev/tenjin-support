@@ -136,7 +136,7 @@ export default function CheckinList({
                                     .then(() => setSelectedRes(null))
                                     .catch(err => alert(err.message))
                             } else if (type === 'reset') {
-                                resetCheckInClient(selectedRes.id, productionId, user.uid)
+                                resetCheckInClient(selectedRes.id, performanceId, productionId, user.uid)
                                     .then(() => setSelectedRes(null))
                                     .catch(err => alert(err.message))
                             }
@@ -233,7 +233,7 @@ function DetailModal({
     const handlePartialReset = () => {
         if (!user) return
         startTransition(() => {
-            processPartialResetClient(res.id, resetCount, totalRefund, refundBreakdown, productionId, user.uid)
+            processPartialResetClient(res.id, resetCount, totalRefund, refundBreakdown, performanceId, productionId, user.uid)
                 .then(() => onClose())
                 .catch(err => alert(err.message))
         })
