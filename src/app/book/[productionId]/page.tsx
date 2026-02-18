@@ -1,26 +1,40 @@
-import { getProductionDetails } from '@/app/actions/production-details';
+'use client';
+
+import { useEffect, useState, use } from 'react';
+import { fetchProductionDetailsClient } from '@/lib/client-firestore';
 import PublicReservationForm from '@/components/PublicReservationForm';
 import { notFound } from 'next/navigation';
+import { Production, Performance } from '@/types';
+import { isReceptionOpen } from '@/lib/production';
 
-export const dynamic = 'force-dynamic';
+export default function PublicBookPage({ params }: { params: Promise<{ productionId: string }> }) {
+    const { productionId } = use(params);
+    const [details, setDetails] = useState<{ production: Production, performances: Performance[] } | null>(null);
+    const [loading, setLoading] = useState(true);
 
-export default async function PublicBookPage({ params }: { params: Promise<{ productionId: string }> }) {
-    const { productionId } = await params;
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const data = await fetchProductionDetailsClient(productionId);
+                setDetails(data);
+            } catch (error) {
+                console.error("Error fetching public production details:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [productionId]);
 
-    const details = await getProductionDetails(productionId);
+    if (loading) {
+        return <div className="flex-center" style={{ height: '50vh' }}>読み込み中...</div>;
+    }
 
     if (!details || !details.production) {
         return notFound();
     }
 
-    const { production } = details;
-    // UI expects production to have performances for the selection
-    const productionWithPerformances = {
-        ...production,
-        performances: details.performances
-    };
-
-    const { isReceptionOpen } = await import('@/lib/production');
+    const { production, performances } = details;
 
     if (!isReceptionOpen(production)) {
         return (
@@ -37,6 +51,12 @@ export default async function PublicBookPage({ params }: { params: Promise<{ pro
             </div>
         );
     }
+
+    // UI expects production to have performances for the selection
+    const productionWithPerformances = {
+        ...production,
+        performances: performances
+    };
 
     return (
         <div className="container" style={{ maxWidth: '600px', paddingBottom: '4rem' }}>

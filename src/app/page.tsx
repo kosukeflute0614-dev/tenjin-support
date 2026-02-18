@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getActiveProductionId } from '@/app/actions/production-context';
-import { getDashboardStats, getDuplicateReservations } from '@/app/actions/dashboard';
+import { fetchDashboardStatsClient, fetchDuplicateReservationsClient } from '@/lib/client-firestore';
 import { formatDate, formatTime } from '@/lib/format';
 import DuplicateNotification from '@/components/DuplicateNotification';
 import { useAuth } from '@/components/AuthProvider';
@@ -34,8 +34,8 @@ export default function Home() {
 
       try {
         const [dashboardStats, duplicates] = await Promise.all([
-          getDashboardStats(activeId, user.uid),
-          getDuplicateReservations(activeId, user.uid)
+          fetchDashboardStatsClient(activeId, user.uid),
+          fetchDuplicateReservationsClient(activeId, user.uid)
         ]);
         setStats(dashboardStats);
         setDuplicateGroups(duplicates);

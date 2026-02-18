@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getBookingOptions } from '@/app/actions/reservation';
+import { fetchBookingOptionsClient } from '@/lib/client-firestore';
 import ReservationForm from '@/components/ReservationForm';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
@@ -14,7 +14,7 @@ export default function NewReservationPage() {
     useEffect(() => {
         const fetchProductions = async () => {
             if (user) {
-                const data = await getBookingOptions(undefined, user.uid);
+                const data = await fetchBookingOptionsClient(undefined, user.uid);
                 setProductions(data);
             }
             setIsDataLoading(false);
