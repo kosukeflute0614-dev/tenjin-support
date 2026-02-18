@@ -59,7 +59,13 @@ export default function PublicBookPage({ params }: { params: Promise<{ productio
 
     const { production, performances } = details;
 
-    if (!isReceptionOpen(production)) {
+    // 受付可否判定のために公演回情報を含める
+    const productionWithContext = {
+        ...production,
+        performances: performances
+    };
+
+    if (!isReceptionOpen(productionWithContext)) {
         return (
             <div className="container" style={{ maxWidth: '600px', textAlign: 'center', paddingTop: '4rem' }}>
                 <div className="card" style={{ padding: '3rem' }}>

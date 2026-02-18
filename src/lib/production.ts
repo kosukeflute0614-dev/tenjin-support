@@ -11,47 +11,62 @@ export function getEffectiveReceptionStatus(production: {
     performances?: { startTime: Date | string }[];
 }): 'OPEN' | 'BEFORE_START' | 'CLOSED' {
     const now = new Date();
-    const start = production.receptionStart ? new Date(production.receptionStart) : null;
+
+    // 文字列またはTimestampから安全にDateオブジェクトを作成するヘルパー
+    const toDate = (val: any) => {
+        if (!val) return null;
+        const d = new Date(val);
+        return isNaN(d.getTime()) ? null : d;
+    };
+
+    const start = toDate(production.receptionStart);
 
     // 1. 開始前判定
     if (start && now < start) return 'BEFORE_START';
 
-    // 2. 手動・一律の終了判定
-    const manualEnd = production.receptionEnd ? new Date(production.receptionEnd) : null;
-    if (production.receptionEndMode === 'MANUAL' || !production.receptionEndMode) {
+    // 2. 終了判定の準備
+    const endMode = production.receptionEndMode || 'MANUAL';
+    const manualEnd = toDate(production.receptionEnd);
+
+    // 一律の終了判定（個別指定）
+    if (endMode === 'MANUAL') {
         if (manualEnd && now > manualEnd) return 'CLOSED';
     }
 
     // 3. 公演開始連動判定の場合
-    if (production.receptionEndMode === 'PERFORMANCE_START' || production.receptionEndMode === 'BEFORE_PERFORMANCE' || production.receptionEndMode === 'DAY_BEFORE') {
+    if (['PERFORMANCE_START', 'BEFORE_PERFORMANCE', 'DAY_BEFORE'].includes(endMode)) {
         if (production.performances && production.performances.length > 0) {
-            const offsetMinutes = production.receptionEndMode === 'BEFORE_PERFORMANCE' ? (production.receptionEndMinutes || 0) : 0;
+            const offsetMinutes = endMode === 'BEFORE_PERFORMANCE' ? (production.receptionEndMinutes || 0) : 0;
 
             // 全ての公演回がそれぞれの締切時刻を過ぎているかチェック
             const allClosed = production.performances.every(perf => {
+                const perfStart = toDate(perf.startTime);
+                if (!perfStart) return true; // 日付不正なら終了扱い
+
                 let deadline: Date;
-                if (production.receptionEndMode === 'DAY_BEFORE') {
-                    // 当日の0:00（前日の23:59:59の直後）を締切とする
-                    const startDate = new Date(perf.startTime);
-                    deadline = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+                if (endMode === 'DAY_BEFORE') {
+                    deadline = new Date(perfStart.getFullYear(), perfStart.getMonth(), perfStart.getDate());
                 } else {
-                    deadline = new Date(new Date(perf.startTime).getTime() - (offsetMinutes * 60 * 1000));
+                    deadline = new Date(perfStart.getTime() - (offsetMinutes * 60 * 1000));
                 }
                 return now > deadline;
             });
             if (allClosed) return 'CLOSED';
         } else {
-            // 公演回がない場合は手動終了設定に従うか、CLOSEDにする
+            // 公演回データがない場合は、もし手動終了時刻があればそれに従う
             if (manualEnd && now > manualEnd) return 'CLOSED';
+            // 公演開始連動なのにデータがない場合は、安全のため OPEN にするかステータスに従う
         }
     }
 
     // 4. 開始・稼働中判定
-    // 開始時刻が設定されており、現在時刻がそれ以降であれば OPEN
+    // スケジュール開始が有効であれば OPEN
     if (start && now >= start) return 'OPEN';
 
-    // 開始時刻が設定されていない場合、手動ステータスに従う
-    if (!start && production.receptionStatus === 'OPEN') return 'OPEN';
+    // スケジュール開始がない（null）または現在時刻が開始後の場合、手動ステータスに従う
+    if (!start || now >= start) {
+        if (production.receptionStatus === 'OPEN') return 'OPEN';
+    }
 
     return 'CLOSED';
 }
@@ -74,27 +89,38 @@ export function isPerformanceReceptionOpen(performance: { startTime: Date | stri
     receptionEndMinutes?: number;
 }) {
     const now = new Date();
-    const start = production.receptionStart ? new Date(production.receptionStart) : null;
+
+    const toDate = (val: any) => {
+        if (!val) return null;
+        const d = new Date(val);
+        return isNaN(d.getTime()) ? null : d;
+    };
+
+    const start = toDate(production.receptionStart);
 
     // 開始前ならNG
     if (start && now < start) return false;
 
     // 2. 終了判定
+    const endMode = production.receptionEndMode || 'MANUAL';
+
     // 一律終了設定（MANUAL）がある場合
-    if (production.receptionEndMode === 'MANUAL' || !production.receptionEndMode) {
-        const manualEnd = production.receptionEnd ? new Date(production.receptionEnd) : null;
+    if (endMode === 'MANUAL') {
+        const manualEnd = toDate(production.receptionEnd);
         if (manualEnd && now > manualEnd) return false;
     }
 
-    // 公演開始連動判定（開始時刻、開始前指定、または前日締切）
-    if (production.receptionEndMode === 'PERFORMANCE_START' || production.receptionEndMode === 'BEFORE_PERFORMANCE' || production.receptionEndMode === 'DAY_BEFORE') {
+    // 公演開始連動判定
+    if (['PERFORMANCE_START', 'BEFORE_PERFORMANCE', 'DAY_BEFORE'].includes(endMode)) {
+        const perfStart = toDate(performance.startTime);
+        if (!perfStart) return false;
+
         let deadline: Date;
-        if (production.receptionEndMode === 'DAY_BEFORE') {
-            const startDate = new Date(performance.startTime);
-            deadline = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+        if (endMode === 'DAY_BEFORE') {
+            deadline = new Date(perfStart.getFullYear(), perfStart.getMonth(), perfStart.getDate());
         } else {
-            const offsetMinutes = production.receptionEndMode === 'BEFORE_PERFORMANCE' ? (production.receptionEndMinutes || 0) : 0;
-            deadline = new Date(new Date(performance.startTime).getTime() - (offsetMinutes * 60 * 1000));
+            const offsetMinutes = endMode === 'BEFORE_PERFORMANCE' ? (production.receptionEndMinutes || 0) : 0;
+            deadline = new Date(perfStart.getTime() - (offsetMinutes * 60 * 1000));
         }
         if (now > deadline) return false;
     }
@@ -104,5 +130,9 @@ export function isPerformanceReceptionOpen(performance: { startTime: Date | stri
     if (start && now >= start) return true;
 
     // スケジュール作成なし（開始時刻未設定）の場合は手動ステータスに従う
-    return production.receptionStatus === 'OPEN';
+    if (!start || now >= start) {
+        return production.receptionStatus === 'OPEN';
+    }
+
+    return false;
 }

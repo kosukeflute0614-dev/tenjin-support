@@ -145,11 +145,20 @@ export default function ReceptionLinkManager({
 
                 if (!isCurrentlyOpen) {
                     // 「即時開始」する場合
+                    const now = new Date();
+                    const hasPastEnd = confirmedEnd && new Date(confirmedEnd) < now;
+
                     const formData = new FormData();
                     formData.append('receptionStart', '');
-                    formData.append('receptionEnd', confirmedEnd ? new Date(confirmedEnd).toISOString() : '');
-                    formData.append('receptionEndMode', confirmedEndMode || 'MANUAL');
-                    formData.append('receptionEndMinutes', (confirmedEndMinutes || 0).toString());
+
+                    // 過去の終了設定があればクリアし、なければ維持する
+                    const finalEnd = hasPastEnd ? null : confirmedEnd;
+                    const finalEndMode = hasPastEnd ? 'MANUAL' : (confirmedEndMode || 'MANUAL');
+                    const finalEndMinutes = hasPastEnd ? 0 : (confirmedEndMinutes || 0);
+
+                    formData.append('receptionEnd', finalEnd ? new Date(finalEnd).toISOString() : '');
+                    formData.append('receptionEndMode', finalEndMode);
+                    formData.append('receptionEndMinutes', finalEndMinutes.toString());
 
                     await Promise.all([
                         updateReceptionStatus(productionId, 'OPEN'),
@@ -158,8 +167,18 @@ export default function ReceptionLinkManager({
 
                     setManualStatus('OPEN');
                     setConfirmedStart(null);
+                    setConfirmedEnd(finalEnd);
+                    setConfirmedEndMode(finalEndMode);
+                    setConfirmedEndMinutes(finalEndMinutes);
                     setInputStartDate('');
                     setInputStartTime('');
+                    if (hasPastEnd) {
+                        setInputEndDate('');
+                        setInputEndTime('');
+                        setEndMode('MANUAL');
+                        setEndHours(0);
+                        setEndMinutesPart(0);
+                    }
                 } else {
                     // 「即時停止」する場合
                     const formData = new FormData();
