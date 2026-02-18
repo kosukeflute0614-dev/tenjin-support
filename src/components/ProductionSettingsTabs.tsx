@@ -3,9 +3,8 @@
 import { useState } from 'react';
 import PerformanceManager from './PerformanceManager';
 import TicketTypeManager from './TicketTypeManager';
-import AttendanceStatus from './AttendanceStatus';
 
-type TabType = 'attendance' | 'schedule' | 'tickets' | 'basic';
+type TabType = 'schedule' | 'tickets' | 'basic';
 
 export default function ProductionSettingsTabs({
     production,
@@ -16,10 +15,9 @@ export default function ProductionSettingsTabs({
     performances: any[];
     ticketTypes: any[];
 }) {
-    const [activeTab, setActiveTab] = useState<TabType>('attendance');
+    const [activeTab, setActiveTab] = useState<TabType>('schedule');
 
     const tabs = [
-        { id: 'attendance', label: '来場状況', icon: '👤' },
         { id: 'schedule', label: '公演スケジュール', icon: '📅' },
         { id: 'tickets', label: '券種・価格', icon: '🎫' },
         { id: 'basic', label: '基本情報', icon: '⚙️' },
@@ -64,12 +62,6 @@ export default function ProductionSettingsTabs({
 
             {/* コンテンツエリア */}
             <div style={{ animation: 'fadeIn 0.3s ease-in-out' }}>
-                {activeTab === 'attendance' && (
-                    <div className="card" style={{ padding: '2rem', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-                        <AttendanceStatus productionId={production.id} performances={performances} />
-                    </div>
-                )}
-
                 {activeTab === 'schedule' && (
                     <div className="card" style={{ padding: '2rem', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
                         <PerformanceManager productionId={production.id} performances={performances} />

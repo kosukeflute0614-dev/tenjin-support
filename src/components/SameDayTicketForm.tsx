@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { createSameDayTicketClient } from '@/lib/client-firestore'
 import { NumberStepper, SoftKeypad } from './TouchInputs'
 import { useAuth } from './AuthProvider'
@@ -9,15 +9,17 @@ export default function SameDayTicketForm({
     productionId,
     performanceId,
     ticketTypes,
-    remainingCount
+    remainingCount,
+    nextNumber = 1
 }: {
     productionId: string,
     performanceId: string,
     ticketTypes: any[],
-    remainingCount: number
+    remainingCount: number,
+    nextNumber?: number
 }) {
     const { user } = useAuth()
-    const [customerName, setCustomerName] = useState('')
+    const [customerName, setCustomerName] = useState(`当日_${nextNumber}`)
     const [ticketCounts, setTicketCounts] = useState<{ [id: string]: number }>(() => {
         const initial: any = {}
         ticketTypes.forEach(t => initial[t.id] = 0)
@@ -25,6 +27,17 @@ export default function SameDayTicketForm({
     })
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [error, setError] = useState('')
+
+    // nextNumber が変更されたら（かつ名前が手付かずなら）デフォルト名を更新
+    const prevDefaultNameRef = useRef(`当日_${nextNumber}`)
+    useEffect(() => {
+        const newDefault = `当日_${nextNumber}`
+        // 名前が空、あるいは「前のデフォルト名」と同じままであれば、新しいデフォルト名に上書き
+        if (!customerName || customerName === prevDefaultNameRef.current) {
+            setCustomerName(newDefault)
+        }
+        prevDefaultNameRef.current = newDefault
+    }, [nextNumber])
 
     // お釣り計算用
     const [receivedStr, setReceivedStr] = useState('')
@@ -62,7 +75,7 @@ export default function SameDayTicketForm({
             )
 
             // Reset form
-            setCustomerName('')
+            setCustomerName(`当日_${nextNumber + 1}`) // 次の番号を予測してセット（CheckinPageからも降ってくるが即応性のため）
             const resetCounts: any = {}
             ticketTypes.forEach(t => resetCounts[t.id] = 0)
             setTicketCounts(resetCounts)

@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from './AuthProvider';
 import Link from 'next/link';
-import { Theater, Settings, LogOut, ChevronDown, ChevronUp } from 'lucide-react';
+import { Theater, Settings, LogOut, ChevronDown, ChevronUp, BookOpen, HelpCircle, Mail } from 'lucide-react';
 
 export default function UserMenu() {
     const { user, profile, loginWithGoogle, logout } = useAuth();
@@ -146,6 +146,39 @@ export default function UserMenu() {
                             >
                                 <Settings size={18} strokeWidth={1.5} color={hoverItem === 'settings' ? slate900 : slate400} />
                                 <span>団体設定</span>
+                            </Link>
+
+                            <div style={{ borderTop: `1px solid ${slate100}`, margin: '0.25rem 0' }} />
+
+                            <Link
+                                href="/guide"
+                                style={itemStyle('guide')}
+                                onMouseEnter={() => setHoverItem('guide')}
+                                onMouseLeave={() => setHoverItem(null)}
+                                onClick={() => setIsOpen(false)}
+                            >
+                                <BookOpen size={18} strokeWidth={1.5} color={hoverItem === 'guide' ? slate900 : slate400} />
+                                <span>使い方ガイド</span>
+                            </Link>
+                            <Link
+                                href="/faq"
+                                style={itemStyle('faq')}
+                                onMouseEnter={() => setHoverItem('faq')}
+                                onMouseLeave={() => setHoverItem(null)}
+                                onClick={() => setIsOpen(false)}
+                            >
+                                <HelpCircle size={18} strokeWidth={1.5} color={hoverItem === 'faq' ? slate900 : slate400} />
+                                <span>よくある質問 (FAQ)</span>
+                            </Link>
+                            <Link
+                                href="/contact"
+                                style={itemStyle('contact')}
+                                onMouseEnter={() => setHoverItem('contact')}
+                                onMouseLeave={() => setHoverItem(null)}
+                                onClick={() => setIsOpen(false)}
+                            >
+                                <Mail size={18} strokeWidth={1.5} color={hoverItem === 'contact' ? slate900 : slate400} />
+                                <span>お問い合わせ</span>
                             </Link>
 
                             {/* ログアウト項目 */}

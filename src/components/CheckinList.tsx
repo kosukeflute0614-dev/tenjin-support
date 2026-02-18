@@ -562,7 +562,7 @@ function DetailModal({
                                     <label style={{ fontSize: '0.85rem', fontWeight: 'bold', display: 'block', marginBottom: '0.75rem', color: '#666' }}>2. 返金する枚数 (券種ごと)</label>
                                     <div style={{ background: '#fcfcfc', border: '1px solid #eee', borderRadius: '8px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                         {ticketPaymentStatus.filter((t: any) => (t.paidCount || 0) > 0).map((t: any) => (
-                                            <div key={t.id}>
+                                            <div key={t.ticketTypeId}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                                                     <div style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{(t.ticketType?.name) || '不明な券種'}</div>
                                                     <div style={{ fontSize: '0.75rem', color: '#888' }}>支払い済み: {t.paidCount || 0}枚</div>
@@ -655,7 +655,7 @@ function DetailModal({
 
                                 <div style={{ padding: '0.25rem 0' }}>
                                     {ticketPaymentStatus.map((t: any) => (
-                                        <div key={t.id} style={{ display: 'flex', padding: '0.5rem 0.75rem', borderBottom: '1px solid #fafafa', alignItems: 'center' }}>
+                                        <div key={t.ticketTypeId} style={{ display: 'flex', padding: '0.5rem 0.75rem', borderBottom: '1px solid #fafafa', alignItems: 'center' }}>
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: '#333', marginBottom: '0.1rem' }}>{t.ticketType?.name || '不明な券種'}</div>
                                                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -691,13 +691,18 @@ function DetailModal({
                                 <h3 style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>受付履歴</h3>
                                 <div style={{ maxHeight: '100px', overflowY: 'auto', fontSize: '0.75rem' }}>
                                     {res.logs && res.logs.length > 0 ? (
-                                        res.logs.map((log: any) => (
-                                            <div key={log.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.2rem 0', borderBottom: '1px dashed #f0f0f0' }}>
+                                        res.logs.map((log: any, index: number) => (
+                                            <div key={log.id || `${log.type}-${log.createdAt}-${index}`} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.2rem 0', borderBottom: '1px dashed #f0f0f0' }}>
                                                 <span>
                                                     {log.type === 'CHECKIN' ? <span style={{ color: 'var(--success)' }}>● 入場</span> : <span style={{ color: 'var(--primary)' }}>× 取消</span>}
                                                     {log.count > 0 && ` (${log.count}枚)`}
                                                 </span>
-                                                <span style={{ color: '#999' }}>{new Date(log.createdAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                <span style={{ color: '#999' }}>
+                                                    {(() => {
+                                                        const date = log.createdAt?.toDate ? log.createdAt.toDate() : new Date(log.createdAt);
+                                                        return isNaN(date.getTime()) ? '時刻不明' : date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+                                                    })()}
+                                                </span>
                                             </div>
                                         ))
                                     ) : (

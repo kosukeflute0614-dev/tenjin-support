@@ -102,6 +102,11 @@ export default function DashboardPage() {
                     <h3>当日受付</h3>
                     <p>来場処理・当日券対応</p>
                 </Link>
+                <Link href={activeProductionId ? `/productions/${activeProductionId}/attendance` : '/productions'} className="menu-card">
+                    <span className="icon">📊</span>
+                    <h3>来場状況</h3>
+                    <p>リアルタイム着券状況の確認</p>
+                </Link>
             </div>
 
             <div className="stats-section" style={{ marginTop: '3rem' }}>

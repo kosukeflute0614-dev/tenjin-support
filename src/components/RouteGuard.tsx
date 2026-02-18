@@ -12,7 +12,7 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
     useEffect(() => {
         if (!loading) {
             // 公開ページやオンボーディング自体は除外
-            const isPublicPage = pathname === '/' || pathname.startsWith('/book');
+            const isPublicPage = pathname === '/' || pathname.startsWith('/book') || pathname.startsWith('/guide') || pathname.startsWith('/faq') || pathname.startsWith('/contact');
             const isOnboardingPage = pathname === '/onboarding';
 
             if (!user && !isPublicPage) {

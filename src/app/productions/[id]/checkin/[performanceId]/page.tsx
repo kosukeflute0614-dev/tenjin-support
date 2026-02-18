@@ -33,7 +33,8 @@ export default function CheckinPage({ params }: { params: any }) {
     const [isInitialLoading, setIsInitialLoading] = useState(true);
 
     useEffect(() => {
-        let unsubscribe: () => void;
+        let unsubscribeReservations: () => void;
+        let unsubscribeLogs: () => void;
 
         const fetchData = async () => {
             if (user) {
@@ -65,7 +66,7 @@ export default function CheckinPage({ params }: { params: any }) {
                     }
                     const performance = serializeDoc<Performance>(performanceSnap);
 
-                    // 3. Set up Real-time listener for Reservations
+                    // 3. Set up Real-time listeners
                     const reservationsRef = collection(db, "reservations");
                     const qRes = query(
                         reservationsRef,
@@ -73,9 +74,49 @@ export default function CheckinPage({ params }: { params: any }) {
                         where("performanceId", "==", performanceId)
                     );
 
-                    unsubscribe = onSnapshot(qRes, (snapshot) => {
+                    const logsRef = collection(db, "checkinLogs");
+                    const qLogs = query(
+                        logsRef,
+                        where("userId", "==", user.uid),
+                        where("performanceId", "==", performanceId)
+                    );
+
+                    let currentReservations: FirestoreReservation[] = [];
+                    let currentLogs: any[] = [];
+
+                    const updateData = (res: FirestoreReservation[], logs: any[]) => {
+                        const logsByResId: { [key: string]: any[] } = {};
+                        logs.forEach(log => {
+                            if (!logsByResId[log.reservationId]) logsByResId[log.reservationId] = [];
+                            logsByResId[log.reservationId].push(log);
+                        });
+
+                        const reservationsWithLogs = res.map(r => ({
+                            ...r,
+                            logs: (logsByResId[r.id] || []).sort((a, b) => {
+                                const tA = a.createdAt?.seconds || 0;
+                                const tB = b.createdAt?.seconds || 0;
+                                return tB - tA;
+                            })
+                        }));
+
+                        const bookedCount = res.reduce((sum, item) => {
+                            return sum + (item.tickets || []).reduce((tSum: number, t: any) => tSum + (t.count || 0), 0);
+                        }, 0);
+                        const remainingCount = performance.capacity - bookedCount;
+
+                        setData({
+                            production,
+                            performance,
+                            reservations: reservationsWithLogs,
+                            remainingCount
+                        });
+                        setIsInitialLoading(false);
+                    };
+
+                    unsubscribeReservations = onSnapshot(qRes, (snapshot) => {
                         const allRes = serializeDocs<FirestoreReservation>(snapshot.docs);
-                        const reservations = allRes
+                        currentReservations = allRes
                             .filter(res => res.status !== 'CANCELED')
                             .map(res => ({
                                 ...res,
@@ -84,18 +125,19 @@ export default function CheckinPage({ params }: { params: any }) {
                                     ticketType: production.ticketTypes.find((tt: any) => tt.id === t.ticketTypeId) || { name: '不明な券種', price: t.price || 0 }
                                 }))
                             }));
-
-                        const bookedCount = reservations.reduce((sum, res) => {
-                            return sum + (res.tickets || []).reduce((tSum, t) => tSum + (t.count || 0), 0);
-                        }, 0);
-                        const remainingCount = performance.capacity - bookedCount;
-
-                        setData({ production, performance, reservations, remainingCount });
-                        setIsInitialLoading(false);
+                        updateData(currentReservations, currentLogs);
                     }, (err) => {
-                        console.error("Snapshot error:", err);
+                        console.error("Reservations Snapshot error:", err);
                         setIsInitialLoading(false);
                     });
+
+                    unsubscribeLogs = onSnapshot(qLogs, (snapshot) => {
+                        currentLogs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                        updateData(currentReservations, currentLogs);
+                    }, (err) => {
+                        console.error("Logs Snapshot error:", err);
+                    });
+
                 } catch (err) {
                     console.error("Fetch error:", err);
                     setIsInitialLoading(false);
@@ -108,7 +150,8 @@ export default function CheckinPage({ params }: { params: any }) {
         fetchData();
 
         return () => {
-            if (unsubscribe) unsubscribe();
+            if (unsubscribeReservations) unsubscribeReservations();
+            if (unsubscribeLogs) unsubscribeLogs();
         };
     }, [user, loading, params, router]);
 
@@ -175,6 +218,7 @@ export default function CheckinPage({ params }: { params: any }) {
                         performanceId={performance.id}
                         ticketTypes={production.ticketTypes}
                         remainingCount={remainingCount}
+                        nextNumber={reservations.filter(r => r.source === 'SAME_DAY').length + 1}
                     />
                 </aside>
             </div>
