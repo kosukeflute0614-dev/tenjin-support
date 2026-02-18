@@ -11,14 +11,20 @@ export default function PublicBookPage({ params }: { params: Promise<{ productio
     const { productionId } = use(params);
     const [details, setDetails] = useState<{ production: Production, performances: Performance[] } | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const data = await fetchProductionDetailsClient(productionId);
-                setDetails(data);
-            } catch (error) {
-                console.error("Error fetching public production details:", error);
+                if (!data) {
+                    setError("公演情報が見つかりません。URLが正しいかご確認ください。");
+                } else {
+                    setDetails(data);
+                }
+            } catch (err: any) {
+                console.error("Error fetching public production details:", err);
+                setError(err.message || "データの取得中にエラーが発生しました。");
             } finally {
                 setLoading(false);
             }
@@ -28,6 +34,23 @@ export default function PublicBookPage({ params }: { params: Promise<{ productio
 
     if (loading) {
         return <div className="flex-center" style={{ height: '50vh' }}>読み込み中...</div>;
+    }
+
+    if (error) {
+        return (
+            <div className="container" style={{ maxWidth: '600px', textAlign: 'center', paddingTop: '4rem' }}>
+                <div className="card" style={{ padding: '3rem', borderTop: '4px solid var(--accent)' }}>
+                    <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>⚠️</div>
+                    <h2 className="heading-lg" style={{ color: 'var(--accent)', marginBottom: '1rem' }}>エラーが発生しました</h2>
+                    <p style={{ color: 'var(--text-muted)', lineHeight: '1.8' }}>
+                        {error}
+                    </p>
+                    <div style={{ marginTop: '2rem' }}>
+                        <a href="/" className="btn btn-secondary">ホームに戻る</a>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     if (!details || !details.production) {

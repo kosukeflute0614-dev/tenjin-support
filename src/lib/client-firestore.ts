@@ -4,6 +4,18 @@ import { Production, Performance, PerformanceStats, FirestoreReservation, Duplic
 import { serializeDocs, serializeDoc } from '@/lib/firestore-utils';
 
 /**
+ * Firestore の Timestamp または日付型を安全に Date に変換する
+ */
+function timestampToDate(val: any): Date | null {
+    if (!val) return null;
+    if (typeof val.toDate === 'function') return val.toDate();
+    if (val instanceof Date) return val;
+    if (typeof val === 'string' || typeof val === 'number') return new Date(val);
+    if (val.seconds !== undefined) return new Date(val.seconds * 1000);
+    return null;
+}
+
+/**
  * クライアント側で直接 Firestore から公演詳細を取得する。
  * サーバーアクション経由ではなく、ブラウザ上で実行されるため、
  * Firebase Auth の認証状態が正しく使われ、セキュリティルールに準拠する。
@@ -14,8 +26,12 @@ export async function fetchProductionDetailsClient(
 ): Promise<{ production: Production; performances: Performance[] } | null> {
     const docRef = doc(db, "productions", productionId);
     const docSnap = await getDoc(docRef);
+    console.log("fetchProductionDetailsClient for:", productionId, "exists:", docSnap.exists());
 
-    if (!docSnap.exists()) return null;
+    if (!docSnap.exists()) {
+        console.warn("Production document not found:", productionId);
+        return null;
+    }
 
     const rawData = docSnap.data();
 
@@ -28,8 +44,8 @@ export async function fetchProductionDetailsClient(
         id: docSnap.id,
         title: rawData.title || '',
         receptionStatus: rawData.receptionStatus || 'CLOSED',
-        receptionStart: rawData.receptionStart ? rawData.receptionStart.toDate().toISOString() : null,
-        receptionEnd: rawData.receptionEnd ? rawData.receptionEnd.toDate().toISOString() : null,
+        receptionStart: timestampToDate(rawData.receptionStart)?.toISOString() || null,
+        receptionEnd: timestampToDate(rawData.receptionEnd)?.toISOString() || null,
         receptionEndMode: rawData.receptionEndMode || 'MANUAL',
         receptionEndMinutes: rawData.receptionEndMinutes || 0,
         ticketTypes: (rawData.ticketTypes || []).map((tt: any) => ({
