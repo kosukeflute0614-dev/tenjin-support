@@ -1,18 +1,17 @@
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import UserMenu from './UserMenu';
 import { useAuth } from '@/components/AuthProvider';
 
 export default function HeaderNav() {
     const pathname = usePathname();
-    const router = useRouter();
-    const { user, profile, loading } = useAuth();
+    const { user } = useAuth();
 
-    // ログインしていない場合はナビゲーションを表示しない
+    // ログインしていない場合は何も表示しない（UserMenu側でログインボタン表示）
     if (!user) {
-        return null;
+        return <UserMenu />;
     }
 
     // 予約フォーム(ゲスト用ページ)ではナビゲーションを表示しない
@@ -21,32 +20,26 @@ export default function HeaderNav() {
     }
 
     return (
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-            <div style={{ display: 'flex', listStyle: 'none', gap: '1.5rem', margin: 0, padding: 0 }}>
+        <nav style={{ display: 'flex', alignItems: 'center', gap: '2.5rem' }}>
+            <div style={{ display: 'flex', listStyle: 'none', gap: '2rem', margin: 0, padding: 0 }}>
                 <Link href="/dashboard" className="nav-link" style={{
                     fontWeight: pathname === '/dashboard' ? 'bold' : 'normal',
                     color: pathname === '/dashboard' ? 'var(--primary)' : 'inherit',
-                    textDecoration: 'none'
+                    textDecoration: 'none',
+                    fontSize: '0.95rem',
+                    letterSpacing: '0.05em'
                 }}>
                     ダッシュボード
                 </Link>
                 <Link href="/productions" className="nav-link" style={{
                     fontWeight: pathname?.startsWith('/productions') ? 'bold' : 'normal',
                     color: pathname?.startsWith('/productions') ? 'var(--primary)' : 'inherit',
-                    textDecoration: 'none'
+                    textDecoration: 'none',
+                    fontSize: '0.95rem',
+                    letterSpacing: '0.05em'
                 }}>
                     公演一覧
                 </Link>
-                <Link href="/reservations" className="nav-link" style={{
-                    fontWeight: pathname?.startsWith('/reservations') ? 'bold' : 'normal',
-                    color: pathname?.startsWith('/reservations') ? 'var(--primary)' : 'inherit',
-                    textDecoration: 'none'
-                }}>
-                    予約一覧
-                </Link>
-            </div>
-            <div style={{ marginLeft: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <span style={{ fontSize: '0.9rem', color: '#666' }}>{profile?.troupeName || user?.email}</span>
             </div>
             <div style={{ height: '20px', width: '1px', background: '#e5e7eb' }}></div>
             <UserMenu />
