@@ -1,5 +1,5 @@
 import { db } from '@/lib/firebase';
-import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, addDoc, updateDoc, serverTimestamp, deleteDoc, arrayUnion } from 'firebase/firestore';
 import { Production, Performance, PerformanceStats, FirestoreReservation, DuplicateGroup, TicketType } from '@/types';
 import { serializeDocs, serializeDoc } from '@/lib/firestore-utils';
 
@@ -238,4 +238,205 @@ export async function fetchBookingOptionsClient(
     }
 
     return prods;
+}
+
+/**
+ * 公演を新規作成する（クライアント側）
+ */
+export async function createProductionClient(title: string, userId: string) {
+    if (!userId) throw new Error('Unauthorized');
+    if (!title) throw new Error('Title is required');
+
+    const productionsRef = collection(db, "productions");
+    const newDoc = await addDoc(productionsRef, {
+        userId,
+        organizationId: "default_org_id",
+        title,
+        ticketTypes: [],
+        actors: [],
+        receptionStatus: 'CLOSED',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+    });
+    return newDoc.id;
+}
+
+/**
+ * 公演回を追加する（クライアント側）
+ */
+export async function addPerformanceClient(productionId: string, startTime: string, capacity: number, userId: string) {
+    if (!userId) throw new Error('Unauthorized');
+
+    const performancesRef = collection(db, "performances");
+    const newDoc = await addDoc(performancesRef, {
+        productionId,
+        startTime: new Date(startTime),
+        capacity,
+        userId,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+    });
+
+    // 公演の更新日時も更新
+    const prodRef = doc(db, "productions", productionId);
+    await updateDoc(prodRef, { updatedAt: serverTimestamp() });
+
+    return newDoc.id;
+}
+
+/**
+ * 予約を作成する（クライアント側）
+ */
+export async function createReservationClient(data: Partial<FirestoreReservation>) {
+    const reservationsRef = collection(db, "reservations");
+    const newDoc = await addDoc(reservationsRef, {
+        ...data,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+    });
+    return newDoc.id;
+}
+
+/**
+ * 予約をキャンセルする（クライアント側）
+ */
+export async function cancelReservationClient(reservationId: string, userId: string) {
+    if (!userId) throw new Error('Unauthorized');
+    const ref = doc(db, "reservations", reservationId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) throw new Error('NotFound');
+    if (snap.data().userId !== userId) throw new Error('Unauthorized');
+
+    await updateDoc(ref, {
+        status: 'CANCELED',
+        updatedAt: serverTimestamp()
+    });
+}
+
+/**
+ * 公演回を更新する（クライアント側）
+ */
+export async function updatePerformanceClient(id: string, startTime: Date, capacity: number, userId: string) {
+    if (!userId) throw new Error('Unauthorized');
+    const ref = doc(db, "performances", id);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) throw new Error('NotFound');
+    if (snap.data().userId !== userId) throw new Error('Unauthorized');
+
+    await updateDoc(ref, {
+        startTime,
+        capacity,
+        updatedAt: serverTimestamp()
+    });
+}
+
+/**
+ * 公演回を削除する（クライアント側）
+ */
+export async function deletePerformanceClient(id: string, userId: string) {
+    if (!userId) throw new Error('Unauthorized');
+    const ref = doc(db, "performances", id);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) throw new Error('NotFound');
+    if (snap.data().userId !== userId) throw new Error('Unauthorized');
+
+    // 予約があるかチェック
+    const reservationsRef = collection(db, "reservations");
+    const q = query(reservationsRef, where("performanceId", "==", id), where("status", "!=", "CANCELED"));
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+        throw new Error('すでに予約があるため削除できません');
+    }
+
+    await deleteDoc(ref);
+}
+
+/**
+ * 券種を追加する（クライアント側）
+ */
+export async function addTicketTypeClient(productionId: string, name: string, advancePrice: number, doorPrice: number, userId: string) {
+    const docRef = doc(db, "productions", productionId);
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) throw new Error('Production not found');
+    if (docSnap.data().userId !== userId) throw new Error('Unauthorized');
+
+    const newTicketType: TicketType = {
+        id: crypto.randomUUID(),
+        name,
+        price: advancePrice,
+        advancePrice,
+        doorPrice,
+        isPublic: true
+    };
+
+    await updateDoc(docRef, {
+        ticketTypes: arrayUnion(newTicketType),
+        updatedAt: serverTimestamp()
+    });
+}
+
+/**
+ * 券種を更新する（クライアント側）
+ */
+export async function updateTicketTypeClient(productionId: string, ticketTypeId: string, name: string, advancePrice: number, doorPrice: number, userId: string) {
+    const docRef = doc(db, "productions", productionId);
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) throw new Error('Production not found');
+    if (docSnap.data().userId !== userId) throw new Error('Unauthorized');
+
+    const production = docSnap.data() as Production;
+    const updatedTicketTypes = (production.ticketTypes || []).map(tt =>
+        tt.id === ticketTypeId ? { ...tt, name, price: advancePrice, advancePrice, doorPrice } : tt
+    );
+
+    await updateDoc(docRef, {
+        ticketTypes: updatedTicketTypes,
+        updatedAt: serverTimestamp()
+    });
+}
+
+/**
+ * 券種を削除する（クライアント側）
+ */
+export async function deleteTicketTypeClient(productionId: string, ticketTypeId: string, userId: string) {
+    const docRef = doc(db, "productions", productionId);
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) throw new Error('Production not found');
+    if (docSnap.data().userId !== userId) throw new Error('Unauthorized');
+
+    // 予約があるかチェック
+    const reservationsRef = collection(db, "reservations");
+    const q = query(reservationsRef, where("userId", "==", userId));
+    const querySnapshot = await getDocs(q);
+    const hasActiveTicket = querySnapshot.docs.some(d => {
+        const res = d.data() as FirestoreReservation;
+        return res.status !== 'CANCELED' && (res.tickets || []).some(t => t.ticketTypeId === ticketTypeId);
+    });
+
+    if (hasActiveTicket) {
+        throw new Error('すでに予約があるため削除できません');
+    }
+
+    const updatedTicketTypes = (docSnap.data().ticketTypes || []).filter((tt: any) => tt.id !== ticketTypeId);
+    await updateDoc(docRef, {
+        ticketTypes: updatedTicketTypes,
+        updatedAt: serverTimestamp()
+    });
+}
+
+/**
+ * 予約情報を更新する（クライアント側）
+ */
+export async function updateReservationFullClient(reservationId: string, data: Partial<FirestoreReservation>, userId: string) {
+    if (!userId) throw new Error('Unauthorized');
+    const ref = doc(db, "reservations", reservationId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) throw new Error('NotFound');
+    if (snap.data().userId !== userId) throw new Error('Unauthorized');
+
+    await updateDoc(ref, {
+        ...data,
+        updatedAt: serverTimestamp()
+    });
 }

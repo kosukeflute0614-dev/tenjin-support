@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { createReservationAction } from '@/app/actions/reservation';
+import { createReservationClient } from '@/lib/client-firestore';
 import { formatDateTime } from '@/lib/format';
 import { useAuth } from './AuthProvider';
 
@@ -35,13 +35,53 @@ export default function ReservationForm({ productions }: Props) {
 
     const totalTickets = Object.values(ticketCounts).reduce((sum, count) => sum + count, 0);
 
-    const handleSubmit = async (formData: FormData) => {
-        if (!user) return;
-        await createReservationAction(formData, user.uid);
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!user || !selectedPerformance) return;
+
+        const formData = new FormData(e.currentTarget);
+
+        const tickets = Object.entries(ticketCounts)
+            .filter(([_, count]) => count > 0)
+            .map(([id, count]) => {
+                const type = selectedPerformance.ticketTypes.find((tt: any) => tt.id === id);
+                return {
+                    ticketTypeId: id,
+                    count: count,
+                    price: type?.price || 0
+                };
+            });
+
+        try {
+            await createReservationClient({
+                performanceId: selectedPerformanceId,
+                customerName: formData.get('customerName') as string,
+                customerNameKana: formData.get('customerNameKana') as string,
+                customerEmail: formData.get('customerEmail') as string,
+                checkedInTickets: 0,
+                checkinStatus: 'NOT_ATTENDED',
+                tickets: tickets as any,
+                status: 'CONFIRMED',
+                paymentStatus: 'UNPAID',
+                paidAmount: 0,
+                source: 'PRE_RESERVATION',
+                remarks: formData.get('remarks') as string,
+                userId: user.uid,
+            } as any);
+
+            // 成功時の処理（フォームリセットなど）
+            setSelectedPerformanceId("");
+            setTicketCounts({});
+            (e.target as HTMLFormElement).reset();
+            alert("予約を登録しました。");
+        } catch (error: any) {
+            console.error("Error creating reservation:", error);
+            alert("予約の登録に失敗しました。");
+        }
     };
 
     return (
-        <form action={handleSubmit} className="card">
+        <form onSubmit={handleSubmit} className="card">
             {/* 1. Customer Info (Reordered) */}
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
                 <label htmlFor="customerName" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>

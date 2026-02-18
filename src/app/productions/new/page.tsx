@@ -1,6 +1,6 @@
 'use client';
 
-import { createProduction } from '@/app/actions/production';
+import { createProductionClient } from '@/lib/client-firestore';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
@@ -9,9 +9,20 @@ export default function NewProductionPage() {
     const { user, loading } = useAuth();
     const router = useRouter();
 
-    const handleSubmit = async (formData: FormData) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
         if (!user) return;
-        await createProduction(formData, user.uid);
+
+        const formData = new FormData(e.currentTarget);
+        const title = formData.get('title') as string;
+
+        try {
+            await createProductionClient(title, user.uid);
+            router.push('/productions');
+        } catch (error) {
+            console.error("Error creating production:", error);
+            alert("公演の作成に失敗しました。");
+        }
     };
 
     if (loading) return <div className="flex-center" style={{ height: '50vh' }}>読み込み中...</div>;
@@ -33,7 +44,7 @@ export default function NewProductionPage() {
                 </Link>
             </div>
             <h2 className="heading-lg">新規公演作成</h2>
-            <form action={handleSubmit} className="card">
+            <form onSubmit={handleSubmit} className="card">
                 <div className="form-group" style={{ marginBottom: '1.5rem' }}>
                     <label htmlFor="title" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
                         公演タイトル

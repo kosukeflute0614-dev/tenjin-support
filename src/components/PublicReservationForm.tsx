@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { createPublicReservation } from '@/app/actions/reservation';
+import { createReservationClient } from '@/lib/client-firestore';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { formatDateTime } from '@/lib/format';
 
 type Props = {
@@ -51,21 +53,39 @@ export default function PublicReservationForm({ production }: Props) {
         setIsSubmitting(true);
         setError(null);
         try {
-            const finalData = new FormData();
-            finalData.append('productionId', production.id);
-            finalData.append('performanceId', selectedPerformanceId);
-            finalData.append('customerName', customerInfo.name);
-            finalData.append('customerNameKana', customerInfo.kana);
-            finalData.append('customerEmail', customerInfo.email);
-            finalData.append('remarks', customerInfo.remarks);
+            // 公演のオーナーIDを取得
+            const perfRef = doc(db, "performances", selectedPerformanceId);
+            const perfSnap = await getDoc(perfRef);
+            if (!perfSnap.exists()) throw new Error("公演情報が見つかりません。");
+            const ownerId = perfSnap.data().userId;
 
-            Object.entries(ticketCounts).forEach(([id, count]) => {
-                if (count > 0) {
-                    finalData.append(`ticket_${id}`, count.toString());
-                }
-            });
+            const tickets = Object.entries(ticketCounts)
+                .filter(([_, count]) => count > 0)
+                .map(([id, count]) => {
+                    const type = production.ticketTypes.find((tt: any) => tt.id === id);
+                    return {
+                        ticketTypeId: id,
+                        count: count,
+                        price: type?.price || 0
+                    };
+                });
 
-            await createPublicReservation(finalData);
+            await createReservationClient({
+                performanceId: selectedPerformanceId,
+                customerName: customerInfo.name,
+                customerNameKana: customerInfo.kana,
+                customerEmail: customerInfo.email,
+                checkedInTickets: 0,
+                checkinStatus: 'NOT_ATTENDED',
+                tickets: tickets as any,
+                status: 'CONFIRMED',
+                paymentStatus: 'UNPAID',
+                paidAmount: 0,
+                source: 'PRE_RESERVATION',
+                remarks: customerInfo.remarks,
+                userId: ownerId,
+            } as any);
+
             setStep('success');
             window.scrollTo(0, 0);
         } catch (err: any) {

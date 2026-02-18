@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { addPerformance, updatePerformance, deletePerformance } from '@/app/actions/production-details';
+import { addPerformanceClient, updatePerformanceClient, deletePerformanceClient } from '@/lib/client-firestore';
 import { formatDate, formatTime } from '@/lib/format';
 import { SmartMaskedDatePicker, SmartMaskedTimeInput, SmartNumberInput } from './SmartInputs';
 import { useAuth } from './AuthProvider';
@@ -38,7 +38,7 @@ export default function PerformanceManager({ productionId, performances }: Props
         const idToDelete = deletingId;
         setDeletingId(null);
         try {
-            await deletePerformance(idToDelete, productionId, user.uid);
+            await deletePerformanceClient(idToDelete, user.uid);
         } catch (error: any) {
             setError(error.message || '削除に失敗しました。');
         } finally {
@@ -143,11 +143,17 @@ export default function PerformanceManager({ productionId, performances }: Props
                             </button>
                         </div>
 
-                        <form action={async (formData) => {
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
                             if (!user) return;
                             setIsProcessing(true);
+                            const formData = new FormData(e.currentTarget);
+                            const date = formData.get('date') as string;
+                            const time = formData.get('time') as string;
+                            const capacity = parseInt(formData.get('capacity') as string);
                             try {
-                                await addPerformance(formData, user.uid);
+                                const startTime = `${date}T${time}`;
+                                await addPerformanceClient(productionId, startTime, capacity, user.uid);
                                 setIsAddModalOpen(false);
                             } catch (e: any) {
                                 setError(e.message || '登録に失敗しました。');
@@ -218,11 +224,17 @@ export default function PerformanceManager({ productionId, performances }: Props
                                     transition: 'all 0.2s ease'
                                 }}>
                                     {editingId === perf.id ? (
-                                        <form action={async (formData) => {
+                                        <form onSubmit={async (e) => {
+                                            e.preventDefault();
                                             if (!user) return;
                                             setIsProcessing(true);
+                                            const formData = new FormData(e.currentTarget);
+                                            const date = formData.get('date') as string;
+                                            const time = formData.get('time') as string;
+                                            const capacity = parseInt(formData.get('capacity') as string);
                                             try {
-                                                await updatePerformance(perf.id, formData, user.uid);
+                                                const startTime = new Date(`${date}T${time}`);
+                                                await updatePerformanceClient(perf.id, startTime, capacity, user.uid);
                                                 setEditingId(null);
                                             } catch (error: any) {
                                                 console.error('Failed to update performance:', error);

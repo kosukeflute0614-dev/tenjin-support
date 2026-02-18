@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { addTicketType, updateTicketType, deleteTicketType } from '@/app/actions/production-details';
+import { addTicketTypeClient, updateTicketTypeClient, deleteTicketTypeClient } from '@/lib/client-firestore';
 import { SmartNumberInput } from './SmartInputs';
 import { useAuth } from './AuthProvider';
 
@@ -30,7 +30,7 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
         setDeletingId(null); // Close modal first
 
         try {
-            await deleteTicketType(idToDelete, productionId, user.uid);
+            await deleteTicketTypeClient(productionId, idToDelete, user.uid);
         } catch (error: any) {
             console.error('Failed to delete ticket type:', error);
             setError(error.message || '削除に失敗しました。');
@@ -137,11 +137,16 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                     {ticketTypes.map(ticket => (
                         <li key={ticket.id} style={{ padding: '0.75rem 0', borderBottom: '1px solid var(--card-border)' }}>
                             {editingId === ticket.id ? (
-                                <form action={async (formData) => {
+                                <form onSubmit={async (e) => {
+                                    e.preventDefault();
                                     if (!user) return;
                                     setIsProcessing(true);
+                                    const formData = new FormData(e.currentTarget);
+                                    const name = formData.get('name') as string;
+                                    const advancePrice = parseInt(formData.get('advancePrice') as string);
+                                    const doorPrice = parseInt(formData.get('doorPrice') as string);
                                     try {
-                                        await updateTicketType(ticket.id, formData, user.uid);
+                                        await updateTicketTypeClient(productionId, ticket.id, name, advancePrice, doorPrice, user.uid);
                                         setEditingId(null);
                                     } catch (error: any) {
                                         console.error('Failed to update ticket type:', error);
@@ -223,9 +228,21 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                 }}>
                     <span style={{ fontSize: '1.4rem' }}>🎟️</span> 券種を追加
                 </h4>
-                <form action={async (formData) => {
+                <form onSubmit={async (e) => {
+                    e.preventDefault();
                     if (!user) return;
-                    await addTicketType(formData, user.uid);
+                    setIsProcessing(true);
+                    const formData = new FormData(e.currentTarget);
+                    const name = formData.get('name') as string;
+                    const advancePrice = parseInt(formData.get('advancePrice') as string);
+                    const doorPrice = parseInt(formData.get('doorPrice') as string);
+                    try {
+                        await addTicketTypeClient(productionId, name, advancePrice, doorPrice, user.uid);
+                    } catch (error: any) {
+                        setError(error.message || '追加に失敗しました。');
+                    } finally {
+                        setIsProcessing(false);
+                    }
                 }} style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'flex-end' }}>
                     <input type="hidden" name="productionId" value={productionId} />
                     <div className="form-group" style={{ margin: 0, flex: 2, minWidth: '200px' }}>

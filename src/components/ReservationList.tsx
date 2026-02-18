@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { updateReservation, cancelReservation, restoreReservation, confirmReservation } from '@/app/actions/reservation';
+import { cancelReservationClient, updateReservationFullClient } from '@/lib/client-firestore';
 import { useAuth } from './AuthProvider';
 import { STATUS_LABELS, PAYMENT_STATUS_LABELS } from '@/lib/constants';
 import { formatDateTime } from '@/lib/format';
@@ -32,23 +32,38 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
     const handleConfirmCancel = async () => {
         if (!cancellingReservation || !user) return;
         setIsProcessing(true);
-        await cancelReservation(cancellingReservation.id, user.uid);
-        setIsProcessing(false);
-        setCancellingReservation(null);
+        try {
+            await cancelReservationClient(cancellingReservation.id, user.uid);
+            setCancellingReservation(null);
+        } catch (error: any) {
+            alert(error.message || '操作に失敗しました。');
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     const handleConfirm = async (id: string) => {
         if (!user) return;
         setIsProcessing(true);
-        await confirmReservation(id, user.uid);
-        setIsProcessing(false);
+        try {
+            await updateReservationFullClient(id, { status: 'CONFIRMED' }, user.uid);
+        } catch (error: any) {
+            alert(error.message || '操作に失敗しました。');
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     const handleRestore = async (id: string) => {
         if (!user) return;
         setIsProcessing(true);
-        await restoreReservation(id, user.uid);
-        setIsProcessing(false);
+        try {
+            await updateReservationFullClient(id, { status: 'CONFIRMED' }, user.uid);
+        } catch (error: any) {
+            alert(error.message || '操作に失敗しました。');
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     const handleCloseModal = () => {
@@ -280,9 +295,40 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
 
                             <h3 className="heading-md" style={{ marginBottom: '1.5rem' }}>予約内容の変更</h3>
 
-                            <form action={async (formData) => {
-                                if (user) await updateReservation(editingReservation.id, formData, user.uid);
-                                handleCloseModal();
+                            <form onSubmit={async (e) => {
+                                e.preventDefault();
+                                if (!user) return;
+                                setIsProcessing(true);
+                                const formData = new FormData(e.currentTarget);
+
+                                const tickets = Array.from(formData.entries())
+                                    .filter(([key]) => key.startsWith('ticket_'))
+                                    .map(([key, value]) => {
+                                        const ticketTypeId = key.replace('ticket_', '');
+                                        const count = parseInt(value as string) || 0;
+                                        const performance = allPerformances.find(p => p.id === formData.get('performanceId'));
+                                        const type = performance?.ticketTypes?.find((tt: any) => tt.id === ticketTypeId);
+                                        return {
+                                            ticketTypeId,
+                                            count,
+                                            price: type?.price || 0
+                                        };
+                                    }).filter(t => t.count > 0);
+
+                                try {
+                                    await updateReservationFullClient(editingReservation.id, {
+                                        customerName: formData.get('customerName') as string,
+                                        customerEmail: formData.get('customerEmail') as string,
+                                        performanceId: formData.get('performanceId') as string,
+                                        tickets: tickets as any,
+                                        remarks: formData.get('remarks') as string,
+                                    }, user.uid);
+                                    handleCloseModal();
+                                } catch (error: any) {
+                                    alert(error.message || '更新に失敗しました。');
+                                } finally {
+                                    setIsProcessing(false);
+                                }
                             }}>
                                 <div className="form-group" style={{ marginBottom: '1rem' }}>
                                     <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold' }}>氏名</label>
