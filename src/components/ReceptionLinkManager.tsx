@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { updateReceptionStatus, updateReceptionStart, updateReceptionEnd, updateReceptionSchedule } from '@/app/actions/production';
+import { updateReceptionStatusClient, updateReceptionScheduleClient } from '@/lib/client-firestore';
 import { formatForDateTimeLocal, formatDateTime } from '@/lib/format';
 import { getEffectiveReceptionStatus } from '@/lib/production';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import { NumberStepper } from '@/components/TouchInputs';
 import { SmartMaskedDatePicker, SmartMaskedTimeInput } from './SmartInputs';
+import { useAuth } from './AuthProvider';
+import { useRouter } from 'next/navigation';
 
 type Props = {
     productionId: string;
@@ -29,6 +31,8 @@ export default function ReceptionLinkManager({
     initialEndMinutes = 0,
     performances = []
 }: Props) {
+    const { user } = useAuth();
+    const router = useRouter();
     const [baseUrl, setBaseUrl] = useState('');
     const [copied, setCopied] = useState(false);
     const [manualStatus, setManualStatus] = useState(initialStatus);
@@ -133,7 +137,7 @@ export default function ReceptionLinkManager({
     // --- Action Handlers ---
 
     const handleConfirmAction = async () => {
-        if (!modalType) return;
+        if (!modalType || !user) return;
 
         setIsUpdating(true);
         const currentModal = modalType;
@@ -161,8 +165,13 @@ export default function ReceptionLinkManager({
                     formData.append('receptionEndMinutes', finalEndMinutes.toString());
 
                     await Promise.all([
-                        updateReceptionStatus(productionId, 'OPEN'),
-                        updateReceptionSchedule(productionId, formData)
+                        updateReceptionStatusClient(productionId, 'OPEN', user.uid),
+                        updateReceptionScheduleClient(productionId, {
+                            receptionStart: null,
+                            receptionEnd: finalEnd,
+                            receptionEndMode: finalEndMode,
+                            receptionEndMinutes: finalEndMinutes
+                        }, user.uid)
                     ]);
 
                     setManualStatus('OPEN');
@@ -181,15 +190,14 @@ export default function ReceptionLinkManager({
                     }
                 } else {
                     // 「即時停止」する場合
-                    const formData = new FormData();
-                    formData.append('receptionStart', '');
-                    formData.append('receptionEnd', '');
-                    formData.append('receptionEndMode', 'MANUAL');
-                    formData.append('receptionEndMinutes', '0');
-
                     await Promise.all([
-                        updateReceptionStatus(productionId, 'CLOSED'),
-                        updateReceptionSchedule(productionId, formData)
+                        updateReceptionStatusClient(productionId, 'CLOSED', user.uid),
+                        updateReceptionScheduleClient(productionId, {
+                            receptionStart: null,
+                            receptionEnd: null,
+                            receptionEndMode: 'MANUAL',
+                            receptionEndMinutes: 0
+                        }, user.uid)
                     ]);
 
                     setManualStatus('CLOSED');
@@ -207,10 +215,10 @@ export default function ReceptionLinkManager({
                 }
             } else if (currentModal === 'SAVE_START') {
                 const combinedStart = inputStartDate && inputStartTime ? `${inputStartDate}T${inputStartTime}` : null;
-                await Promise.all([
-                    updateReceptionStart(productionId, combinedStart),
-                    updateReceptionStatus(productionId, 'CLOSED')
-                ]);
+                await updateReceptionScheduleClient(productionId, {
+                    receptionStart: combinedStart
+                }, user.uid);
+                await updateReceptionStatusClient(productionId, 'CLOSED', user.uid);
 
                 setManualStatus('CLOSED');
                 setConfirmedStart(combinedStart ? new Date(combinedStart) : null);
@@ -220,15 +228,13 @@ export default function ReceptionLinkManager({
             } else if (currentModal === 'SAVE_END') {
                 const totalMinutes = (endHours * 60) + endMinutesPart;
                 const combinedEnd = inputEndDate && inputEndTime ? `${inputEndDate}T${inputEndTime}` : null;
-                const formData = new FormData();
-                formData.append('receptionEnd', combinedEnd || '');
-                formData.append('receptionEndMode', endMode);
-                formData.append('receptionEndMinutes', totalMinutes.toString());
 
-                await Promise.all([
-                    updateReceptionEnd(productionId, formData),
-                    updateReceptionStatus(productionId, 'CLOSED')
-                ]);
+                await updateReceptionScheduleClient(productionId, {
+                    receptionEnd: combinedEnd,
+                    receptionEndMode: endMode,
+                    receptionEndMinutes: totalMinutes
+                }, user.uid);
+                await updateReceptionStatusClient(productionId, 'CLOSED', user.uid);
 
                 setManualStatus('CLOSED');
                 setConfirmedEnd(combinedEnd ? new Date(combinedEnd) : null);
@@ -238,13 +244,12 @@ export default function ReceptionLinkManager({
                 setScheduleMessage({ type: 'success', text: '終了条件を設定しました' });
                 setTimeout(() => setScheduleMessage(null), 3000);
             } else if (currentModal === 'CLEAR_SCHEDULE') {
-                const formData = new FormData();
-                formData.append('receptionStart', '');
-                formData.append('receptionEnd', '');
-                formData.append('receptionEndMode', 'MANUAL');
-                formData.append('receptionEndMinutes', '0');
-
-                await updateReceptionSchedule(productionId, formData);
+                await updateReceptionScheduleClient(productionId, {
+                    receptionStart: null,
+                    receptionEnd: null,
+                    receptionEndMode: 'MANUAL',
+                    receptionEndMinutes: 0
+                }, user.uid);
 
                 setConfirmedStart(null);
                 setConfirmedEnd(null);
@@ -258,9 +263,13 @@ export default function ReceptionLinkManager({
                 setEndHours(0);
                 setEndMinutesPart(0);
 
+
                 setScheduleMessage({ type: 'success', text: 'スケジュールを解除しました' });
                 setTimeout(() => setScheduleMessage(null), 3000);
             }
+
+            // サーバーサイドの状態もリフレッシュ
+            router.refresh();
         } catch (err) {
             console.error('Action failed:', err);
             alert('操作に失敗しました。');
