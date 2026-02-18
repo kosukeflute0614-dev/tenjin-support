@@ -72,6 +72,7 @@ export default function PublicReservationForm({ production }: Props) {
 
             await createReservationClient({
                 performanceId: selectedPerformanceId,
+                productionId: production.id, // 新しいセキュリティルールで必須
                 customerName: customerInfo.name,
                 customerNameKana: customerInfo.kana,
                 customerEmail: customerInfo.email,

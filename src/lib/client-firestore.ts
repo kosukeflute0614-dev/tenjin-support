@@ -26,10 +26,8 @@ export async function fetchProductionDetailsClient(
 ): Promise<{ production: Production; performances: Performance[] } | null> {
     const docRef = doc(db, "productions", productionId);
     const docSnap = await getDoc(docRef);
-    console.log("fetchProductionDetailsClient for:", productionId, "exists:", docSnap.exists());
 
     if (!docSnap.exists()) {
-        console.warn("Production document not found:", productionId);
         return null;
     }
 

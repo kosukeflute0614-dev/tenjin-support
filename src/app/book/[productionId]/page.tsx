@@ -18,13 +18,13 @@ export default function PublicBookPage({ params }: { params: Promise<{ productio
             try {
                 const data = await fetchProductionDetailsClient(productionId);
                 if (!data) {
-                    setError("公演情報が見つかりません。URLが正しいかご確認ください。");
+                    setError("指定された公演が見つかりません。URLが正しいかご確認ください。");
                 } else {
                     setDetails(data);
                 }
             } catch (err: any) {
                 console.error("Error fetching public production details:", err);
-                setError(err.message || "データの取得中にエラーが発生しました。");
+                setError("データの取得中に予期せぬエラーが発生しました。しばらく時間を置いてから再度お試しください。");
             } finally {
                 setLoading(false);
             }
