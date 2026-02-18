@@ -55,6 +55,7 @@ export default function ReservationForm({ productions }: Props) {
         try {
             await createReservationClient({
                 performanceId: selectedPerformanceId,
+                productionId: selectedPerformance.productionId,
                 customerName: formData.get('customerName') as string,
                 customerNameKana: formData.get('customerNameKana') as string,
                 customerEmail: formData.get('customerEmail') as string,

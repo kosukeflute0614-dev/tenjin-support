@@ -76,7 +76,7 @@ export default function GlobalReservationSearch({ productionId }: { productionId
                                 {res.checkinStatus === 'CHECKED_IN' ? '入場済' : res.checkinStatus === 'PARTIALLY_CHECKED_IN' ? '一部入場' : '未入場'}
                             </span>
                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                {res.tickets.map((t: any) => `${t.ticketType.name}${t.count}枚`).join(', ')}
+                                {res.tickets.map((t: any) => `${t.ticketType?.name || '不明な券種'}${t.count}枚`).join(', ')}
                             </div>
                         </div>
                     </div>

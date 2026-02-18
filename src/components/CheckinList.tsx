@@ -81,7 +81,7 @@ export default function CheckinList({
                                     </td>
                                     <td style={{ padding: '1rem' }}>
                                         <div style={{ fontSize: '0.85rem' }}>
-                                            {res.tickets.map((t: any) => `${t.ticketType.name}×${t.count}`).join(', ')}
+                                            {res.tickets?.map((t: any) => `${t.ticketType?.name || '不明な券種'}×${t.count}`).join(', ') || 'チケットなし'}
                                         </div>
                                     </td>
                                     <td style={{ padding: '1rem' }}>
@@ -657,7 +657,7 @@ function DetailModal({
                                     {ticketPaymentStatus.map((t: any) => (
                                         <div key={t.id} style={{ display: 'flex', padding: '0.5rem 0.75rem', borderBottom: '1px solid #fafafa', alignItems: 'center' }}>
                                             <div style={{ flex: 1 }}>
-                                                <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: '#333', marginBottom: '0.1rem' }}>{t.ticketType.name}</div>
+                                                <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: '#333', marginBottom: '0.1rem' }}>{t.ticketType?.name || '不明な券種'}</div>
                                                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                                     <span style={{ fontSize: '0.8rem', color: '#666' }}>¥{t.price.toLocaleString()}</span>
                                                     <span style={{ fontSize: '0.75rem', color: '#ccc' }}>×</span>
@@ -831,7 +831,7 @@ function DetailModal({
                             >
                                 <span>{remaining > 1 ? `残りの ${remaining}名 を全員入場` : '入場受付と会計を確定'}</span>
                                 <span style={{ fontSize: '0.8rem', fontWeight: 'normal', opacity: 0.9 }}>
-                                    {totalAmount - currentPaidAmount > 0 ? `受領額: ¥${(totalAmount - currentPaidAmount).toLocaleString()}` : 'お支払い済み'}
+                                    {totalAmount - currentPaidAmount > 0 ? `受領額: ¥${(totalAmount - currentPaidAmount).toLocaleString()}` : (totalAmount > 0 ? 'お支払い済み' : '無料')}
                                 </span>
                             </button>
 

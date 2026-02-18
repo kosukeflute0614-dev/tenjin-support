@@ -81,7 +81,7 @@ export default function CheckinPage({ params }: { params: any }) {
                                 ...res,
                                 tickets: (res.tickets || []).map((t: any) => ({
                                     ...t,
-                                    ticketType: production.ticketTypes.find((tt: any) => tt.id === t.ticketTypeId)
+                                    ticketType: production.ticketTypes.find((tt: any) => tt.id === t.ticketTypeId) || { name: '不明な券種', price: t.price || 0 }
                                 }))
                             }));
 
