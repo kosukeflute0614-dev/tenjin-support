@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { db } from '@/lib/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { initializeTroupeAndMembership } from '@/lib/platform';
 
 export default function OnboardingPage() {
     const { user, profile, loading, isNewUser, refreshProfile } = useAuth();
@@ -30,13 +30,8 @@ export default function OnboardingPage() {
         setError(null);
 
         try {
-            await setDoc(doc(db, 'users', user.uid), {
-                uid: user.uid,
-                email: user.email,
-                troupeName: troupeName.trim(),
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp()
-            });
+            // Phase 1-C: 劇団・所属・ユーザー・公演データの完全同期
+            await initializeTroupeAndMembership(user, troupeName.trim());
 
             // プロファイルをリフレッシュして最新状態にする
             await refreshProfile();

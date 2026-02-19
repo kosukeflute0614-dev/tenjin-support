@@ -11,6 +11,7 @@ import {
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { AppUser } from '@/types';
+import { ensureUserTroupe } from '@/lib/platform';
 
 interface AuthContextType {
     user: User | null;
@@ -34,8 +35,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const docRef = doc(db, 'users', uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-            setProfile(docSnap.data() as AppUser);
+            const profileData = docSnap.data() as AppUser;
+            setProfile(profileData);
             setIsNewUser(false);
+
+            // Phase 1-B: 劇団データの自動生成（裏側のみ）
+            ensureUserTroupe(uid, profileData);
         } else {
             setProfile(null);
             setIsNewUser(true);

@@ -42,11 +42,33 @@ export interface FirestoreReservation {
     updatedAt?: any;
 }
 
+export interface Troupe {
+    id: string;
+    name: string;
+    customId: string; // URL slug: tenjin-support.com/t/[customId]
+    ownerId: string;
+    description?: string | null;
+    logoUrl?: string | null;
+    createdAt: any;
+    updatedAt: any;
+}
+
+export interface Membership {
+    id: string;
+    userId: string;
+    troupeId: string;
+    role: 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
+    joinedAt: any;
+    updatedAt: any;
+}
+
 export interface Production {
     id: string;
     title: string;
     description?: string | null;
-    organizationId: string;
+    organizationId: string; // Legacy: will be replaced by troupeId
+    troupeId?: string;      // New: Reference to Troupe.id
+    customId?: string;      // New: URL slug for this production
     ticketTypes: TicketType[];
     actors: Actor[];
     receptionStatus: 'OPEN' | 'CLOSED';
@@ -55,7 +77,7 @@ export interface Production {
     receptionEndMode?: 'MANUAL' | 'AUTO_PERFORMANCE_START' | 'AUTO_TIME_BEFORE';
     receptionEndMinutes?: number;
     performances?: Performance[];
-    userId: string; // Owner ID
+    userId: string; // Owner ID (Legacy)
     createdAt?: any;
     updatedAt?: any;
 }
