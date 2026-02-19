@@ -38,10 +38,22 @@ export default function DashboardPage() {
                     fetchDashboardStatsClient(activeId, user.uid),
                     fetchDuplicateReservationsClient(activeId, user.uid)
                 ]);
+
+                // IDは存在するが、DB初期化等でデータが空（無効なID）の場合
+                if (dashboardStats.length === 0) {
+                    // もし全公演を調べても見つからない場合はCookieを消して一覧へ
+                    // (ここでは簡易的に、統計が取れない場合は無効とみなす)
+                    console.warn("[Dashboard] No stats found for active ID, it might be invalid.");
+                }
+
                 setStats(dashboardStats);
                 setDuplicateGroups(duplicates);
             } catch (error) {
                 console.error("Dashboard data fetch failed:", error);
+                // 権限エラーや存在しないエラーの場合はCookieが古い可能性が高い
+                if ((error as any).code === 'permission-denied' || (error as any).message?.includes('not found')) {
+                    router.push('/productions');
+                }
             } finally {
                 setIsDataLoading(false);
             }

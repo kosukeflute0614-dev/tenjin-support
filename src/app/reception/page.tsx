@@ -61,7 +61,7 @@ export default function ReceptionSelectionPage() {
     return (
         <div className="container" style={{ maxWidth: '800px' }}>
             <header style={{ marginBottom: '2rem' }}>
-                <Link href="/" className="btn btn-secondary" style={{ marginBottom: '1rem' }}>
+                <Link href="/dashboard" className="btn btn-secondary" style={{ marginBottom: '1rem' }}>
                     &larr; ダッシュボードに戻る
                 </Link>
                 <h1 className="heading-lg">当日受付：公演回を選択</h1>

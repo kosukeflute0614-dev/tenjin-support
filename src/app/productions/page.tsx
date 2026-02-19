@@ -84,7 +84,7 @@ export default function ProductionsPage() {
             <div className="page-header flex-center" style={{ justifyContent: 'space-between', marginBottom: '2rem' }}>
                 <div>
                     <div style={{ marginBottom: '1.5rem' }}>
-                        <Link href="/" className="btn btn-secondary" style={{
+                        <Link href="/dashboard" className="btn btn-secondary" style={{
                             padding: '0.75rem 1.5rem',
                             fontSize: '1rem',
                             display: 'inline-flex',

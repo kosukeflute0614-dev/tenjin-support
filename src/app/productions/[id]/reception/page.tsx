@@ -51,7 +51,7 @@ export default function ReceptionPage({ params }: { params: Promise<{ id: string
         <div className="container" style={{ maxWidth: '800px' }}>
             <div className="page-header" style={{ marginBottom: '2.5rem' }}>
                 <div style={{ marginBottom: '1.5rem' }}>
-                    <Link href="/" className="btn btn-secondary" style={{
+                    <Link href="/dashboard" className="btn btn-secondary" style={{
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '0.5rem',
@@ -79,6 +79,7 @@ export default function ReceptionPage({ params }: { params: Promise<{ id: string
                     initialEndMode={(production as any).receptionEndMode || 'MANUAL'}
                     initialEndMinutes={(production as any).receptionEndMinutes || 0}
                     performances={performances}
+                    customId={production.customId}
                 />
             </div>
         </div>

@@ -38,7 +38,8 @@ export default function OnboardingPage() {
             router.push('/dashboard');
         } catch (err: any) {
             console.error('Failed to save troupe name:', err);
-            setError('送信に失敗しました。もう一度お試しください。');
+            const detail = err.code ? ` (${err.code}: ${err.message})` : '';
+            setError(`送信に失敗しました。${detail}`);
         } finally {
             setIsSaving(false);
         }

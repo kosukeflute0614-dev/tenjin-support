@@ -51,7 +51,7 @@ export default function AttendancePage({ params }: { params: Promise<{ id: strin
         <div className="container" style={{ maxWidth: '1000px' }}>
             <div className="page-header" style={{ marginBottom: '2.5rem' }}>
                 <div style={{ marginBottom: '1.5rem' }}>
-                    <Link href="/" className="btn btn-secondary" style={{
+                    <Link href="/dashboard" className="btn btn-secondary" style={{
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '0.5rem',

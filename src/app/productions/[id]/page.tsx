@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from 'react';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, getDocs, getDoc, limit } from 'firebase/firestore';
 import { serializeDoc, serializeDocs } from '@/lib/firestore-utils';
 import Link from 'next/link';
 import ProductionSettingsTabs from '@/components/ProductionSettingsTabs';
@@ -23,43 +23,87 @@ export default function ProductionDetailPage({ params }: { params: Promise<{ id:
 
         const setupListeners = async () => {
             if (user) {
-                // 1. Production の監視
-                const prodRef = doc(db, "productions", id);
-                unsubscribeProd = onSnapshot(prodRef, (docSnap) => {
+                // 1. Production の監視/取得
+                const productionsRef = collection(db, "productions");
+                let targetId = id;
+                let foundDocId = '';
+
+                // 最初の一回だけ、id が docId か customId かを確認する
+                const checkIdResolution = async () => {
+                    const docRef = doc(db, "productions", id);
+                    const docSnap = await getDoc(docRef);
                     if (docSnap.exists()) {
-                        const prodData = serializeDoc<Production>(docSnap);
-
-                        // 所有権チェック
-                        if (prodData.userId !== user.uid) {
-                            console.error("所有権がありません");
-                            router.push('/productions');
-                            return;
-                        }
-
-                        // 2. Performances の監視 (Production が取得できた後に開始)
-                        const perfsRef = collection(db, "performances");
-                        const q = query(perfsRef, where("productionId", "==", id));
-                        unsubscribePerf = onSnapshot(q, (perfSnap) => {
-                            const performances = serializeDocs<Performance>(perfSnap.docs)
-                                .sort((a, b) => {
-                                    const tA = new Date(a.startTime).getTime();
-                                    const tB = new Date(b.startTime).getTime();
-                                    return tA - tB;
-                                });
-
-                            setDetails({ production: prodData, performances });
-                            setIsInitialLoading(false);
-                        }, (err) => {
-                            console.error("Performances listener error:", err);
-                        });
+                        foundDocId = id;
+                        return docSnap;
                     } else {
-                        console.error("Production が存在しません");
+                        const qCustom = query(productionsRef, where("customId", "==", id), limit(1));
+                        const customSnap = await getDocs(qCustom);
+                        if (!customSnap.empty) {
+                            foundDocId = customSnap.docs[0].id;
+                            return customSnap.docs[0];
+                        }
+                    }
+                    return null;
+                };
+
+                // 監視の設定
+                const startMonitoring = (realId: string) => {
+                    console.log("[Debug] Monitoring production:", realId);
+                    const prodRef = doc(db, "productions", realId);
+                    unsubscribeProd = onSnapshot(prodRef, (docSnap) => {
+                        if (docSnap.exists()) {
+                            const prodData = serializeDoc<Production>(docSnap);
+
+                            if (prodData.userId !== user.uid) {
+                                console.error("[Debug] 所有権がありません:", { docUserId: prodData.userId, currentUserId: user.uid });
+                                setDetails(null);
+                                setIsInitialLoading(false);
+                                return;
+                            }
+
+                            if (!unsubscribePerf) {
+                                const perfsRef = collection(db, "performances");
+                                const q = query(perfsRef, where("productionId", "==", realId));
+                                unsubscribePerf = onSnapshot(q, (perfSnap) => {
+                                    const performances = serializeDocs<Performance>(perfSnap.docs)
+                                        .sort((a, b) => {
+                                            const tA = new Date(a.startTime).getTime();
+                                            const tB = new Date(b.startTime).getTime();
+                                            return tA - tB;
+                                        });
+
+                                    setDetails({ production: prodData, performances });
+                                    setIsInitialLoading(false);
+                                }, (err) => {
+                                    console.error("[Debug] Performances listener error:", err);
+                                    setIsInitialLoading(false);
+                                });
+                            } else {
+                                setDetails(prev => prev ? { ...prev, production: prodData } : null);
+                            }
+                        } else {
+                            console.error("[Debug] Production が存在しません:", realId);
+                            setDetails(null);
+                            setIsInitialLoading(false);
+                        }
+                    }, (err) => {
+                        console.error("[Debug] Production listener error:", err);
+                        setIsInitialLoading(false);
+                    });
+                };
+
+                try {
+                    const resSnap = await checkIdResolution();
+                    if (resSnap) {
+                        startMonitoring(resSnap.id);
+                    } else {
+                        console.error("[Debug] IDを解決できませんでした:", id);
                         setIsInitialLoading(false);
                     }
-                }, (err) => {
-                    console.error("Production listener error:", err);
+                } catch (err) {
+                    console.error("[Debug] ID resolution error:", err);
                     setIsInitialLoading(false);
-                });
+                }
             } else if (!loading) {
                 setIsInitialLoading(false);
             }
@@ -100,7 +144,7 @@ export default function ProductionDetailPage({ params }: { params: Promise<{ id:
         <div className="container" style={{ maxWidth: '1000px' }}>
             <div className="page-header" style={{ marginBottom: '2rem' }}>
                 <div style={{ marginBottom: '1.25rem' }}>
-                    <Link href="/" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
+                    <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
                         <span>&larr;</span> ダッシュボードに戻る
                     </Link>
                 </div>

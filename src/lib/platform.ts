@@ -149,8 +149,11 @@ export async function initializeTroupeAndMembership(user: User, troupeName: stri
         }
 
         console.log('[Platform] Full initialization completed.');
-    } catch (error) {
+    } catch (error: any) {
         console.error('[Platform] Failed to initialize troupe and membership:', error);
+        // エラーコードやメッセージをより詳細に把握するために出力
+        if (error.code) console.error('[Platform] Error Code:', error.code);
+        if (error.message) console.error('[Platform] Error Message:', error.message);
         throw error;
     }
 }

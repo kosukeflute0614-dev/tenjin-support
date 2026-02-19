@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { switchProduction } from '@/app/actions/production-context';
-import { deleteProduction } from '@/app/actions/production';
+import { deleteProductionClient } from '@/lib/client-firestore';
 import Link from 'next/link';
 import { Production } from '@/types';
 
@@ -21,8 +21,13 @@ export default function ProductionList({ productions, activeId }: Props) {
     const handleDelete = async (id: string) => {
         if (confirm('この公演を削除してもよろしいですか？この操作は取り消せません。')) {
             setIsDeleting(id);
-            await deleteProduction(id);
-            setIsDeleting(null);
+            try {
+                await deleteProductionClient(id);
+            } catch (error) {
+                alert("公演の削除に失敗しました。権限がないか、エラーが発生しました。");
+            } finally {
+                setIsDeleting(null);
+            }
         }
     };
 

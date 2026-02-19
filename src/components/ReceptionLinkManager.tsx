@@ -18,6 +18,7 @@ type Props = {
     initialEndMode?: string;
     initialEndMinutes?: number;
     performances?: any[];
+    customId?: string | null;
 };
 
 type ModalType = 'TOGGLE_STATUS' | 'SAVE_START' | 'SAVE_END' | 'CLEAR_SCHEDULE' | null;
@@ -29,7 +30,8 @@ export default function ReceptionLinkManager({
     initialEnd,
     initialEndMode = 'MANUAL',
     initialEndMinutes = 0,
-    performances = []
+    performances = [],
+    customId = null
 }: Props) {
     const { user } = useAuth();
     const router = useRouter();
@@ -92,7 +94,7 @@ export default function ReceptionLinkManager({
         return () => clearInterval(interval);
     }, [manualStatus, confirmedStart, confirmedEnd, confirmedEndMode, confirmedEndMinutes, performances]);
 
-    const reservationUrl = `${baseUrl}/book/${productionId}`;
+    const reservationUrl = `${baseUrl}/book/${customId || productionId}`;
 
     const handleCopy = async () => {
         try {

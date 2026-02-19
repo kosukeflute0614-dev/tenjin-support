@@ -24,74 +24,97 @@ export async function fetchProductionDetailsClient(
     productionId: string,
     userId?: string | null
 ): Promise<{ production: Production; performances: Performance[] } | null> {
-    const docRef = doc(db, "productions", productionId);
-    const docSnap = await getDoc(docRef);
+    try {
+        const productionsRef = collection(db, "productions");
+        let docSnap;
 
-    if (!docSnap.exists()) {
+        // 1. まずドキュメントIDとして試行
+        const docRef = doc(db, "productions", productionId);
+        docSnap = await getDoc(docRef);
+
+        // 2. 見つからない場合は customId として検索
+        if (!docSnap.exists()) {
+            const qCustom = query(productionsRef, where("customId", "==", productionId));
+            const customSnap = await getDocs(qCustom);
+            if (!customSnap.empty) {
+                docSnap = customSnap.docs[0];
+            }
+        }
+
+        if (!docSnap || !docSnap.exists()) {
+            return null;
+        }
+
+        const rawData = docSnap.data();
+
+        // ログイン中の場合は所有権チェック（ADMIN用途）
+        if (userId && rawData.userId !== userId) {
+            return null;
+        }
+
+        const production: Production = {
+            id: docSnap.id,
+            title: rawData.title || '',
+            description: rawData.description || null,
+            organizationId: rawData.organizationId || '',
+            troupeId: rawData.troupeId || null,
+            customId: rawData.customId || null,
+            receptionStatus: rawData.receptionStatus || 'CLOSED',
+            receptionStart: timestampToDate(rawData.receptionStart)?.toISOString() || null,
+            receptionEnd: timestampToDate(rawData.receptionEnd)?.toISOString() || null,
+            receptionEndMode: rawData.receptionEndMode || 'MANUAL',
+            receptionEndMinutes: rawData.receptionEndMinutes || 0,
+            ticketTypes: (rawData.ticketTypes || []).map((tt: any) => ({
+                id: tt.id,
+                name: tt.name,
+                price: tt.price,
+                doorPrice: tt.doorPrice,
+                isPublic: tt.isPublic
+            })),
+            actors: rawData.actors || [],
+        } as Production;
+
+        // 公演回の取得
+        const performancesRef = collection(db, "performances");
+        let q;
+
+        if (userId) {
+            // ADMIN用途: 自分の公演回のみ取得（セキュリティルールに合致）
+            q = query(
+                performancesRef,
+                where("userId", "==", userId)
+            );
+        } else {
+            // PUBLIC用途: productionId でフィルタ（セキュリティルールで全読み可能前提）
+            q = query(
+                performancesRef,
+                where("productionId", "==", productionId)
+            );
+        }
+
+        const querySnapshot = await getDocs(q);
+        const rawPerformances = serializeDocs<Performance>(querySnapshot.docs);
+
+        // productionId でさらに絞り込み（userId クエリの場合用）とマッピング、ソート
+        const performances = rawPerformances
+            .filter(perf => perf.productionId === productionId)
+            .map(perf => ({
+                id: perf.id,
+                startTime: perf.startTime,
+                capacity: perf.capacity,
+                productionId: perf.productionId
+            } as Performance))
+            .sort((a, b) => {
+                const timeA = a.startTime ? new Date(a.startTime).getTime() : 0;
+                const timeB = b.startTime ? new Date(b.startTime).getTime() : 0;
+                return timeA - timeB;
+            });
+
+        return { production, performances };
+    } catch (error) {
+        console.error("[client-firestore] fetchProductionDetailsClient error:", error);
         return null;
     }
-
-    const rawData = docSnap.data();
-
-    // ログイン中の場合は所有権チェック（ADMIN用途）
-    if (userId && rawData.userId !== userId) {
-        return null;
-    }
-
-    const production: Production = {
-        id: docSnap.id,
-        title: rawData.title || '',
-        receptionStatus: rawData.receptionStatus || 'CLOSED',
-        receptionStart: timestampToDate(rawData.receptionStart)?.toISOString() || null,
-        receptionEnd: timestampToDate(rawData.receptionEnd)?.toISOString() || null,
-        receptionEndMode: rawData.receptionEndMode || 'MANUAL',
-        receptionEndMinutes: rawData.receptionEndMinutes || 0,
-        ticketTypes: (rawData.ticketTypes || []).map((tt: any) => ({
-            id: tt.id,
-            name: tt.name,
-            price: tt.price,
-            doorPrice: tt.doorPrice,
-            isPublic: tt.isPublic
-        })),
-    } as Production;
-
-    // 公演回の取得
-    const performancesRef = collection(db, "performances");
-    let q;
-
-    if (userId) {
-        // ADMIN用途: 自分の公演回のみ取得（セキュリティルールに合致）
-        q = query(
-            performancesRef,
-            where("userId", "==", userId)
-        );
-    } else {
-        // PUBLIC用途: productionId でフィルタ（セキュリティルールで全読み可能前提）
-        q = query(
-            performancesRef,
-            where("productionId", "==", productionId)
-        );
-    }
-
-    const querySnapshot = await getDocs(q);
-    const rawPerformances = serializeDocs<Performance>(querySnapshot.docs);
-
-    // productionId でさらに絞り込み（userId クエリの場合用）とマッピング、ソート
-    const performances = rawPerformances
-        .filter(perf => perf.productionId === productionId)
-        .map(perf => ({
-            id: perf.id,
-            startTime: perf.startTime,
-            capacity: perf.capacity,
-            productionId: perf.productionId
-        } as Performance))
-        .sort((a, b) => {
-            const timeA = a.startTime ? new Date(a.startTime).getTime() : 0;
-            const timeB = b.startTime ? new Date(b.startTime).getTime() : 0;
-            return timeA - timeB;
-        });
-
-    return { production, performances };
 }
 
 /**
@@ -102,49 +125,90 @@ export async function fetchDashboardStatsClient(
     userId: string
 ): Promise<PerformanceStats[]> {
     if (!productionId || !userId) return [];
+    try {
+        const performancesRef = collection(db, "performances");
+        const qPerf = query(
+            performancesRef,
+            where("productionId", "==", productionId)
+        );
+        const perfSnapshot = await getDocs(qPerf);
+        const performances = serializeDocs<Performance>(perfSnapshot.docs)
+            .filter(p => p.userId === userId)
+            .sort((a, b) => {
+                const timeA = a.startTime ? new Date(a.startTime).getTime() : 0;
+                const timeB = b.startTime ? new Date(b.startTime).getTime() : 0;
+                return timeA - timeB;
+            });
 
-    const performancesRef = collection(db, "performances");
-    const qPerf = query(
-        performancesRef,
-        where("productionId", "==", productionId)
-    );
-    const perfSnapshot = await getDocs(qPerf);
-    const performances = serializeDocs<Performance>(perfSnapshot.docs)
-        .filter(p => p.userId === userId)
-        .sort((a, b) => {
-            const timeA = a.startTime ? new Date(a.startTime).getTime() : 0;
-            const timeB = b.startTime ? new Date(b.startTime).getTime() : 0;
-            return timeA - timeB;
+        const reservationsRef = collection(db, "reservations");
+        const qRes = query(
+            reservationsRef,
+            where("userId", "==", userId)
+        );
+        const resSnapshot = await getDocs(qRes);
+        const allReservations = serializeDocs<FirestoreReservation>(resSnapshot.docs)
+            .filter(res => res.status !== 'CANCELED');
+
+        return performances.map(perf => {
+            const perfReservations = allReservations.filter(res => res.performanceId === perf.id);
+            const bookedCount = perfReservations.reduce((sum: number, res: FirestoreReservation) => {
+                const ticketCount = (res.tickets || []).reduce((tSum: number, t: any) => tSum + (t.count || 0), 0);
+                return sum + ticketCount;
+            }, 0);
+
+            const remainingCount = Math.max(0, perf.capacity - bookedCount);
+            const occupancyRate = perf.capacity > 0 ? (bookedCount / perf.capacity) * 100 : 0;
+
+            return {
+                id: perf.id,
+                startTime: perf.startTime,
+                capacity: perf.capacity,
+                bookedCount,
+                remainingCount,
+                occupancyRate
+            };
         });
+    } catch (error) {
+        console.error("[client-firestore] fetchDashboardStatsClient error:", error);
+        return [];
+    }
+}
 
-    const reservationsRef = collection(db, "reservations");
-    const qRes = query(
-        reservationsRef,
-        where("userId", "==", userId)
-    );
-    const resSnapshot = await getDocs(qRes);
-    const allReservations = serializeDocs<FirestoreReservation>(resSnapshot.docs)
-        .filter(res => res.status !== 'CANCELED');
+/**
+ * 公演を削除する（クライアント側）
+ */
+export async function deleteProductionClient(productionId: string): Promise<void> {
+    if (!productionId) return;
 
-    return performances.map(perf => {
-        const perfReservations = allReservations.filter(res => res.performanceId === perf.id);
-        const bookedCount = perfReservations.reduce((sum: number, res: FirestoreReservation) => {
-            const ticketCount = (res.tickets || []).reduce((tSum: number, t: any) => tSum + (t.count || 0), 0);
-            return sum + ticketCount;
-        }, 0);
+    try {
+        // 本来は一括削除（TransactionやBatch）が望ましいが、
+        // セキュリティルールに従い、まず公演回などを取得して削除する必要がある場合があります。
+        // ここではシンプルに公演本体を削除します。
+        // ※ 関連データ（Performance/Reservation）の削除が必要な場合は別途実装が必要です。
+        const productionRef = doc(db, "productions", productionId);
+        await deleteDoc(productionRef);
+    } catch (error) {
+        console.error("[client-firestore] deleteProductionClient error:", error);
+        throw error;
+    }
+}
 
-        const remainingCount = Math.max(0, perf.capacity - bookedCount);
-        const occupancyRate = perf.capacity > 0 ? (bookedCount / perf.capacity) * 100 : 0;
+/**
+ * 公演のカスタムID（URLスラッグ）を更新する（クライアント側）
+ */
+export async function updateProductionCustomIdClient(productionId: string, customId: string): Promise<void> {
+    if (!productionId) return;
 
-        return {
-            id: perf.id,
-            startTime: perf.startTime,
-            capacity: perf.capacity,
-            bookedCount,
-            remainingCount,
-            occupancyRate
-        };
-    });
+    try {
+        const productionRef = doc(db, "productions", productionId);
+        await updateDoc(productionRef, {
+            customId: customId || null,
+            updatedAt: serverTimestamp()
+        });
+    } catch (error) {
+        console.error("[client-firestore] updateProductionCustomIdClient error:", error);
+        throw error;
+    }
 }
 
 /**
@@ -798,4 +862,24 @@ export async function updateReceptionScheduleClient(
     }
 
     await updateDoc(ref, updateData);
+}
+
+/**
+ * カスタムIDの重複をチェックする（クライアント側）
+ */
+export async function checkCustomIdDuplicateClient(customId: string, excludeProductionId?: string): Promise<boolean> {
+    if (!customId) return false;
+
+    const productionsRef = collection(db, "productions");
+    const q = query(productionsRef, where("customId", "==", customId));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) return false;
+
+    // 自分自身を除外してチェック
+    if (excludeProductionId) {
+        return snapshot.docs.some(doc => doc.id !== excludeProductionId);
+    }
+
+    return true;
 }

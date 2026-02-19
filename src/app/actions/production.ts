@@ -164,8 +164,21 @@ export async function updateReceptionSchedule(id: string, formData: FormData) {
         updatedAt: serverTimestamp()
     });
 
-    revalidatePath(`/productions/${id}/reception`)
-    revalidatePath(`/productions/${id}`)
     revalidatePath(`/book/${id}`)
     revalidatePath('/')
+}
+
+export async function updateProductionCustomId(id: string, customId: string) {
+    const productionRef = doc(db, "productions", id);
+    await updateDoc(productionRef, {
+        customId: customId || null,
+        updatedAt: serverTimestamp()
+    });
+
+    revalidatePath(`/productions/${id}`)
+    revalidatePath('/productions')
+    if (customId) {
+        revalidatePath(`/book/${customId}`)
+    }
+    revalidatePath(`/book/${id}`)
 }

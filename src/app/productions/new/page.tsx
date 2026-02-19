@@ -17,8 +17,15 @@ export default function NewProductionPage() {
         const title = formData.get('title') as string;
 
         try {
-            await createProductionClient(title, user.uid);
-            router.push('/productions');
+            const newId = await createProductionClient(title, user.uid);
+
+            // 重要: 作成した公演を即座に「有効な公演」として設定する
+            // サーバーアクションをクライアントから呼ぶ（Next.js Actions）
+            const { setActiveProductionId } = await import('@/app/actions/production-context');
+            await setActiveProductionId(newId);
+
+            // ダッシュボードではなく、そのまま詳細設定画面へ飛ばす
+            router.push(`/productions/${newId}`);
         } catch (error) {
             console.error("Error creating production:", error);
             alert("公演の作成に失敗しました。");

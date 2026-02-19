@@ -8,7 +8,7 @@ import { Production, Performance } from '@/types';
 import { isReceptionOpen } from '@/lib/production';
 
 export default function PublicBookPage({ params }: { params: Promise<{ productionId: string }> }) {
-    const { productionId } = use(params);
+    const { productionId: routeId } = use(params);
     const [details, setDetails] = useState<{ production: Production, performances: Performance[] } | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -16,7 +16,8 @@ export default function PublicBookPage({ params }: { params: Promise<{ productio
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const data = await fetchProductionDetailsClient(productionId);
+                // routeId は docId か customId のいずれか。fetchProductionDetailsClient 内で解決される。
+                const data = await fetchProductionDetailsClient(routeId);
                 if (!data) {
                     setError("指定された公演が見つかりません。URLが正しいかご確認ください。");
                 } else {
@@ -30,7 +31,7 @@ export default function PublicBookPage({ params }: { params: Promise<{ productio
             }
         };
         fetchData();
-    }, [productionId]);
+    }, [routeId]);
 
     if (loading) {
         return <div className="flex-center" style={{ height: '50vh' }}>読み込み中...</div>;

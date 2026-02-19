@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PerformanceManager from './PerformanceManager';
 import TicketTypeManager from './TicketTypeManager';
+import { updateProductionCustomIdClient, checkCustomIdDuplicateClient } from '@/lib/client-firestore';
 
 type TabType = 'schedule' | 'tickets' | 'basic';
 
@@ -16,6 +17,52 @@ export default function ProductionSettingsTabs({
     ticketTypes: any[];
 }) {
     const [activeTab, setActiveTab] = useState<TabType>('schedule');
+    const [customId, setCustomId] = useState(production.customId || '');
+    const [isSaving, setIsSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
+    const [baseUrl, setBaseUrl] = useState('');
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setBaseUrl(window.location.origin);
+        }
+    }, []);
+
+    const handleSaveCustomId = async () => {
+        if (!/^[a-zA-Z0-9-]*$/.test(customId)) {
+            setError('カスタムIDは半角英数字とハイフンのみ使用できます。');
+            return;
+        }
+
+        setIsSaving(true);
+        setError(null);
+        setSuccess(null);
+
+        try {
+            if (customId) {
+                const isDuplicate = await checkCustomIdDuplicateClient(customId, production.id);
+                if (isDuplicate) {
+                    setError('このカスタムIDは既に他の公演で使用されています。');
+                    setIsSaving(false);
+                    return;
+                }
+            }
+
+            await updateProductionCustomIdClient(production.id, customId);
+            setSuccess('カスタムIDを更新しました。');
+        } catch (err) {
+            console.error('Failed to update customId:', err);
+            setError('更新に失敗しました。');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        alert('URLをクリップボードにコピーしました。');
+    };
 
     const tabs = [
         { id: 'schedule', label: '公演スケジュール', icon: '📅' },
@@ -90,9 +137,53 @@ export default function ProductionSettingsTabs({
                                 <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.5rem' }}>※タイトルの変更は現在サポートされていません。</p>
                             </div>
                             <div className="form-group">
-                                <label className="label">公演ID</label>
+                                <label className="label">公演ID (システム管理用)</label>
                                 <code style={{ fontSize: '0.9rem', color: '#666' }}>{production.id}</code>
                             </div>
+                            <div className="form-group" style={{ borderTop: '1px solid #eee', paddingTop: '1.5rem', marginTop: '0.5rem' }}>
+                                <label className="label">予約フォームのカスタムID (URLスラッグ)</label>
+                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                    <input
+                                        type="text"
+                                        className="input"
+                                        value={customId}
+                                        onChange={(e) => setCustomId(e.target.value)}
+                                        placeholder="例: winter-performance-2026"
+                                        style={{ flex: 1 }}
+                                    />
+                                    <button
+                                        onClick={handleSaveCustomId}
+                                        disabled={isSaving || customId === production.customId}
+                                        className="btn btn-primary"
+                                        style={{ whiteSpace: 'nowrap' }}
+                                    >
+                                        {isSaving ? '保存中...' : '保存'}
+                                    </button>
+                                </div>
+                                <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.5rem' }}>
+                                    半角英数字とハイフンが使用できます。設定すると、分かりやすいURLで予約フォームを共有できます。
+                                </p>
+                                {error && <p style={{ color: 'var(--accent)', fontSize: '0.85rem', marginTop: '0.5rem' }}>⚠️ {error}</p>}
+                                {success && <p style={{ color: 'green', fontSize: '0.85rem', marginTop: '0.5rem' }}>✅ {success}</p>}
+                            </div>
+
+                            {(production.customId || success) && (
+                                <div className="form-group" style={{ backgroundColor: '#f0f7ff', padding: '1rem', borderRadius: '8px', border: '1px solid #cce3ff' }}>
+                                    <label className="label" style={{ color: '#0056b3' }}>現在の予約用URL</label>
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem' }}>
+                                        <code style={{ flex: 1, wordBreak: 'break-all', fontSize: '0.85rem' }}>
+                                            {baseUrl}/book/{customId || production.id}
+                                        </code>
+                                        <button
+                                            onClick={() => copyToClipboard(`${baseUrl}/book/${customId || production.id}`)}
+                                            className="btn btn-secondary"
+                                            style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                                        >
+                                            コピー
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
