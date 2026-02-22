@@ -78,6 +78,8 @@ export interface Production {
     receptionEndMinutes?: number;
     performances?: Performance[];
     userId: string; // Owner ID (Legacy)
+    staffToken?: string;        // Staff access token
+    staffPasscodeHashed?: string; // Hashed 4-digit passcode
     createdAt?: any;
     updatedAt?: any;
 }

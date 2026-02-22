@@ -18,6 +18,11 @@ import { Production } from "@/types";
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { serializeDoc, serializeDocs } from "@/lib/firestore-utils";
+import crypto from 'crypto';
+
+function hashPasscode(passcode: string): string {
+    return crypto.createHash('sha256').update(passcode).digest('hex');
+}
 
 export async function getProductions(userId: string): Promise<Production[]> {
     if (!userId) return [];
@@ -76,6 +81,7 @@ export async function createProduction(formData: FormData, userId: string) {
         ticketTypes: [],
         actors: [],
         receptionStatus: 'CLOSED',
+        staffToken: crypto.randomUUID(),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
     });
@@ -181,4 +187,46 @@ export async function updateProductionCustomId(id: string, customId: string) {
         revalidatePath(`/book/${customId}`)
     }
     revalidatePath(`/book/${id}`)
+}
+
+export async function generateStaffToken(id: string, userId: string) {
+    if (!userId) throw new Error('Unauthorized');
+
+    const productionRef = doc(db, "productions", id);
+    const productionSnap = await getDoc(productionRef);
+
+    if (!productionSnap.exists() || productionSnap.data().userId !== userId) {
+        throw new Error('Not found or unauthorized');
+    }
+
+    const newToken = crypto.randomUUID();
+    await updateDoc(productionRef, {
+        staffToken: newToken,
+        updatedAt: serverTimestamp()
+    });
+
+    revalidatePath(`/productions/${id}`);
+    return newToken;
+}
+
+export async function updateStaffPasscode(id: string, passcode: string, userId: string) {
+    if (!userId) throw new Error('Unauthorized');
+    if (!/^\d{4}$/.test(passcode)) {
+        throw new Error('Passcode must be 4 digits');
+    }
+
+    const productionRef = doc(db, "productions", id);
+    const productionSnap = await getDoc(productionRef);
+
+    if (!productionSnap.exists() || productionSnap.data().userId !== userId) {
+        throw new Error('Not found or unauthorized');
+    }
+
+    const hashed = hashPasscode(passcode);
+    await updateDoc(productionRef, {
+        staffPasscodeHashed: hashed,
+        updatedAt: serverTimestamp()
+    });
+
+    revalidatePath(`/productions/${id}`);
 }
