@@ -1,0 +1,83 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ヘルパー関数
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    
+    // トークンに紐づくロールを取得
+    function getStaffRole(productionId, token) {
+      let staffTokens = get(/databases/$(database)/documents/productions/$(productionId)).data.staffTokens;
+      return staffTokens != null && token in staffTokens ? staffTokens[token] : null;
+    }
+
+    // ロールごとの更新許可フィールド定義
+    function getAllowedFields(role) {
+      return role == 'manager' ? ['checkedInTickets', 'checkinStatus', 'remarks', 'status', 'paymentStatus', 'paidAmount', 'updatedAt'] :
+             role == 'reception' ? ['checkedInTickets', 'checkinStatus', 'updatedAt'] :
+             [];
+    }
+
+    // 公演（Production）
+    match /productions/{productionId} {
+      // 予約フォームまたはトークン保持者は get 可能
+      allow get: if true; 
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
+    // 予約（Reservation）
+    match /reservations/{reservationId} {
+      allow create: if true;
+      
+      // 合鍵（staffToken）による一覧取得
+      allow list: if isSignedIn() || (
+        request.query.productionId != null &&
+        request.query.staffToken != null &&
+        getStaffRole(request.query.productionId, request.query.staffToken) != null
+      );
+
+      // トークンによる限定的な更新
+      allow update: if isOwner(resource.data.userId) || (
+        request.resource.data._staffToken != null &&
+        request.resource.data.productionId != null &&
+        request.writeFields.hasOnly(getAllowedFields(getStaffRole(request.resource.data.productionId, request.resource.data._staffToken)).concat(['_staffToken', 'updatedAt']))
+      );
+
+      allow get, delete: if isSignedIn();
+    }
+
+    // ユーザープロファイル
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // 劇団 (Troupe)
+    match /troupes/{troupeId} {
+      allow read, create: if isSignedIn();
+      allow update, delete: if isOwner(resource.data.ownerId);
+    }
+
+    // 所属 (Membership)
+    match /memberships/{membershipId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || 
+        get(/databases/$(database)/documents/troupes/$(resource.data.troupeId)).data.ownerId == request.auth.uid
+      );
+      allow create, update, delete: if isSignedIn();
+    }
+
+    // 公演回 (Performance)
+    match /performances/{performanceId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // チェックインログ (CheckinLogs)
+    match /checkinLogs/{logId} {
+      allow read, write: if isSignedIn();
+    }
+  }
+}

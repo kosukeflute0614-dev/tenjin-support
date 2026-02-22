@@ -80,7 +80,7 @@ export interface Production {
     receptionEndMinutes?: number;
     performances?: Performance[];
     userId: string; // Owner ID (Legacy)
-    staffToken?: string;        // Staff access token
+    staffTokens?: { [token: string]: string }; // Map of token to role (e.g., { "uuid": "manager" })
     staffPasscodeHashed?: string; // Hashed 4-digit passcode
     createdAt?: any;
     updatedAt?: any;

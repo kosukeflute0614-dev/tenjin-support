@@ -81,7 +81,9 @@ export async function createProduction(formData: FormData, userId: string) {
         ticketTypes: [],
         actors: [],
         receptionStatus: 'CLOSED',
-        staffToken: crypto.randomUUID(),
+        staffTokens: {
+            [crypto.randomUUID()]: 'manager'
+        },
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
     });
@@ -189,7 +191,7 @@ export async function updateProductionCustomId(id: string, customId: string) {
     revalidatePath(`/book/${id}`)
 }
 
-export async function generateStaffToken(id: string, userId: string) {
+export async function generateStaffToken(id: string, userId: string, role: string = 'reception') {
     if (!userId) throw new Error('Unauthorized');
 
     const productionRef = doc(db, "productions", id);
@@ -199,9 +201,11 @@ export async function generateStaffToken(id: string, userId: string) {
         throw new Error('Not found or unauthorized');
     }
 
+    const currentTokens = productionSnap.data().staffTokens || {};
     const newToken = crypto.randomUUID();
+
     await updateDoc(productionRef, {
-        staffToken: newToken,
+        [`staffTokens.${newToken}`]: role,
         updatedAt: serverTimestamp()
     });
 

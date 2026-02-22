@@ -84,15 +84,9 @@ export async function getBookingOptions(activeProductionId?: string, userId?: st
 
 export async function createReservation(data: FirestoreReservation) {
     try {
-        // セキュリティ・合鍵アクセスのために公演ドキュメントから現在のスタッフ用トークンを取得
-        const productionRef = doc(db, "productions", data.productionId);
-        const productionSnap = await getDoc(productionRef);
-        const staffToken = productionSnap.exists() ? (productionSnap.data().staffToken || null) : null;
-
         const reservationsRef = collection(db, "reservations");
         const newDoc = await addDoc(reservationsRef, {
             ...data,
-            staffToken, // 合鍵情報を予約にコピー（Firestoreルールでの検索用）
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         });
