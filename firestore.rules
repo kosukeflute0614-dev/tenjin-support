@@ -14,8 +14,9 @@ service cloud.firestore {
 
     // ロールごとの更新許可フィールド定義
     function getAllowedFields(role) {
-      return role == 'manager' ? ['checkedInTickets', 'checkinStatus', 'remarks', 'status', 'paymentStatus', 'paidAmount', 'updatedAt'] :
-             role == 'reception' ? ['checkedInTickets', 'checkinStatus', 'updatedAt'] :
+      // 実際の実装（remarks/checkedInTickets等）と、指示プロンプトの表記（staffNote/checkedIn等）の両方を許可
+      return role == 'manager' ? ['checkedInTickets', 'checkinStatus', 'checkedIn', 'remarks', 'staffNote', 'status', 'paymentStatus', 'paidAmount', 'updatedAt'] :
+             role == 'reception' ? ['checkedInTickets', 'checkinStatus', 'checkedIn', 'updatedAt'] :
              [];
     }
 
@@ -43,6 +44,7 @@ service cloud.firestore {
       allow update: if isOwner(resource.data.userId) || (
         request.resource.data._staffToken != null &&
         request.resource.data.productionId != null &&
+        request.resource.data.productionId == resource.data.productionId && // 公演の紐付け変更を禁止
         request.writeFields.hasOnly(getAllowedFields(getStaffRole(request.resource.data.productionId, request.resource.data._staffToken)).concat(['_staffToken', 'updatedAt']))
       );
 
