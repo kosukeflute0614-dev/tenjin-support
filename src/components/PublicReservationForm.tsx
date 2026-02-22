@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { createReservationClient } from '@/lib/client-firestore';
+import { createReservation } from '@/app/actions/reservation';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatDateTime } from '@/lib/format';
@@ -70,7 +70,7 @@ export default function PublicReservationForm({ production }: Props) {
                     };
                 });
 
-            await createReservationClient({
+            await createReservation({
                 performanceId: selectedPerformanceId,
                 productionId: production.id, // 新しいセキュリティルールで必須
                 customerName: customerInfo.name,

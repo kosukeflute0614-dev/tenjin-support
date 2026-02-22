@@ -23,6 +23,7 @@ export interface ReservationTicket {
 
 export interface FirestoreReservation {
     id: string;
+    productionId: string; // The production this reservation belongs to
     performanceId: string;
     customerName: string;
     customerNameKana?: string | null;
@@ -36,6 +37,7 @@ export interface FirestoreReservation {
     source: 'PRE_RESERVATION' | 'SAME_DAY';
     remarks?: string | null;
     userId: string; // Organizer ID
+    staffToken?: string; // Access token for this reservation (copied from production)
     checkedInAt?: any;
     performance?: Performance; // Joined data
     createdAt?: any;
