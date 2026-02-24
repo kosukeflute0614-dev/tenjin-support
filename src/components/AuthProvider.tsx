@@ -18,6 +18,7 @@ interface AuthContextType {
     profile: AppUser | null;
     loading: boolean;
     isNewUser: boolean;
+    isOrganizer: boolean;
     loginWithGoogle: () => Promise<void>;
     logout: () => Promise<void>;
     refreshProfile: () => Promise<void>;
@@ -30,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [profile, setProfile] = useState<AppUser | null>(null);
     const [loading, setLoading] = useState(true);
     const [isNewUser, setIsNewUser] = useState(false);
+    const [isOrganizer, setIsOrganizer] = useState(false);
 
     const fetchProfile = async (uid: string) => {
         const docRef = doc(db, 'users', uid);
@@ -51,10 +53,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             setUser(user);
             if (user) {
+                setIsOrganizer(user.providerData.some(p => p.providerId === 'google.com'));
                 await fetchProfile(user.uid);
             } else {
                 setProfile(null);
                 setIsNewUser(false);
+                setIsOrganizer(false);
             }
             setLoading(false);
         });
@@ -85,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, profile, loading, isNewUser, loginWithGoogle, logout, refreshProfile }}>
+        <AuthContext.Provider value={{ user, profile, loading, isNewUser, isOrganizer, loginWithGoogle, logout, refreshProfile }}>
             {children}
         </AuthContext.Provider>
     );

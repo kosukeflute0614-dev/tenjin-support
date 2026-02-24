@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { cancelReservationClient, updateReservationFullClient } from '@/lib/client-firestore';
 import { useAuth } from './AuthProvider';
 import { STATUS_LABELS, PAYMENT_STATUS_LABELS } from '@/lib/constants';
-import { formatDateTime } from '@/lib/format';
+import { formatDateTime, formatDate, formatTime } from '@/lib/format';
+import { exportToCSV } from '@/lib/export-utils';
+import { ReservationTicket } from '@/types';
 
 type Props = {
     reservations: any[];
@@ -69,6 +71,52 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
     const handleCloseModal = () => {
         setEditingReservation(null);
         setCancellingReservation(null);
+    };
+
+    const handleExportCSV = () => {
+        if (filteredReservations.length === 0) return;
+
+        const csvData = filteredReservations.map(res => {
+            const ticketSummary = res.tickets.map((t: any) => {
+                const tt = res.performance?.ticketTypes?.find((tt: any) => tt.id === t.ticketTypeId);
+                return `${tt?.name || '不明'}x${t.count}`;
+            }).join(' / ');
+
+            const totalCount = res.tickets.reduce((sum: number, t: any) => sum + (t.count || 0), 0);
+            const totalPrice = res.tickets.reduce((sum: number, t: any) => sum + (t.count * (t.price || 0)), 0);
+
+            return {
+                '氏名': res.customerName,
+                'ふりがな': res.customerNameKana || '',
+                'メール': res.customerEmail || '',
+                '公演名': res.performance?.productionTitle || '',
+                '公演日': res.performance?.startTime ? formatDate(res.performance.startTime) : '',
+                '開演時間': res.performance?.startTime ? formatTime(res.performance.startTime) : '',
+                '内訳': ticketSummary,
+                '合計枚数': totalCount,
+                '合計金額': totalPrice,
+                'ステータス': STATUS_LABELS[res.status as keyof typeof STATUS_LABELS] || res.status,
+                '支払い': PAYMENT_STATUS_LABELS[res.paymentStatus as keyof typeof PAYMENT_STATUS_LABELS] || res.paymentStatus,
+                'チェックイン': res.checkinStatus === 'CHECKED_IN' ? '済み' : '未',
+                '備考': (res.remarks || '').replace(/\n/g, ' ')
+            };
+        });
+
+        exportToCSV(csvData, `reservations-export-${new Date().getTime()}.csv`, [
+            { key: '氏名', label: '氏名' },
+            { key: 'ふりがな', label: 'ふりがな' },
+            { key: 'メール', label: 'メール' },
+            { key: '公演名', label: '公演名' },
+            { key: '公演日', label: '公演日' },
+            { key: '開演時間', label: '開演時間' },
+            { key: '内訳', label: '内訳' },
+            { key: '合計枚数', label: '合計枚数' },
+            { key: '合計金額', label: '合計金額' },
+            { key: 'ステータス', label: 'ステータス' },
+            { key: '支払い', label: '支払い' },
+            { key: 'チェックイン', label: 'チェックイン' },
+            { key: '備考', label: '備考' }
+        ]);
     };
 
     const allPerformances = bookingOptions.flatMap(prod =>
@@ -148,15 +196,25 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
                     </div>
                 </div>
 
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                    <input
-                        type="checkbox"
-                        checked={showCancelled}
-                        onChange={(e) => setShowCancelled(e.target.checked)}
-                        style={{ width: '1.2rem', height: '1.2rem' }}
-                    />
-                    キャンセル済みを表示
-                </label>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <button
+                        onClick={handleExportCSV}
+                        className="btn btn-secondary"
+                        style={{ fontSize: '0.85rem' }}
+                        disabled={filteredReservations.length === 0}
+                    >
+                        📥 CSVエクスポート
+                    </button>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                        <input
+                            type="checkbox"
+                            checked={showCancelled}
+                            onChange={(e) => setShowCancelled(e.target.checked)}
+                            style={{ width: '1.1rem', height: '1.1rem' }}
+                        />
+                        キャンセル済みを表示
+                    </label>
+                </div>
             </div>
 
             <div className="card" style={{ padding: '0', overflow: 'hidden' }}>

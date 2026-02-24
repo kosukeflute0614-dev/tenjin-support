@@ -1,6 +1,6 @@
 import { db } from '@/lib/firebase';
 import { collection, doc, getDoc, getDocs, query, where, addDoc, updateDoc, serverTimestamp, deleteDoc, arrayUnion, runTransaction, onSnapshot } from 'firebase/firestore';
-import { Production, Performance, PerformanceStats, FirestoreReservation, DuplicateGroup, TicketType } from '@/types';
+import { Production, Performance, PerformanceStats, FirestoreReservation, DuplicateGroup, TicketType, SalesReport } from '@/types';
 import { serializeDocs, serializeDoc } from '@/lib/firestore-utils';
 
 /**
@@ -72,9 +72,12 @@ export async function fetchProductionDetailsClient(
                 isPublic: tt.isPublic
             })),
             actors: rawData.actors || [],
+            staffTokens: rawData.staffTokens || {},
+            userId: rawData.userId || '',
         } as Production;
 
         // 公演回の取得
+        const realId = docSnap.id;
         const performancesRef = collection(db, "performances");
         let q;
 
@@ -85,10 +88,10 @@ export async function fetchProductionDetailsClient(
                 where("userId", "==", userId)
             );
         } else {
-            // PUBLIC用途: productionId でフィルタ（セキュリティルールで全読み可能前提）
+            // PUBLIC用途: productionId でフィルタ
             q = query(
                 performancesRef,
-                where("productionId", "==", productionId)
+                where("productionId", "==", realId)
             );
         }
 
@@ -97,7 +100,7 @@ export async function fetchProductionDetailsClient(
 
         // productionId でさらに絞り込み（userId クエリの場合用）とマッピング、ソート
         const performances = rawPerformances
-            .filter(perf => perf.productionId === productionId)
+            .filter(perf => perf.productionId === realId)
             .map(perf => ({
                 id: perf.id,
                 startTime: perf.startTime,
@@ -927,4 +930,481 @@ export async function checkCustomIdDuplicateClient(customId: string, excludeProd
     }
 
     return true;
+}
+/**
+ * パスコードをハッシュ化する（クライアント側：Web Crypto APIを使用）
+ */
+async function hashPasscodeClient(passcode: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(passcode);
+    const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * スタッフ用トークンを発行する（クライアント側）
+ * 個別の4桁パスコード（平文・ハッシュ）を生成して保存する。
+ */
+export async function generateStaffTokenClient(productionId: string, role: string = 'reception'): Promise<{ token: string; passcode: string }> {
+    const newToken = crypto.randomUUID();
+    const prodRef = doc(db, "productions", productionId);
+
+    const autoPasscode = Math.floor(1000 + Math.random() * 9000).toString();
+    const hashed = await hashPasscodeClient(autoPasscode);
+
+    await updateDoc(prodRef, {
+        [`staffTokens.${newToken}`]: {
+            role,
+            passcode: autoPasscode,
+            passcodeHashed: hashed
+        },
+        updatedAt: serverTimestamp()
+    });
+
+    return { token: newToken, passcode: autoPasscode };
+}
+
+/**
+ * 特定のスタッフ用トークンのパスコードを更新する
+ */
+export async function updateStaffTokenPasscodeClient(
+    productionId: string,
+    token: string,
+    newPasscode: string
+): Promise<void> {
+    if (!/^\d{4}$/.test(newPasscode)) {
+        throw new Error('パスコードは数字4桁で入力してください');
+    }
+
+    const prodRef = doc(db, "productions", productionId);
+    const hashed = await hashPasscodeClient(newPasscode);
+
+    // 既存のドキュメントからロールを取得する必要がある（ネストしたフィールドの特定部分のみ更新）
+    const prodSnap = await getDoc(prodRef);
+    if (!prodSnap.exists()) throw new Error('公演が見つかりません');
+
+    const staffTokens = prodSnap.data().staffTokens || {};
+    const currentTokenData = staffTokens[token];
+    if (!currentTokenData) throw new Error('指定されたトークンが見つかりません');
+
+    const role = typeof currentTokenData === 'string' ? currentTokenData : currentTokenData.role;
+
+    await updateDoc(prodRef, {
+        [`staffTokens.${token}`]: {
+            role,
+            passcode: newPasscode,
+            passcodeHashed: hashed
+        },
+        updatedAt: serverTimestamp()
+    });
+}
+
+/**
+ * スタッフ用トークンを無効化する（クライアント側）
+ */
+export async function revokeStaffTokenClient(productionId: string, token: string): Promise<void> {
+    const { deleteField } = await import('firebase/firestore');
+    const prodRef = doc(db, "productions", productionId);
+
+    await updateDoc(prodRef, {
+        [`staffTokens.${token}`]: deleteField(),
+        updatedAt: serverTimestamp()
+    });
+}
+
+/**
+ * 当日券を登録する（スタッフ・トークン認証版）
+ */
+export async function createSameDayTicketStaffClient(
+    performanceId: string,
+    productionId: string,
+    customerName: string,
+    breakdown: { [ticketTypeId: string]: number },
+    staffToken: string
+) {
+    if (!staffToken) throw new Error('Unauthorized: Staff token required');
+
+    // 1. 残数チェックのためのデータ取得（トランザクションの外で実行）
+    const performanceRef = doc(db, "performances", performanceId);
+    const performanceSnap = await getDoc(performanceRef);
+    if (!performanceSnap.exists()) throw new Error('公演が見つかりません');
+    const performance = performanceSnap.data() as Performance;
+
+    // 全予約を取得して集計（スタッフだけでなく一般客も含める）
+    const reservationsRef = collection(db, "reservations");
+    const qRes = query(
+        reservationsRef,
+        where("productionId", "==", productionId),
+        where("performanceId", "==", performanceId)
+    );
+    const resSnapshot = await getDocs(qRes);
+
+    const bookedCount = resSnapshot.docs.reduce((sum, d) => {
+        const res = d.data() as FirestoreReservation;
+        if (res.status === 'CANCELED') return sum;
+        return sum + (res.tickets?.reduce((tSum: number, t: any) => tSum + (t.count || 0), 0) || 0);
+    }, 0);
+
+    const totalQuantity = Object.values(breakdown).reduce((sum, count) => sum + count, 0);
+    const remaining = performance.capacity - bookedCount;
+
+    if (totalQuantity > remaining) {
+        throw new Error(`枚数が販売可能数（${remaining}枚）を超えています`);
+    }
+
+    // 2. プロダクション情報の取得
+    const productionRef = doc(db, "productions", productionId);
+    const productionSnap = await getDoc(productionRef);
+    if (!productionSnap.exists()) throw new Error('プロダクションが見つかりません');
+    const production = productionSnap.data() as Production;
+
+    let totalAmount = 0;
+    const ticketDatas = Object.entries(breakdown)
+        .filter(([_, count]) => count > 0)
+        .map(([id, count]) => {
+            const tt = production.ticketTypes.find(t => t.id === id);
+            if (!tt) throw new Error('券種が見つかりません');
+            totalAmount += (tt.doorPrice ?? tt.price) * count;
+            return {
+                ticketTypeId: id,
+                count,
+                price: tt.doorPrice ?? tt.price
+            };
+        });
+
+    // 3. 予約の作成（トランザクション内で実行）
+    await runTransaction(db, async (transaction) => {
+        const newResRef = doc(collection(db, "reservations"));
+        transaction.set(newResRef, {
+            userId: production.userId, // 主催者のIDを保持
+            productionId,
+            performanceId,
+            customerName,
+            customerNameKana: "",
+            source: "SAME_DAY",
+            checkedInAt: serverTimestamp(),
+            checkedInTickets: totalQuantity,
+            checkinStatus: "CHECKED_IN",
+            status: "CONFIRMED",
+            paymentStatus: "PAID",
+            paidAmount: totalAmount,
+            tickets: ticketDatas,
+            staffToken, // スタッフ用クエリ・更新判別用
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        });
+    });
+}
+
+/**
+ * チェックイン処理（スタッフ・トークン認証版）
+ */
+export async function processCheckinWithPaymentStaffClient(
+    reservationId: string,
+    checkinCount: number,
+    additionalPaidAmount: number,
+    paymentBreakdown: { [ticketTypeId: string]: number },
+    performanceId: string,
+    productionId: string,
+    staffToken: string
+) {
+    if (!staffToken) throw new Error('Unauthorized');
+    const resRef = doc(db, "reservations", reservationId);
+
+    await runTransaction(db, async (transaction) => {
+        const resSnap = await transaction.get(resRef);
+        if (!resSnap.exists()) throw new Error('予約が見つかりません');
+        const reservation = resSnap.data() as FirestoreReservation;
+
+        const totalTickets = (reservation.tickets || []).reduce((sum: number, t: any) => sum + (t.count || 0), 0);
+        const totalAmount = (reservation.tickets || []).reduce((sum: number, t: any) => sum + ((t.price || 0) * (t.count || 0)), 0);
+
+        const newCheckedInTickets = Math.min((reservation.checkedInTickets || 0) + checkinCount, totalTickets);
+        const newPaidAmount = (reservation.paidAmount || 0) + additionalPaidAmount;
+
+        let checkinStatus = "PARTIALLY_CHECKED_IN";
+        if (newCheckedInTickets === totalTickets && totalTickets > 0) {
+            checkinStatus = "CHECKED_IN";
+        } else if (newCheckedInTickets === 0) {
+            checkinStatus = "NOT_CHECKED_IN";
+        }
+
+        let paymentStatus = "UNPAID";
+        if (newPaidAmount >= totalAmount && totalAmount > 0) {
+            paymentStatus = "PAID";
+        } else if (newPaidAmount > 0) {
+            paymentStatus = "PARTIALLY_PAID";
+        }
+
+        const updatedTickets = (reservation.tickets || []).map(t => {
+            const added = paymentBreakdown[t.ticketTypeId] || 0;
+            return {
+                ...t,
+                paidCount: (t.paidCount || 0) + added
+            };
+        });
+
+        transaction.update(resRef, {
+            checkedInTickets: newCheckedInTickets,
+            checkinStatus: checkinStatus,
+            paidAmount: newPaidAmount,
+            paymentStatus: paymentStatus,
+            tickets: updatedTickets,
+            checkedInAt: reservation.checkedInAt || serverTimestamp(),
+            _staffToken: staffToken, // セキュリティルール用
+            updatedAt: serverTimestamp()
+        });
+
+        const logsRef = doc(collection(db, "checkinLogs"));
+        transaction.set(logsRef, {
+            reservationId,
+            productionId,
+            performanceId,
+            type: 'CHECKIN',
+            count: checkinCount,
+            paymentInfo: JSON.stringify(paymentBreakdown),
+            staffToken, // スタッフ操作の記録用
+            createdAt: serverTimestamp()
+        });
+    });
+}
+
+/**
+ * 入場リセット（スタッフ・トークン認証版）
+ */
+export async function resetCheckInStaffClient(
+    reservationId: string,
+    performanceId: string,
+    productionId: string,
+    staffToken: string
+) {
+    const resRef = doc(db, "reservations", reservationId);
+
+    await runTransaction(db, async (transaction) => {
+        const resSnap = await transaction.get(resRef);
+        if (!resSnap.exists()) throw new Error('予約が見つかりません');
+        const reservation = resSnap.data() as FirestoreReservation;
+
+        const updatedTickets = (reservation.tickets || []).map(t => ({
+            ...t,
+            paidCount: 0
+        }));
+
+        transaction.update(resRef, {
+            checkedInTickets: 0,
+            checkinStatus: "NOT_CHECKED_IN",
+            checkedInAt: null,
+            paidAmount: 0,
+            paymentStatus: "UNPAID",
+            tickets: updatedTickets,
+            _staffToken: staffToken,
+            updatedAt: serverTimestamp()
+        });
+
+        const logsRef = doc(collection(db, "checkinLogs"));
+        transaction.set(logsRef, {
+            reservationId,
+            productionId,
+            performanceId,
+            type: 'RESET',
+            count: reservation.checkedInTickets || 0,
+            staffToken,
+            createdAt: serverTimestamp()
+        });
+    });
+}
+
+/**
+ * 一部入場取消（スタッフ・トークン認証版）
+ */
+export async function processPartialResetStaffClient(
+    reservationId: string,
+    resetCheckinCount: number,
+    refundAmount: number,
+    refundBreakdown: { [ticketTypeId: string]: number },
+    performanceId: string,
+    productionId: string,
+    staffToken: string
+) {
+    const resRef = doc(db, "reservations", reservationId);
+
+    await runTransaction(db, async (transaction) => {
+        const resSnap = await transaction.get(resRef);
+        if (!resSnap.exists()) throw new Error('予約が見つかりません');
+        const reservation = resSnap.data() as FirestoreReservation;
+
+        const totalTickets = (reservation.tickets || []).reduce((sum: number, t: any) => sum + (t.count || 0), 0);
+        const totalAmount = (reservation.tickets || []).reduce((sum: number, t: any) => sum + ((t.price || 0) * (t.count || 0)), 0);
+
+        const newCheckedInTickets = Math.max((reservation.checkedInTickets || 0) - resetCheckinCount, 0);
+        const newPaidAmount = Math.max((reservation.paidAmount || 0) - refundAmount, 0);
+
+        let checkinStatus = "PARTIALLY_CHECKED_IN";
+        if (newCheckedInTickets === totalTickets && totalTickets > 0) {
+            checkinStatus = "CHECKED_IN";
+        } else if (newCheckedInTickets === 0) {
+            checkinStatus = "NOT_CHECKED_IN";
+        }
+
+        let paymentStatus = "UNPAID";
+        if (newPaidAmount >= totalAmount && totalAmount > 0) {
+            paymentStatus = "PAID";
+        } else if (newPaidAmount > 0) {
+            paymentStatus = "PARTIALLY_PAID";
+        }
+
+        const updatedTickets = (reservation.tickets || []).map(t => {
+            const subtracted = refundBreakdown[t.ticketTypeId] || 0;
+            return {
+                ...t,
+                paidCount: Math.max((t.paidCount || 0) - subtracted, 0)
+            };
+        });
+
+        transaction.update(resRef, {
+            checkedInTickets: newCheckedInTickets,
+            checkinStatus: checkinStatus,
+            paidAmount: newPaidAmount,
+            paymentStatus: paymentStatus,
+            tickets: updatedTickets,
+            checkedInAt: newCheckedInTickets === 0 ? null : reservation.checkedInAt,
+            _staffToken: staffToken,
+            updatedAt: serverTimestamp()
+        });
+
+        const logsRef = doc(collection(db, "checkinLogs"));
+        transaction.set(logsRef, {
+            reservationId,
+            productionId,
+            performanceId,
+            type: 'RESET',
+            count: resetCheckinCount,
+            paymentInfo: JSON.stringify(Object.fromEntries(
+                Object.entries(refundBreakdown).map(([k, v]) => [k, -v])
+            )),
+            staffToken,
+            createdAt: serverTimestamp()
+        });
+    });
+}
+/**
+ * 売上レポートを生成する（クライアント側）
+ * 実行時エラーや権限不足を防ぐため、認証済みのクライアントコンテキストで動作させる。
+ */
+export async function fetchProductionSalesReportClient(
+    productionId: string,
+    userId: string
+): Promise<SalesReport | null> {
+    if (!productionId || !userId) return null;
+
+    try {
+        console.log(`[SalesReport] Generating client-side report for production: ${productionId}`);
+
+        // 1. プロダクション情報の取得
+        const productionRef = doc(db, "productions", productionId);
+        const productionSnap = await getDoc(productionRef);
+        if (!productionSnap.exists()) return null;
+        const production = serializeDoc<Production>(productionSnap);
+
+        // 2. 公演回の取得
+        const performancesRef = collection(db, "performances");
+        const qPerf = query(performancesRef, where("productionId", "==", productionId));
+        const perfSnapshot = await getDocs(qPerf);
+        const performances = serializeDocs<Performance>(perfSnapshot.docs)
+            .filter(p => p.userId === userId)
+            .sort((a, b) => {
+                const at = a.startTime ? new Date(a.startTime).getTime() : 0;
+                const bt = b.startTime ? new Date(b.startTime).getTime() : 0;
+                return at - bt;
+            });
+
+        // 3. 予約データの取得（セキュリティルールの isSignedIn() を通すためクライアントで実行）
+        const reservationsRef = collection(db, "reservations");
+        const qRes = query(reservationsRef, where("userId", "==", userId));
+        const resSnapshot = await getDocs(qRes);
+        const reservations = serializeDocs<FirestoreReservation>(resSnapshot.docs)
+            .filter(r => r.productionId === productionId && r.status !== 'CANCELED');
+
+        const report: SalesReport = {
+            totalRevenue: 0,
+            totalTickets: 0,
+            ticketTypeBreakdown: {},
+            performanceSummaries: []
+        };
+
+        // 券種内訳の初期化
+        const ticketTypes = production.ticketTypes || [];
+        ticketTypes.forEach(tt => {
+            if (tt && tt.id) {
+                report.ticketTypeBreakdown[tt.id] = {
+                    name: tt.name || '名称未設定',
+                    count: 0,
+                    revenue: 0
+                };
+            }
+        });
+
+        const OTHER_TT_ID = 'other';
+        report.ticketTypeBreakdown[OTHER_TT_ID] = {
+            name: 'その他/不明',
+            count: 0,
+            revenue: 0
+        };
+
+        const performanceMap: { [id: string]: any } = {};
+        performances.forEach(perf => {
+            performanceMap[perf.id] = {
+                id: perf.id,
+                startTime: perf.startTime,
+                bookedCount: 0,
+                checkedInCount: 0,
+                revenue: 0
+            };
+        });
+
+        reservations.forEach(res => {
+            const perfSummary = performanceMap[res.performanceId];
+            const tickets = res.tickets || [];
+
+            tickets.forEach(t => {
+                const count = Number(t.count || 0);
+                const price = Number(t.price || 0);
+                const ticketRevenue = count * price;
+
+                report.totalTickets += count;
+                report.totalRevenue += ticketRevenue;
+
+                const ttId = t.ticketTypeId || OTHER_TT_ID;
+                if (!report.ticketTypeBreakdown[ttId]) {
+                    report.ticketTypeBreakdown[OTHER_TT_ID].count += count;
+                    report.ticketTypeBreakdown[OTHER_TT_ID].revenue += ticketRevenue;
+                } else {
+                    report.ticketTypeBreakdown[ttId].count += count;
+                    report.ticketTypeBreakdown[ttId].revenue += ticketRevenue;
+                }
+
+                if (perfSummary) {
+                    perfSummary.bookedCount += count;
+                    perfSummary.revenue += ticketRevenue;
+                }
+            });
+
+            if (perfSummary) {
+                perfSummary.checkedInCount += (res.checkedInTickets || 0);
+            }
+        });
+
+        report.performanceSummaries = Object.values(performanceMap);
+
+        if (report.ticketTypeBreakdown[OTHER_TT_ID].count === 0) {
+            delete report.ticketTypeBreakdown[OTHER_TT_ID];
+        }
+
+        console.log(`[SalesReport] Client-side report generated: Total Revenue = ${report.totalRevenue}`);
+        return report;
+    } catch (error) {
+        console.error("[SalesReport] Client-side calculation error:", error);
+        throw error;
+    }
 }

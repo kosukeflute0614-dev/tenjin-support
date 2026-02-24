@@ -6,6 +6,7 @@ import {
     addDoc,
     updateDoc,
     deleteDoc,
+    deleteField,
     doc,
     getDoc,
     getDocs,
@@ -189,28 +190,6 @@ export async function updateProductionCustomId(id: string, customId: string) {
         revalidatePath(`/book/${customId}`)
     }
     revalidatePath(`/book/${id}`)
-}
-
-export async function generateStaffToken(id: string, userId: string, role: string = 'reception') {
-    if (!userId) throw new Error('Unauthorized');
-
-    const productionRef = doc(db, "productions", id);
-    const productionSnap = await getDoc(productionRef);
-
-    if (!productionSnap.exists() || productionSnap.data().userId !== userId) {
-        throw new Error('Not found or unauthorized');
-    }
-
-    const currentTokens = productionSnap.data().staffTokens || {};
-    const newToken = crypto.randomUUID();
-
-    await updateDoc(productionRef, {
-        [`staffTokens.${newToken}`]: role,
-        updatedAt: serverTimestamp()
-    });
-
-    revalidatePath(`/productions/${id}`);
-    return newToken;
 }
 
 export async function updateStaffPasscode(id: string, passcode: string, userId: string) {

@@ -35,3 +35,10 @@ export function formatForDateTimeLocal(date: Date | string | number | null | und
     const minutes = String(d.getMinutes()).padStart(2, '0');
     return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
+
+export function formatCurrency(amount: number) {
+    return new Intl.NumberFormat('ja-JP', {
+        style: 'currency',
+        currency: 'JPY',
+    }).format(amount);
+}

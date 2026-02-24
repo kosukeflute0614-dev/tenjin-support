@@ -31,6 +31,8 @@ export default function CheckinPage({ params }: { params: any }) {
         remainingCount: number
     } | null>(null);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showCheckedIn, setShowCheckedIn] = useState(false);
 
     useEffect(() => {
         let unsubscribeReservations: () => void;
@@ -174,52 +176,175 @@ export default function CheckinPage({ params }: { params: any }) {
 
     const { production, performance, reservations, remainingCount } = data;
 
+    // フィルタリングとソート
+    const filteredReservations = reservations
+        .filter(res => {
+            // 検索ワードにマッチするか
+            const matchesSearch = res.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (res.customerNameKana || '').includes(searchTerm);
+
+            // 入場済み表示フィルタ
+            // 検索ワードが入っている場合は自動的に全員を表示し、空の場合はチェックボックスに従う
+            const isFullyCheckedIn = res.checkinStatus === 'CHECKED_IN';
+            const matchesCheckin = (showCheckedIn || searchTerm) ? true : !isFullyCheckedIn;
+
+            return matchesSearch && matchesCheckin;
+        })
+        .sort((a, b) => {
+            // 未入場（または一部入場）を上に、全員入場済みを下に
+            const score = (r: any) => r.checkinStatus === 'CHECKED_IN' ? 1 : 0;
+            if (score(a) !== score(b)) return score(a) - score(b);
+
+            // 名前順でソート（既存の挙動を尊重）
+            const nameA = a.customerNameKana || a.customerName;
+            const nameB = b.customerNameKana || b.customerName;
+            return nameA.localeCompare(nameB, 'ja');
+        });
+
+    // 来場統計の計算
+    const stats = {
+        total: reservations.reduce((sum, r) => sum + (r.tickets || []).reduce((ts: number, t: any) => ts + (t.count || 0), 0), 0),
+        checkedIn: reservations.reduce((sum, r) => sum + (r.checkedInTickets || 0), 0)
+    };
+
+    const startTime = performance?.startTime;
+    const startDate = startTime ? (typeof startTime === 'string' ? new Date(startTime) : (startTime.toDate ? startTime.toDate() : new Date(startTime.seconds * 1000))) : null;
+    const perfDateStr = startDate ? startDate.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' }) : '';
+    const perfTimeStr = startDate ? startDate.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '';
+
     return (
-        <div className="container" style={{ paddingBottom: '4rem' }}>
-            <header style={{ marginBottom: '2rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '1rem' }}>
-                <Link href="/reception" className="btn btn-secondary" style={{ marginBottom: '1rem', display: 'inline-block', fontSize: '0.85rem' }}>
+        <div className="container" style={{ paddingBottom: '4rem', maxWidth: '1200px' }}>
+            <header style={{
+                marginBottom: '2rem',
+                borderBottom: '1px solid #eee',
+                padding: '1rem 0',
+                position: 'sticky',
+                top: 0,
+                backgroundColor: '#fff',
+                zIndex: 100
+            }}>
+                <Link href="/reception" className="btn btn-secondary" style={{ marginBottom: '1rem', display: 'inline-block', fontSize: '0.85rem', borderRadius: '8px' }}>
                     &larr; 公演回の選択に戻る
                 </Link>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem' }}>
-                    <div>
-                        <h1 className="heading-lg" style={{ marginBottom: '0.25rem' }}>当日受付：{production.title}</h1>
-                        <p style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>
-                            {formatDateTime(performance.startTime)} 開演
-                        </p>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1.5rem' }}>
+                    <div style={{ flex: '1', minWidth: '300px' }}>
+                        <div style={{ marginBottom: '0.5rem' }}>
+                            <span style={{ background: 'var(--secondary)', color: 'var(--primary)', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                主催者
+                            </span>
+                        </div>
+                        <div style={{ fontSize: '1rem', fontWeight: 'bold', color: '#666', marginBottom: '0.25rem' }}>
+                            公演：{production.title}
+                        </div>
+                        <h1 style={{ fontSize: '1.8rem', fontWeight: '900', margin: 0, color: 'var(--primary)', lineHeight: '1.2' }}>
+                            {perfDateStr} {perfTimeStr}
+                        </h1>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                        <div className="card" style={{ padding: '0.75rem 1.5rem', background: 'var(--secondary)', border: '2px solid var(--primary)' }}>
-                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>当日券 残数</p>
-                            <p style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--primary)' }}>{remainingCount} <span style={{ fontSize: '1rem' }}>枚</span></p>
+
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                        {/* 進捗バー */}
+                        <div style={{ width: '180px', backgroundColor: '#fff', padding: '0.75rem', borderRadius: '12px', border: '1px solid #eee', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.4rem' }}>
+                                <span>来場進捗</span>
+                                <span>{stats.checkedIn}/{stats.total}人</span>
+                            </div>
+                            <div style={{ width: '100%', height: '8px', backgroundColor: '#edf2f7', borderRadius: '4px', overflow: 'hidden' }}>
+                                <div style={{
+                                    width: `${Math.min(100, (stats.checkedIn / (stats.total || 1)) * 100)}%`,
+                                    height: '100%',
+                                    backgroundColor: 'var(--primary)',
+                                    transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                                }} />
+                            </div>
+                        </div>
+
+                        {/* 当日券残数 */}
+                        <div style={{
+                            background: 'white',
+                            padding: '0.75rem 1.25rem',
+                            borderRadius: '12px',
+                            border: '2px solid var(--primary)',
+                            textAlign: 'center',
+                            minWidth: '120px',
+                            boxShadow: '0 4px 12px rgba(var(--primary-rgb), 0.1)'
+                        }}>
+                            <div style={{ fontSize: '0.65rem', color: '#666', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>当日券 残数</div>
+                            <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--primary)', lineHeight: '1' }}>
+                                {remainingCount} <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>枚</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </header>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '2rem', alignItems: 'start' }}>
-                {/* 左ペイン：予約一覧 */}
-                <div>
-                    <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h2 className="heading-md" style={{ marginBottom: 0 }}>予約者名簿 ({reservations.length}組)</h2>
-                        <GlobalReservationSearch productionId={production.id} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '2rem', alignItems: 'start' }}>
+                {/* 左カラム: 予約リスト */}
+                <div className="card" style={{ padding: '1.5rem', borderRadius: '16px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>予約リスト ({filteredReservations.length}件)</h2>
+                            <span style={{ fontSize: '0.8rem', color: '#666' }}>未入場の方を優先表示しています</span>
+                        </div>
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type="search"
+                                className="input"
+                                placeholder="名前またはカタカナで検索..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                style={{
+                                    height: '3.5rem',
+                                    fontSize: '1rem',
+                                    borderRadius: '12px',
+                                    paddingLeft: '3rem',
+                                    backgroundColor: '#f8fafc',
+                                    border: '1px solid #e2e8f0',
+                                    width: '100%',
+                                    marginBottom: '1rem'
+                                }}
+                            />
+                            <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', marginTop: '-0.5rem', fontSize: '1.2rem', color: '#94a3b8' }}>🔍</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '0.9rem', color: '#4a5568', fontWeight: '500' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={showCheckedIn}
+                                    onChange={(e) => setShowCheckedIn(e.target.checked)}
+                                    style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer', marginRight: '0.5rem' }}
+                                />
+                                入場済みを表示
+                            </label>
+                        </div>
                     </div>
+
                     <CheckinList
-                        reservations={reservations as any}
+                        reservations={filteredReservations as any}
                         performanceId={performance.id}
                         productionId={production.id}
                     />
                 </div>
 
-                {/* 右ペイン：当日券発行 */}
-                <aside style={{ position: 'sticky', top: '2rem' }}>
-                    <h2 className="heading-md">当日券発行</h2>
-                    <SameDayTicketForm
-                        productionId={production.id}
-                        performanceId={performance.id}
-                        ticketTypes={production.ticketTypes}
-                        remainingCount={remainingCount}
-                        nextNumber={reservations.filter(r => r.source === 'SAME_DAY').length + 1}
-                    />
+                {/* 右カラム: 当日券販売 */}
+                <aside style={{ position: 'sticky', top: '7.5rem' }}>
+                    <div className="card" style={{ padding: '1.5rem', borderRadius: '16px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                        <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid #f0f0f0', paddingBottom: '0.75rem' }}>
+                            <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>🎫 当日券を発行</h2>
+                        </div>
+                        <SameDayTicketForm
+                            productionId={production.id}
+                            performanceId={performance.id}
+                            ticketTypes={production.ticketTypes}
+                            remainingCount={remainingCount}
+                            nextNumber={reservations.filter(r => r.source === 'SAME_DAY').length + 1}
+                        />
+                    </div>
+
+                    <div style={{ marginTop: '1rem', padding: '1rem', background: '#eef2f1', borderRadius: '12px', fontSize: '0.8rem', color: '#4a5568' }}>
+                        <p style={{ margin: 0, fontWeight: 'bold' }}>💡 ヒント</p>
+                        <p style={{ margin: '0.25rem 0 0 0' }}>当日券の売上は即座に集計へ反映されます。</p>
+                    </div>
                 </aside>
             </div>
         </div>

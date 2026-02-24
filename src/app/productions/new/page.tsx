@@ -6,7 +6,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
 
 export default function NewProductionPage() {
-    const { user, loading } = useAuth();
+    const { user, profile, loading } = useAuth();
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -34,11 +34,16 @@ export default function NewProductionPage() {
 
     if (loading) return <div className="flex-center" style={{ height: '50vh' }}>読み込み中...</div>;
 
-    if (!user) {
+    if (!user || !profile?.troupeName) {
         return (
             <div className="container" style={{ textAlign: 'center', padding: '4rem' }}>
-                <h2 className="heading-md">ログインが必要です</h2>
-                <Link href="/" className="btn btn-primary" style={{ marginTop: '1.5rem' }}>ホームに戻る</Link>
+                <h2 className="heading-md">{!user ? 'ログインが必要です' : '劇団名の設定が必要です'}</h2>
+                <p className="text-muted" style={{ marginTop: '1rem' }}>
+                    {!user ? '公演を作成するにはログインしてください。' : '公演を作成する前に、まずは劇団名を登録してください。'}
+                </p>
+                <Link href={!user ? "/" : "/onboarding"} className="btn btn-primary" style={{ marginTop: '1.5rem' }}>
+                    {!user ? 'ホームに戻る' : '設定に進む'}
+                </Link>
             </div>
         );
     }

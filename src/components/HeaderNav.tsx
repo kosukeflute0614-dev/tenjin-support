@@ -7,11 +7,11 @@ import { useAuth } from '@/components/AuthProvider';
 
 export default function HeaderNav() {
     const pathname = usePathname();
-    const { user } = useAuth();
+    const { user, isOrganizer } = useAuth();
 
-    // ログインしていない場合は何も表示しない（UserMenu側でログインボタン表示）
-    if (!user) {
-        return <UserMenu />;
+    // 主催者（Googleログイン済み）以外は何も表示しない
+    if (!user || !isOrganizer) {
+        return null;
     }
 
     // 予約フォーム(ゲスト用ページ)ではナビゲーションを表示しない

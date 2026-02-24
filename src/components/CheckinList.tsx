@@ -1,7 +1,14 @@
 'use client';
 
 import { useState, useTransition, Fragment, useRef } from 'react'
-import { processCheckinWithPaymentClient, resetCheckInClient, processPartialResetClient } from '@/lib/client-firestore'
+import {
+    processCheckinWithPaymentClient,
+    resetCheckInClient,
+    processPartialResetClient,
+    processCheckinWithPaymentStaffClient,
+    resetCheckInStaffClient,
+    processPartialResetStaffClient
+} from '@/lib/client-firestore'
 import { formatTime } from '@/lib/format'
 import { NumberStepper, SoftKeypad } from './TouchInputs'
 import { useAuth } from './AuthProvider'
@@ -11,11 +18,15 @@ type ReservationWithTickets = any
 export default function CheckinList({
     reservations,
     performanceId,
-    productionId
+    productionId,
+    staffToken,
+    staffRole
 }: {
     reservations: ReservationWithTickets[],
     performanceId: string,
-    productionId: string
+    productionId: string,
+    staffToken?: string,
+    staffRole?: string
 }) {
     const { user } = useAuth()
     const [isPending, startTransition] = useTransition()
@@ -117,8 +128,10 @@ export default function CheckinList({
                     performanceId={performanceId}
                     productionId={productionId}
                     onClose={() => setSelectedRes(null)}
+                    staffToken={staffToken}
+                    staffRole={staffRole}
                     onAction={(type, count, additionalPayment, breakdown) => {
-                        if (!user) return
+                        if (!user && !staffToken) return
                         startTransition(() => {
                             if (type === 'checkin') {
                                 // 一括入場の場合の内訳作成
@@ -128,17 +141,35 @@ export default function CheckinList({
                                     const remainingToPay = t.count - (t.paidCount || 0)
                                     if (remainingToPay > 0) fullBreakdown[t.ticketTypeId] = remainingToPay
                                 })
-                                processCheckinWithPaymentClient(selectedRes.id, count, additionalPayment || 0, fullBreakdown, performanceId, productionId, user.uid)
-                                    .then(() => setSelectedRes(null))
-                                    .catch(err => alert(err.message))
+                                if (staffToken) {
+                                    processCheckinWithPaymentStaffClient(selectedRes.id, count, additionalPayment || 0, fullBreakdown, performanceId, productionId, staffToken)
+                                        .then(() => setSelectedRes(null))
+                                        .catch(err => alert(err.message))
+                                } else if (user) {
+                                    processCheckinWithPaymentClient(selectedRes.id, count, additionalPayment || 0, fullBreakdown, performanceId, productionId, user.uid)
+                                        .then(() => setSelectedRes(null))
+                                        .catch(err => alert(err.message))
+                                }
                             } else if (type === 'complex_checkin') {
-                                processCheckinWithPaymentClient(selectedRes.id, count, additionalPayment || 0, breakdown || {}, performanceId, productionId, user.uid)
-                                    .then(() => setSelectedRes(null))
-                                    .catch(err => alert(err.message))
+                                if (staffToken) {
+                                    processCheckinWithPaymentStaffClient(selectedRes.id, count, additionalPayment || 0, breakdown || {}, performanceId, productionId, staffToken)
+                                        .then(() => setSelectedRes(null))
+                                        .catch(err => alert(err.message))
+                                } else if (user) {
+                                    processCheckinWithPaymentClient(selectedRes.id, count, additionalPayment || 0, breakdown || {}, performanceId, productionId, user.uid)
+                                        .then(() => setSelectedRes(null))
+                                        .catch(err => alert(err.message))
+                                }
                             } else if (type === 'reset') {
-                                resetCheckInClient(selectedRes.id, performanceId, productionId, user.uid)
-                                    .then(() => setSelectedRes(null))
-                                    .catch(err => alert(err.message))
+                                if (staffToken) {
+                                    resetCheckInStaffClient(selectedRes.id, performanceId, productionId, staffToken)
+                                        .then(() => setSelectedRes(null))
+                                        .catch(err => alert(err.message))
+                                } else if (user) {
+                                    resetCheckInClient(selectedRes.id, performanceId, productionId, user.uid)
+                                        .then(() => setSelectedRes(null))
+                                        .catch(err => alert(err.message))
+                                }
                             }
                         })
                     }}
@@ -166,14 +197,18 @@ function DetailModal({
     productionId,
     onClose,
     onAction,
-    isPending
+    isPending,
+    staffToken,
+    staffRole
 }: {
     res: any,
     performanceId: string,
     productionId: string,
     onClose: () => void,
     onAction: (type: 'checkin' | 'reset' | 'complex_checkin', count: number, additionalPayment?: number, breakdown?: { [ticketTypeId: string]: number }) => void,
-    isPending: boolean
+    isPending: boolean,
+    staffToken?: string,
+    staffRole?: string
 }) {
     const { user } = useAuth()
     const [isTransitionPending, startTransition] = useTransition()
@@ -231,11 +266,17 @@ function DetailModal({
     }, 0)
 
     const handlePartialReset = () => {
-        if (!user) return
+        if (!user && !staffToken) return
         startTransition(() => {
-            processPartialResetClient(res.id, resetCount, totalRefund, refundBreakdown, performanceId, productionId, user.uid)
-                .then(() => onClose())
-                .catch(err => alert(err.message))
+            if (staffToken) {
+                processPartialResetStaffClient(res.id, resetCount, totalRefund, refundBreakdown, performanceId, productionId, staffToken)
+                    .then(() => onClose())
+                    .catch(err => alert(err.message))
+            } else if (user) {
+                processPartialResetClient(res.id, resetCount, totalRefund, refundBreakdown, performanceId, productionId, user.uid)
+                    .then(() => onClose())
+                    .catch(err => alert(err.message))
+            }
         })
     }
 
@@ -322,7 +363,7 @@ function DetailModal({
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                         {ticketPaymentStatus.map((t: any) => (
-                                            <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fcfcfc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #eee' }}>
+                                            <div key={t.ticketTypeId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fcfcfc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #eee' }}>
                                                 <div style={{ fontSize: '0.85rem' }}>
                                                     <div style={{ fontWeight: 'bold' }}>{(t.ticketType?.name) || '不明な券種'} (¥{(t.price || 0).toLocaleString()})</div>
                                                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>残交付: {t.remainingCount || 0}枚</div>

@@ -5,19 +5,43 @@ service cloud.firestore {
     // ヘルパー関数
     function isSignedIn() { return request.auth != null; }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isGoogleUser() {
+      return isSignedIn() && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
     
+    // 文字列またはリストから単一のIDを安全に取得
+    function getID(val) {
+      return val is list ? val[0] : val;
+    }
+
     // トークンに紐づくロールを取得
     function getStaffRole(productionId, token) {
-      let staffTokens = get(/databases/$(database)/documents/productions/$(productionId)).data.staffTokens;
-      return staffTokens != null && token in staffTokens ? staffTokens[token] : null;
+      let staffTokens = get(/databases/$(database)/documents/productions/$(getID(productionId))).data.staffTokens;
+      let tokenData = staffTokens != null && token in staffTokens ? staffTokens[token] : null;
+      return tokenData is string ? tokenData : (tokenData != null ? tokenData.role : null);
+    }
+
+    // 匿名認証UIDが特定の公演のスタッフセッションを持っているか確認
+    function isAuthorizedStaff(productionId) {
+      let sessionPath = /databases/$(database)/documents/staffSessions/$(request.auth.uid);
+      let sessionData = exists(sessionPath) ? get(sessionPath).data : null;
+      let targetId = getID(productionId);
+      return sessionData != null && 
+             sessionData.productionId == targetId && 
+             (sessionData.expiresAt == null || sessionData.expiresAt > request.time);
+    }
+
+    // セッションからスタッフのトークンを取得
+    function getStaffTokenFromSession() {
+      let sessionPath = /databases/$(database)/documents/staffSessions/$(request.auth.uid);
+      return exists(sessionPath) ? get(sessionPath).data.token : null;
     }
 
     // ロールごとの更新許可フィールド定義
     function getAllowedFields(role) {
-      // 実際の実装（remarks/checkedInTickets等）と、指示プロンプトの表記（staffNote/checkedIn等）の両方を許可
-      return role == 'manager' ? ['checkedInTickets', 'checkinStatus', 'checkedIn', 'remarks', 'staffNote', 'status', 'paymentStatus', 'paidAmount', 'updatedAt'] :
-             role == 'reception' ? ['checkedInTickets', 'checkinStatus', 'checkedIn', 'updatedAt'] :
-             [];
+      return role == 'manager' || role == 'reception' ? 
+        ['checkedInTickets', 'checkinStatus', 'checkedIn', 'remarks', 'staffNote', 'status', 'paymentStatus', 'paidAmount', 'updatedAt'] :
+        [];
     }
 
     // 公演（Production）
@@ -25,7 +49,7 @@ service cloud.firestore {
       // 予約フォームまたはトークン保持者は get 可能
       allow get: if true; 
       allow list: if isSignedIn();
-      allow create: if isSignedIn();
+      allow create: if isGoogleUser();
       allow update, delete: if isOwner(resource.data.userId);
     }
 
@@ -33,22 +57,47 @@ service cloud.firestore {
     match /reservations/{reservationId} {
       allow create: if true;
       
-      // 合鍵（staffToken）による一覧取得
-      allow list: if isSignedIn() || (
-        request.query.productionId != null &&
-        request.query.staffToken != null &&
-        getStaffRole(request.query.productionId, request.query.staffToken) != null
+      // 個別取得
+      allow get: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || 
+        isAuthorizedStaff(resource.data.productionId) ||
+        get(/databases/$(database)/documents/productions/$(resource.data.productionId)).data.userId == request.auth.uid
       );
 
-      // トークンによる限定的な更新
-      allow update: if isOwner(resource.data.userId) || (
-        request.resource.data._staffToken != null &&
-        request.resource.data.productionId != null &&
-        request.resource.data.productionId == resource.data.productionId && // 公演の紐付け変更を禁止
-        request.writeFields.hasOnly(getAllowedFields(getStaffRole(request.resource.data.productionId, request.resource.data._staffToken)).concat(['_staffToken', 'updatedAt']))
+      // 一覧取得
+      allow list: if isSignedIn() && (
+        // 1. プロダクション単位のアクセス（主催者 or スタッフ）
+        // 型エラーの起きやすい request.query ではなく resource.data を基準に判定
+        (resource.data.productionId != null && (
+          get(/databases/$(database)/documents/productions/$(resource.data.productionId)).data.userId == request.auth.uid ||
+          isAuthorizedStaff(resource.data.productionId)
+        )) ||
+        // 2. ユーザー指定のクエリ（一般客 or 主催者自身の予約）
+        (request.query.userId != null && request.query.userId == request.auth.uid) ||
+        // 3. 全ドキュメントの所有権チェック
+        (resource.data.userId == request.auth.uid)
       );
+      
+      allow update: if (isSignedIn() && (
+        resource.data.userId == request.auth.uid || 
+        (
+          isAuthorizedStaff(resource.data.productionId) &&
+          request.writeFields.hasOnly(getAllowedFields(getStaffRole(resource.data.productionId, getStaffTokenFromSession())).concat(['_staffToken', 'updatedAt']))
+        )
+      ));
 
-      allow get, delete: if isSignedIn();
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // スタッフセッション (StaffSessions)
+    match /staffSessions/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      
+      // クライアント側でセッションを作成・更新することを許可 (正しいパスコードハッシュが必要)
+      allow create, update: if isSignedIn() && request.auth.uid == uid && 
+        get(/databases/$(database)/documents/productions/$(request.resource.data.productionId)).data.staffTokens[request.resource.data.token].passcodeHashed == request.resource.data.passcodeHashed;
+      
+      allow delete: if isSignedIn() && request.auth.uid == uid;
     }
 
     // ユーザープロファイル
@@ -58,7 +107,8 @@ service cloud.firestore {
 
     // 劇団 (Troupe)
     match /troupes/{troupeId} {
-      allow read, create: if isSignedIn();
+      allow read: if isSignedIn();
+      allow create: if isGoogleUser();
       allow update, delete: if isOwner(resource.data.ownerId);
     }
 
@@ -68,13 +118,15 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid || 
         get(/databases/$(database)/documents/troupes/$(resource.data.troupeId)).data.ownerId == request.auth.uid
       );
-      allow create, update, delete: if isSignedIn();
+      allow create: if isGoogleUser();
+      allow update, delete: if isOwner(resource.data.userId);
     }
 
     // 公演回 (Performance)
     match /performances/{performanceId} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow create: if isGoogleUser();
+      allow update, delete: if isOwner(resource.data.userId);
     }
 
     // チェックインログ (CheckinLogs)

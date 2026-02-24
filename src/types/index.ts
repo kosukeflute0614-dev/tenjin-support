@@ -30,6 +30,7 @@ export interface FirestoreReservation {
     customerEmail?: string | null;
     checkedInTickets: number;
     checkinStatus: string;
+    checkedIn?: boolean; // 新規追加：高速チェックイン用フラグ
     tickets: ReservationTicket[];
     status: 'PENDING' | 'CONFIRMED' | 'CANCELED';
     paymentStatus: 'UNPAID' | 'PARTIAL' | 'PAID';
@@ -80,8 +81,14 @@ export interface Production {
     receptionEndMinutes?: number;
     performances?: Performance[];
     userId: string; // Owner ID (Legacy)
-    staffTokens?: { [token: string]: string }; // Map of token to role (e.g., { "uuid": "manager" })
-    staffPasscodeHashed?: string; // Hashed 4-digit passcode
+    staffTokens?: {
+        [token: string]: {
+            role: string;
+            passcode: string;
+            passcodeHashed: string;
+        } | string; // string is for legacy support during migration
+    };
+    staffPasscodeHashed?: string; // Legacy: Common passcode
     createdAt?: any;
     updatedAt?: any;
 }
@@ -123,4 +130,22 @@ export interface AppUser {
     troupeName: string;
     createdAt: any;
     updatedAt: any;
+}
+export interface SalesReport {
+    totalRevenue: number;
+    totalTickets: number;
+    ticketTypeBreakdown: {
+        [id: string]: {
+            name: string;
+            count: number;
+            revenue: number;
+        }
+    };
+    performanceSummaries: {
+        id: string;
+        startTime: any;
+        bookedCount: number;
+        checkedInCount: number;
+        revenue: number;
+    }[];
 }

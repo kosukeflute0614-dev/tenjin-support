@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { createSameDayTicketClient } from '@/lib/client-firestore'
+import { createSameDayTicketClient, createSameDayTicketStaffClient } from '@/lib/client-firestore'
 import { NumberStepper, SoftKeypad } from './TouchInputs'
 import { useAuth } from './AuthProvider'
 
@@ -10,13 +10,15 @@ export default function SameDayTicketForm({
     performanceId,
     ticketTypes,
     remainingCount,
-    nextNumber = 1
+    nextNumber = 1,
+    staffToken
 }: {
     productionId: string,
     performanceId: string,
     ticketTypes: any[],
     remainingCount: number,
-    nextNumber?: number
+    nextNumber?: number,
+    staffToken?: string
 }) {
     const { user } = useAuth()
     const [customerName, setCustomerName] = useState(`当日_${nextNumber}`)
@@ -64,15 +66,24 @@ export default function SameDayTicketForm({
         setError('')
 
         try {
-            if (!user) throw new Error('ログインが必要です')
-
-            await createSameDayTicketClient(
-                performanceId,
-                productionId,
-                customerName,
-                ticketCounts,
-                user.uid
-            )
+            if (staffToken) {
+                await createSameDayTicketStaffClient(
+                    performanceId,
+                    productionId,
+                    customerName,
+                    ticketCounts,
+                    staffToken
+                )
+            } else {
+                if (!user) throw new Error('ログインが必要です')
+                await createSameDayTicketClient(
+                    performanceId,
+                    productionId,
+                    customerName,
+                    ticketCounts,
+                    user.uid
+                )
+            }
 
             // Reset form
             setCustomerName(`当日_${nextNumber + 1}`) // 次の番号を予測してセット（CheckinPageからも降ってくるが即応性のため）

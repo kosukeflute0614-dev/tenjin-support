@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Theater, Settings, LogOut, ChevronDown, ChevronUp, BookOpen, HelpCircle, Mail } from 'lucide-react';
 
 export default function UserMenu() {
-    const { user, profile, loginWithGoogle, logout } = useAuth();
+    const { user, profile, isOrganizer, loginWithGoogle, logout } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [hoverItem, setHoverItem] = useState<string | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -55,7 +55,7 @@ export default function UserMenu() {
         cursor: 'pointer'
     });
 
-    if (user) {
+    if (user && isOrganizer) {
         return (
             <div style={{ position: 'relative' }} ref={menuRef}>
                 <button
@@ -203,20 +203,5 @@ export default function UserMenu() {
         );
     }
 
-    return (
-        <button
-            onClick={loginWithGoogle}
-            className="btn btn-primary"
-            style={{
-                padding: '0.6rem 1.4rem',
-                fontSize: '0.875rem',
-                borderRadius: '50px',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-                transition: 'all 0.3s ease',
-                fontFamily: 'system-ui, -apple-system, sans-serif'
-            }}
-        >
-            ログイン
-        </button>
-    );
+    return null;
 }

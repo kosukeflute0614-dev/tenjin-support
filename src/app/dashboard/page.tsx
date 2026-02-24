@@ -119,6 +119,11 @@ export default function DashboardPage() {
                     <h3>来場状況</h3>
                     <p>リアルタイム着券状況の確認</p>
                 </Link>
+                <Link href={activeProductionId ? `/productions/${activeProductionId}/staff` : '/productions'} className="menu-card">
+                    <span className="icon">🔑</span>
+                    <h3>スタッフ招待・管理</h3>
+                    <p>合鍵（スタッフ用URL）の発行と管理</p>
+                </Link>
             </div>
 
             <div className="stats-section" style={{ marginTop: '3rem' }}>
