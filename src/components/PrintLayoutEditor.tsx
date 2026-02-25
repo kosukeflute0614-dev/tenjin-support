@@ -47,16 +47,16 @@ const QR_X_MM = CONTENT_AREA.right - QR_SIZE_MM;
 const QR_Y_MM = CONTENT_AREA.y;
 
 // D-5.1 要件に基づくレイアウト定数
-const HEADER_GAP_RECOMMENDED = 7.0;
-const HEADER_GAP_MIN = 3.0;
+const HEADER_GAP_RECOMMENDED = 4.0;
+const HEADER_GAP_MIN = 1.0;
 
-const SECTION_GAP_RECOMMENDED = 4.0;
-const SECTION_GAP_MIN = 1.0;
+const SECTION_GAP_RECOMMENDED = 2.5;
+const SECTION_GAP_MIN = 0.5;
 
-const INNER_GAP_RECOMMENDED = 3.0;
-const INNER_GAP_MIN = 1.0;
+const INNER_GAP_RECOMMENDED = 1.5;
+const INNER_GAP_MIN = 0.5;
 
-const FREE_TEXT_HEIGHT_RECOMMENDED = 30.0;
+const FREE_TEXT_HEIGHT_RECOMMENDED = 25.0;
 const FREE_TEXT_HEIGHT_MIN = 10.0;
 
 // 描画・計測用必須定数 (復元)
@@ -69,7 +69,7 @@ const HEADER_TEXT_FONT_SIZE_MM = 3.2;
 const OMR_BOX_SIZE_MM = 4;
 const OMR_STROKE_MM = 0.2;
 const OMR_GAP_MM = 2;
-const OMR_LINE_HEIGHT_MM = 8;
+const OMR_LINE_HEIGHT_MM = 6.0;
 const OMR_FONT_SIZE_MM = 3.5;
 const OMR_H_OPTION_GAP_MM = 6;
 
@@ -137,12 +137,21 @@ export const estimateTextWidth = (text: string, fontSizeMM: number): number => {
  * 行数 = ceil(合計幅 / 最大幅)
  * 高さ = 行数 * (フォントサイズ * 行間)
  */
-export const estimateTextHeight = (text: string, fontSizeMM: number, maxWidthMM: number, lineWeight: number = 1.5): number => {
+export const estimateTextHeight = (text: string, fontSizeMM: number, maxWidthMM: number, lineWeight: number = 1.3): number => {
     if (!text) return 0;
-    const totalWidthMM = estimateTextWidth(text, fontSizeMM);
-    const lines = Math.ceil(totalWidthMM / maxWidthMM);
-    // フォントサイズ * 行間 * 行数 + 2.0mm (Descentバッファ)
-    return (lines * fontSizeMM * lineWeight) + 2.0;
+    // 改行で分割して、各行の必要行数を合算
+    const segments = text.split('\n');
+    let totalLines = 0;
+    segments.forEach(seg => {
+        if (seg === '') {
+            totalLines += 1; // 空行
+        } else {
+            const w = estimateTextWidth(seg, fontSizeMM);
+            totalLines += Math.max(1, Math.ceil(w / maxWidthMM));
+        }
+    });
+    // フォントサイズ * 行間 * 行数 + 0.5mm (Descentバッファ)
+    return (totalLines * fontSizeMM * lineWeight) + 0.5;
 };
 
 /* =========================================
@@ -200,7 +209,41 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
     const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
     const [showMarkers, setShowMarkers] = useState(true);
     const [layoutMode, setLayoutMode] = useState<'vertical' | 'horizontal'>('horizontal');
+    const [fontSizeMode, setFontSizeMode] = useState<'小' | '中' | '大'>('中');
+    const [freeTextHeights, setFreeTextHeights] = useState<Record<string, number>>({});
+    const [resizing, setResizing] = useState<{ id: string; startY: number; startH: number } | null>(null);
     const canvasAreaRef = useRef<HTMLDivElement>(null);
+
+    // リサイズ開始ハンドラ
+    const handleResizeStart = useCallback((id: string, clientY: number, currentH: number) => {
+        setResizing({ id, startY: clientY, startH: currentH });
+    }, []);
+
+    // グローバルドラッグ処理
+    useEffect(() => {
+        if (!resizing) return;
+
+        const handleMove = (e: MouseEvent) => {
+            const deltaPx = e.clientY - resizing.startY;
+            const deltaMm = deltaPx / PX_PER_MM;
+            // 最小 10mm 以上の範囲で自由に変更可能にする（最大制限は撤廃）
+            const newH = Math.max(FREE_TEXT_HEIGHT_MIN, resizing.startH + deltaMm);
+
+            setFreeTextHeights(prev => ({
+                ...prev,
+                [resizing.id]: newH
+            }));
+        };
+
+        const handleUp = () => setResizing(null);
+
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleUp);
+        return () => {
+            window.removeEventListener('mousemove', handleMove);
+            window.removeEventListener('mouseup', handleUp);
+        };
+    }, [resizing]);
 
     // QRコード用URL生成
     const qrUrl = typeof window !== 'undefined'
@@ -210,13 +253,21 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
     // 自動レイアウト計算：Header + questions → 配置座標
     // 自動レイアウト計算：Header + questions → 配置座標
     const { headerLayout, questionLayouts, isOverflow, finalParams } = useMemo(() => {
+        const factor = fontSizeMode === '小' ? 0.85 : fontSizeMode === '大' ? 1.15 : 1.0;
+        const curHeaderTitleFS = HEADER_TITLE_FONT_SIZE_MM * factor;
+        const curHeaderTextFS = HEADER_TEXT_FONT_SIZE_MM * factor;
+        const curOmrFS = OMR_FONT_SIZE_MM * factor;
+        const curRatingFS = RATING_LABEL_FONT_SIZE_MM * factor;
+        // 文字サイズ連動の枠サイズ (小: 3.0, 中: 3.5, 大: 4.0)
+        const curOmrBoxSize = fontSizeMode === '小' ? 3.0 : fontSizeMode === '大' ? 4.0 : 3.5;
+
         const blockW = A4_WIDTH_MM - MARGIN_MM * 2; // 180mm固定
-        const greetingText = 'ご来場いただき誠にありがとうございます。今後の活動の励みとなりますのでアンケートへのご回答をお願い致します。';
-        const greetingH = estimateTextHeight(greetingText, HEADER_TEXT_FONT_SIZE_MM, blockW);
+        const greetingText = 'ご来場いただき誠にありがとうございます。\n今後の活動の参考にさせていただきたく、アンケートにご協力ください。';
+        const greetingH = estimateTextHeight(greetingText, curHeaderTextFS, blockW);
 
         // 1. Measure (パーツの固定高度を算出)
         // ──────────────────────────────────────────
-        const headerH = 33 + greetingH + HEADER_MARGIN_BOTTOM_MM; // HEADER_START_Y_MM からの相対
+        const headerH = 28 + greetingH + HEADER_MARGIN_BOTTOM_MM; // HEADER_START_Y_MM からの相対
         const qParts = questions.filter(
             q => q.type === 'single_choice' || q.type === 'multi_choice' || q.type === 'free_text'
         );
@@ -224,7 +275,7 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
 
         const qHeights = qParts.map(q => {
             const fullTitle = q.label + (q.type === 'multi_choice' ? '（複数選択可）' : '');
-            const titleH = estimateTextHeight(fullTitle, OMR_FONT_SIZE_MM, blockW);
+            const titleH = estimateTextHeight(fullTitle, curOmrFS, blockW);
             let itemH = 0;
             if (q.type === 'free_text') {
                 itemH = 0; // fH で後から加算
@@ -233,14 +284,14 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                     itemH = q.options.length * OMR_LINE_HEIGHT_MM;
                 } else {
                     // 物理幅に基づく Flex-wrap シミュレーション
-                    const boxPlusTextGap = OMR_BOX_SIZE_MM + OMR_GAP_MM;
+                    const boxPlusTextGap = curOmrBoxSize + OMR_GAP_MM;
                     const optionRightGap = OMR_H_OPTION_GAP_MM;
-                    const rowGap = 2.5; // 行間の追加余白
+                    const rowGap = 1.0; // 行間の追加余白
 
                     let rows = 1;
                     let curRowW = 0;
                     q.options.forEach(opt => {
-                        const labelW = estimateTextWidth(opt.label, OMR_FONT_SIZE_MM);
+                        const labelW = estimateTextWidth(opt.label, curOmrFS);
                         const optW = boxPlusTextGap + labelW + optionRightGap;
 
                         if (curRowW + optW > blockW && curRowW > 0) {
@@ -260,58 +311,76 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
         let newsTitleH = 0;
         if (newsQ) {
             const title = '今後の公演情報やお知らせの配信を希望しますか？';
-            newsTitleH = estimateTextHeight(title, OMR_FONT_SIZE_MM, blockW);
-            footerH = newsTitleH + 4.0 + OMR_BOX_SIZE_MM + 6;
+            newsTitleH = estimateTextHeight(title, curOmrFS, blockW);
+            // 余白や高さをフォントスケールに連動
+            const titleGap = 4.0 * factor;
+            const subFieldGap = 6.0 * factor;
+            const inputH = Math.max(8.5, 10.0 * factor);
+            const inputInternalGap = 4.0 * factor;
+
+            footerH = newsTitleH + titleGap + curOmrBoxSize + subFieldGap;
             if (newsQ.subFields) {
-                if (newsQ.subFields.name) footerH += 10 + 4;
-                if (newsQ.subFields.email) footerH += 10 + 4;
+                if (newsQ.subFields.name) footerH += inputH + inputInternalGap;
+                if (newsQ.subFields.email) footerH += inputH + inputInternalGap;
             }
         }
 
         const FOOTER_MARGIN_MM = 5.0; // フッター（配信希望）直前のセーフティマージン
-        // 2. 3段階配置アルゴリズム (D-5.1)
-        const H_MAX = 267.0;
+        const H_MAX = 265.0; // CONTENT_AREA.bottom (282) - HEADER_START_Y_MM (17) = 265.0
         const gapCount = qParts.length;
         const freeTextCount = qParts.filter(q => q.type === 'free_text').length;
-        const hFixedTotal = headerH + qHeights.reduce((s, c) => s + c.titleH + c.itemH, 0) + footerH + (newsQ ? FOOTER_MARGIN_MM : 0);
 
         // 【STEP 1: 理想の配置】
         let curH2C = HEADER_GAP_RECOMMENDED;
         let curSG = SECTION_GAP_RECOMMENDED;
         let curIG = INNER_GAP_RECOMMENDED;
-        let curFT = FREE_TEXT_HEIGHT_RECOMMENDED;
 
-        let totalH = hFixedTotal + curH2C + (gapCount * curSG) + (qParts.length * curIG) + (freeTextCount * curFT);
+        // 個別の高さを加味した固定値合計の再計算
+        const hFixedWithIndividualText = headerH + qHeights.reduce((s, c, idx) => {
+            const q = qParts[idx];
+            const h = (q.id in freeTextHeights) ? freeTextHeights[q.id] : (q.type === 'free_text' ? FREE_TEXT_HEIGHT_RECOMMENDED : c.itemH);
+            return s + c.titleH + h;
+        }, 0) + footerH + (newsQ ? FOOTER_MARGIN_MM : 0);
 
-        if (totalH <= H_MAX) {
-            if (freeTextCount > 0) {
-                const surplus = H_MAX - totalH;
-                curFT += surplus / freeTextCount;
-            }
+        let idealTotalH = hFixedWithIndividualText + curH2C + (gapCount * curSG) + (qParts.length * curIG);
+
+        if (idealTotalH <= H_MAX) {
+            // 余裕がある場合はそのまま
         } else {
-            // 【STEP 2: 余白の圧縮】
-            const idealVarH = curH2C + (gapCount * curSG) + (qParts.length * curIG);
-            const minVarH = HEADER_GAP_MIN + (gapCount * SECTION_GAP_MIN) + (qParts.length * INNER_GAP_MIN);
-            const overflow = totalH - H_MAX;
-            const canShrink = idealVarH - minVarH;
+            // 【STEP 2: 余白の圧縮】 (D-9 折れ線補間)
+            const targetVarH = H_MAX - hFixedWithIndividualText;
 
-            if (overflow <= canShrink && canShrink > 0) {
-                const ratio = (canShrink - overflow) / canShrink;
-                curH2C = HEADER_GAP_MIN + (HEADER_GAP_RECOMMENDED - HEADER_GAP_MIN) * ratio;
-                curSG = SECTION_GAP_MIN + (SECTION_GAP_RECOMMENDED - SECTION_GAP_MIN) * ratio;
-                curIG = INNER_GAP_MIN + (INNER_GAP_RECOMMENDED - INNER_GAP_MIN) * ratio;
+            const getVarH = (S: number) => {
+                const I = Math.max(INNER_GAP_MIN, S * 0.5);
+                const H = HEADER_GAP_MIN + (S - SECTION_GAP_MIN) * ((HEADER_GAP_RECOMMENDED - HEADER_GAP_MIN) / (SECTION_GAP_RECOMMENDED - SECTION_GAP_MIN));
+                return H + (gapCount * S) + (qParts.length * I);
+            };
+
+            const varHAtS1 = getVarH(1.0); // 最小余白時の合計
+
+            if (targetVarH >= varHAtS1) {
+                const varHAtS2 = getVarH(2.0); // S=2.0 の時の変数高さ
+                if (targetVarH >= varHAtS2) {
+                    const S = (targetVarH - 5 / 3) / (4 / 3 + gapCount + 0.5 * qParts.length);
+                    curSG = Math.min(SECTION_GAP_RECOMMENDED, Math.max(2.0, S));
+                    curIG = curSG * 0.5;
+                } else {
+                    const S = (targetVarH - (5 / 3 + qParts.length)) / (4 / 3 + gapCount);
+                    curSG = Math.min(2.0, Math.max(SECTION_GAP_MIN, S));
+                    curIG = INNER_GAP_MIN;
+                }
+                curH2C = HEADER_GAP_MIN + (curSG - SECTION_GAP_MIN) * ((HEADER_GAP_RECOMMENDED - HEADER_GAP_MIN) / (SECTION_GAP_RECOMMENDED - SECTION_GAP_MIN));
             } else {
-                // 【STEP 3: 緊急圧縮】
+                // 【STEP 3: 緊急圧縮】 (個別高さを一律に圧縮)
                 curH2C = HEADER_GAP_MIN;
                 curSG = SECTION_GAP_MIN;
                 curIG = INNER_GAP_MIN;
-                const hWithMinMargins = hFixedTotal + curH2C + (gapCount * curSG) + (qParts.length * curIG) + (freeTextCount * curFT);
-                const overflowRel = hWithMinMargins - H_MAX;
-                if (freeTextCount > 0) {
-                    curFT = Math.max(FREE_TEXT_HEIGHT_MIN, curFT - (overflowRel / freeTextCount));
-                }
             }
         }
+
+        const totalH = hFixedWithIndividualText + curH2C + (gapCount * curSG) + (qParts.length * curIG);
+        // 合計が H_MAX (265mm) を超えた場合に警告
+        const isOverflow = totalH > H_MAX + 0.1;
 
         // 3. Draw (配置の確定)
         // ──────────────────────────────────────────
@@ -320,13 +389,13 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
 
         qParts.forEach((q, idx) => {
             const { titleH, itemH: fixedItemH } = qHeights[idx];
-            const itemActualH = (q.type === 'free_text') ? curFT : fixedItemH;
+            const itemActualH = (q.id in freeTextHeights) ? freeTextHeights[q.id] : (q.type === 'free_text' ? FREE_TEXT_HEIGHT_RECOMMENDED : fixedItemH);
             const blockHeight = titleH + curIG + itemActualH;
 
             if (q.type === 'free_text') {
                 const ocrBoxes: OCRBoxMeta[] = [{
                     questionId: q.id, type: 'OCR_BOX' as const,
-                    boundingBox: { x: MARGIN_MM, y: curY + titleH + curIG, w: blockW, h: curFT }
+                    boundingBox: { x: MARGIN_MM, y: curY + titleH + curIG, w: blockW, h: itemActualH }
                 }];
                 layouts.push({ question: q, questionIndex: idx + 1, x: MARGIN_MM, y: curY, width: blockW, height: blockHeight, titleHeight: titleH, ocrBoxes });
             } else {
@@ -334,17 +403,17 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                 const internalY = curY + titleH + curIG;
                 if (layoutMode === 'vertical') {
                     q.options.forEach((opt, i) => {
-                        boxes.push({ questionId: q.id, optionId: opt.id, type: 'OMR_BOX' as const, boundingBox: { x: MARGIN_MM, y: internalY + i * OMR_LINE_HEIGHT_MM, w: OMR_BOX_SIZE_MM, h: OMR_BOX_SIZE_MM } });
+                        boxes.push({ questionId: q.id, optionId: opt.id, type: 'OMR_BOX' as const, boundingBox: { x: MARGIN_MM, y: internalY + i * OMR_LINE_HEIGHT_MM, w: curOmrBoxSize, h: curOmrBoxSize } });
                     });
                 } else {
                     let cX = 0;
                     let cY = 0;
-                    const boxPlusTextGap = OMR_BOX_SIZE_MM + OMR_GAP_MM;
+                    const boxPlusTextGap = curOmrBoxSize + OMR_GAP_MM;
                     const optionRightGap = OMR_H_OPTION_GAP_MM;
-                    const rowGap = 2.5;
+                    const rowGap = 1.0;
 
                     q.options.forEach((opt) => {
-                        const labelW = estimateTextWidth(opt.label, OMR_FONT_SIZE_MM);
+                        const labelW = estimateTextWidth(opt.label, curOmrFS);
                         const optW = boxPlusTextGap + labelW + optionRightGap;
 
                         if (cX + optW > blockW && cX > 0) {
@@ -357,8 +426,8 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                             boundingBox: {
                                 x: MARGIN_MM + cX,
                                 y: internalY + cY,
-                                w: OMR_BOX_SIZE_MM,
-                                h: OMR_BOX_SIZE_MM
+                                w: curOmrBoxSize,
+                                h: curOmrBoxSize
                             }
                         });
                         cX += optW;
@@ -373,45 +442,38 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
             const fY = CONTENT_AREA.bottom - footerH;
             const ocrBoxes: OCRBoxMeta[] = [];
             const boxes: OMRBoxMeta[] = [];
-            const optInY = fY + newsTitleH + 4.0;
-            boxes.push({ questionId: newsQ.id, optionId: 'opt_in', type: 'OMR_BOX' as const, boundingBox: { x: MARGIN_MM, y: optInY, w: OMR_BOX_SIZE_MM, h: OMR_BOX_SIZE_MM } });
-            let subY = optInY + OMR_BOX_SIZE_MM + 6;
+            const titleGap = 4.0 * factor;
+            const subFieldGap = 6.0 * factor;
+            const inputH = Math.max(8.5, 10.0 * factor);
+            const inputInternalGap = 4.0 * factor;
+
+            const optInY = fY + newsTitleH + titleGap;
+            boxes.push({ questionId: newsQ.id, optionId: 'opt_in', type: 'OMR_BOX' as const, boundingBox: { x: MARGIN_MM, y: optInY, w: curOmrBoxSize, h: curOmrBoxSize } });
+            let subY = optInY + curOmrBoxSize + subFieldGap;
             if (newsQ.subFields) {
                 if (newsQ.subFields.name) {
-                    ocrBoxes.push({ questionId: newsQ.id, fieldKey: 'name', type: 'OCR_BOX' as const, boundingBox: { x: MARGIN_MM + 40, y: subY, w: 120, h: 10 } });
-                    subY += 10 + curIG * 0.8;
+                    ocrBoxes.push({ questionId: newsQ.id, fieldKey: 'name', type: 'OCR_BOX' as const, boundingBox: { x: MARGIN_MM + 40, y: subY, w: 120, h: inputH } });
+                    subY += inputH + inputInternalGap;
                 }
                 if (newsQ.subFields.email) {
-                    ocrBoxes.push({ questionId: newsQ.id, fieldKey: 'email', type: 'OCR_BOX' as const, boundingBox: { x: MARGIN_MM + 40, y: subY, w: 120, h: 10 } });
+                    ocrBoxes.push({ questionId: newsQ.id, fieldKey: 'email', type: 'OCR_BOX' as const, boundingBox: { x: MARGIN_MM + 40, y: subY, w: 120, h: inputH } });
                 }
             }
             layouts.push({ question: newsQ, questionIndex: qParts.length + 1, x: MARGIN_MM, y: fY, width: blockW, height: footerH, titleHeight: newsTitleH, ocrBoxes, boxes });
         }
 
-        let overlappingFound = false;
-        for (let i = 0; i < layouts.length - 1; i++) {
-            if (layouts[i].y + layouts[i].height > layouts[i + 1].y + 0.01) {
-                overlappingFound = true;
-                break;
-            }
-        }
-        const lastLayout = layouts[layouts.length - 1];
-        if (lastLayout && lastLayout.y + lastLayout.height > CONTENT_AREA.bottom + 0.1) {
-            overlappingFound = true;
-        }
-
         const header: HeaderLayout = {
             troupeName: troupeName || '劇団名', productionName: templateTitle || '公演名', greeting: greetingText, qrUrl,
             boundingBoxes: {
-                titleGroup: { x: MARGIN_MM, y: HEADER_START_Y_MM + 2, w: blockW, h: 26 },
-                greeting: { x: MARGIN_MM, y: HEADER_START_Y_MM + 33, w: blockW, h: greetingH },
-                qrGroup: { x: CONTENT_AREA.right - QR_SIZE_MM - 15, y: HEADER_START_Y_MM + 2, w: QR_SIZE_MM + 12, h: 26 }
+                titleGroup: { x: MARGIN_MM, y: HEADER_START_Y_MM + 2, w: blockW, h: 22 },
+                greeting: { x: MARGIN_MM, y: HEADER_START_Y_MM + 28, w: blockW, h: greetingH },
+                qrGroup: { x: CONTENT_AREA.right - QR_SIZE_MM - 15, y: HEADER_START_Y_MM + 2, w: QR_SIZE_MM + 12, h: 22 }
             }
         };
 
-        const fParams: FinalParams = { sGap: curSG, h2cGap: curH2C, iGap: curIG, fH: curFT, hTotalIdeal: totalH };
-        return { headerLayout: header, questionLayouts: layouts, isOverflow: overlappingFound, finalParams: fParams };
-    }, [questions, layoutMode, qrUrl, templateTitle, troupeName]);
+        const fParams: FinalParams = { sGap: curSG, h2cGap: curH2C, iGap: curIG, fH: FREE_TEXT_HEIGHT_RECOMMENDED, hTotalIdeal: totalH };
+        return { headerLayout: header, questionLayouts: layouts, isOverflow: isOverflow, finalParams: fParams };
+    }, [questions, layoutMode, qrUrl, templateTitle, troupeName, fontSizeMode, freeTextHeights]);
 
     const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
         const target = e.currentTarget.querySelector('[data-canvas]') as HTMLElement | null;
@@ -502,138 +564,203 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                         </span>
                     </label>
                     <div style={{ width: '1px', height: '20px', backgroundColor: '#404040' }} />
-                    <CoordinateDisplay mousePos={mousePos} />
                 </div>
             </div>
 
-            {/* ── キャンバスエリア（スクロール可能） ── */}
-            <div
-                ref={canvasAreaRef}
-                onMouseMove={handleMouseMove}
-                onMouseLeave={handleMouseLeave}
-                style={{
-                    flex: 1, overflow: 'auto',
-                    display: 'flex', justifyContent: 'center',
-                    padding: '2rem',
-                    backgroundColor: '#2a2a2a',
-                }}
-            >
-                {/* デバッグ情報オーバーレイ (右上へ移動) */}
-                <div style={{
-                    position: 'fixed', top: '20px', right: '20px',
-                    background: 'rgba(0,0,0,0.85)', color: '#00ff00',
-                    padding: '12px', borderRadius: '4px', fontSize: '13px',
-                    zIndex: 10000, pointerEvents: 'none', fontFamily: 'monospace',
-                    boxShadow: '0 0 10px rgba(0,0,0,0.5)',
-                    border: '1px solid #00ff00'
+            {/* ── メインレイアウト (2ペイン構成) ── */}
+            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+                {/* ── 左サイドバー (コントローラー) ── */}
+                <aside style={{
+                    width: '280px', flexShrink: 0,
+                    backgroundColor: '#f9f9f9', borderRight: '1px solid #e0e0e0',
+                    display: 'flex', flexDirection: 'column', gap: '2.5rem',
+                    padding: '1.5rem 1.25rem', color: '#333', overflowY: 'auto',
+                    boxShadow: 'inset -2px 0 8px rgba(0,0,0,0.02)',
                 }}>
-                    <div style={{ fontWeight: 'bold', marginBottom: '4px', borderBottom: '1px solid #00ff00' }}>--- DEBUG LAYOUT ---</div>
-                    <div>H_max: 267.00 mm</div>
-                    <div>H_total (Ideal): {finalParams.hTotalIdeal.toFixed(2)} mm</div>
-                    <div style={{ color: finalParams.sGap < 1.0 ? '#ffff00' : '#00ff00' }}>Applied SG: {finalParams.sGap.toFixed(2)} mm</div>
-                    <div style={{ color: finalParams.iGap < 1.0 ? '#ffff00' : '#00ff00' }}>Applied IG: {finalParams.iGap.toFixed(2)} mm</div>
-                    <div style={{ color: finalParams.h2cGap < 1.0 ? '#ffff00' : '#00ff00' }}>Applied H2C: {finalParams.h2cGap.toFixed(2)} mm</div>
-                    <div style={{ color: finalParams.fH < 20.0 ? '#ffff00' : '#00ff00' }}>Applied FH: {finalParams.fH.toFixed(2)} mm</div>
-                    <div style={{ color: isOverflow ? '#ff4444' : '#00ff00', fontWeight: isOverflow ? 'bold' : 'normal' }}>
-                        Overlapping: {isOverflow ? 'YES' : 'NO'}
+                    <h2 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#111', borderBottom: '1px solid #ddd', paddingBottom: '0.75rem' }}>🎛️ アンケート調整</h2>
+
+                    {/* 文字サイズ調整 */}
+                    <section>
+                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '0.75rem', color: '#777', textTransform: 'uppercase', letterSpacing: '0.05em' }}>文字サイズ</label>
+                        <div style={{ display: 'flex', border: '1px solid #ccc', borderRadius: '6px', overflow: 'hidden', backgroundColor: '#fff' }}>
+                            {(['小', '中', '大'] as const).map((label) => (
+                                <button
+                                    key={label}
+                                    onClick={() => setFontSizeMode(label)}
+                                    style={{
+                                        flex: 1, padding: '0.7rem 0', border: 'none', cursor: 'pointer',
+                                        backgroundColor: label === fontSizeMode ? '#1a1a1a' : '#fff',
+                                        color: label === fontSizeMode ? '#fff' : '#666',
+                                        fontSize: '0.85rem', fontWeight: label === fontSizeMode ? 'bold' : 'normal',
+                                        borderRight: label !== '大' ? '1px solid #ccc' : 'none',
+                                        transition: 'all 0.2s',
+                                    }}
+                                >
+                                    {label}
+                                </button>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* 自由記述欄の高さ調整 (すべての自由記述欄に適用) */}
+                    <section>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                            <label style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#777', textTransform: 'uppercase', letterSpacing: '0.05em' }}>自由記述欄の高さ (一律)</label>
+                            <span style={{ fontSize: '0.75rem', color: '#999', fontFamily: 'monospace' }}>一律変更可</span>
+                        </div>
+                        <div
+                            style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '32px', cursor: 'pointer' }}
+                            onClick={() => {
+                                const newH = FREE_TEXT_HEIGHT_RECOMMENDED; // 例として45mmにセットする
+                                const updates: Record<string, number> = {};
+                                questions.forEach(q => { if (q.type === 'free_text') updates[q.id] = newH; });
+                                setFreeTextHeights(prev => ({ ...prev, ...updates }));
+                            }}
+                        >
+                            <div style={{ flex: 1, height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px', position: 'relative' }}>
+                                <div style={{ width: '50%', height: '100%', backgroundColor: '#444', borderRadius: '2px' }} />
+                                <div style={{
+                                    position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                                    width: '22px', height: '22px', backgroundColor: '#fff', border: '1.5px solid #1a1a1a',
+                                    borderRadius: '50%', boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px'
+                                }}>
+                                    <div style={{ width: '8px', height: '1.5px', backgroundColor: '#1a1a1a' }} />
+                                    <div style={{ width: '8px', height: '1.5px', backgroundColor: '#1a1a1a' }} />
+                                    <div style={{ width: '8px', height: '1.5px', backgroundColor: '#1a1a1a' }} />
+                                </div>
+                            </div>
+                        </div>
+                        <p style={{ fontSize: '0.7rem', color: '#aaa', marginTop: '0.75rem', fontStyle: 'italic', lineHeight: 1.4 }}>
+                            ※ 中央のハンドルをドラッグすれば、各ボックスごとに個別の高さを設定できます。
+                        </p>
+                    </section>
+
+                    <div style={{ marginTop: 'auto', borderTop: '1px dotted #ccc', paddingTop: '1.5rem' }}>
+                        <button style={{
+                            width: '100%', padding: '0.85rem', backgroundColor: '#1a1a1a', color: '#fff',
+                            border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem', cursor: 'default',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                        }}>
+                            📄 PDFとして出力
+                        </button>
                     </div>
-                    <div style={{ fontSize: '10px', marginTop: '4px', color: '#ffaa00' }}>
-                        * Gaps scaled using Sub-0mm Scaling
-                    </div>
-                </div>
+                </aside>
 
-                <div style={{ position: 'relative', flexShrink: 0 }}>
-                    {/* ルーラーコーナー（左上の空白） */}
-                    <div style={{
-                        position: 'absolute', top: 0, left: 0,
-                        width: `${RULER_SIZE}px`, height: `${RULER_SIZE}px`,
-                        backgroundColor: '#353535', borderRight: '1px solid #555',
-                        borderBottom: '1px solid #555', zIndex: 3,
-                    }} />
+                {/* ── 右メインプレビューエリア ── */}
+                <div
+                    ref={canvasAreaRef}
+                    onMouseMove={handleMouseMove}
+                    onMouseLeave={handleMouseLeave}
+                    style={{
+                        flex: 1, overflow: 'auto',
+                        display: 'flex', justifyContent: 'center',
+                        padding: '2.5rem',
+                        backgroundColor: '#262626',
+                    }}
+                >
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                        {/* ルーラーコーナー（左上の空白） */}
+                        <div style={{
+                            position: 'absolute', top: 0, left: 0,
+                            width: `${RULER_SIZE}px`, height: `${RULER_SIZE}px`,
+                            backgroundColor: '#353535', borderRight: '1px solid #555',
+                            borderBottom: '1px solid #555', zIndex: 3,
+                        }} />
 
-                    {/* 上部ルーラー */}
-                    <div style={{
-                        position: 'absolute', top: 0, left: `${RULER_SIZE}px`,
-                        width: `${A4_WIDTH_PX}px`, height: `${RULER_SIZE}px`,
-                        zIndex: 2,
-                    }}>
-                        <HorizontalRuler widthMm={A4_WIDTH_MM} mouseX={mousePos?.x ?? null} />
-                    </div>
-
-                    {/* 左ルーラー */}
-                    <div style={{
-                        position: 'absolute', top: `${RULER_SIZE}px`, left: 0,
-                        width: `${RULER_SIZE}px`, height: `${A4_HEIGHT_PX}px`,
-                        zIndex: 2,
-                    }}>
-                        <VerticalRuler heightMm={A4_HEIGHT_MM} mouseY={mousePos?.y ?? null} />
-                    </div>
-
-                    {/* A4 キャンバス */}
-                    <div
-                        data-canvas
-                        style={{
-                            position: 'relative',
-                            marginTop: `${RULER_SIZE}px`,
-                            marginLeft: `${RULER_SIZE}px`,
-                            width: `${A4_WIDTH_PX}px`,
-                            height: `${A4_HEIGHT_PX}px`,
-                            backgroundColor: '#ffffff',
-                            boxShadow: '0 4px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)',
-                            cursor: 'crosshair',
-                        }}
-                    >
-                        <GridOverlay widthPx={A4_WIDTH_PX} heightPx={A4_HEIGHT_PX} />
-                        <DeadZoneOverlay />
-                        {showMarkers && <CornerMarkers />}
-
-                        {/* オーバーフロー・ハイライトエリア */}
-                        {isOverflow && (
-                            <svg
-                                width={A4_WIDTH_PX} height={A4_HEIGHT_PX}
-                                style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 4 }}
-                            >
-                                <rect
-                                    x={0} y={mmToPx(CONTENT_AREA.bottom)}
-                                    width={mmToPx(A4_WIDTH_MM)} height={mmToPx(A4_HEIGHT_MM - CONTENT_AREA.bottom)}
-                                    fill="rgba(239, 68, 68, 0.25)"
-                                />
-                            </svg>
-                        )}
-                        {/* ヘッダーセクション（svgコンポーネント） */}
-                        <HeaderBlock layout={headerLayout} />
-
-                        {/* メインコンテンツエリア（設問svgのコンテナ） */}
-                        <div className="MainContentArea" style={{ position: 'relative' }}>
-                            {questionLayouts.map((ql: QuestionLayout) => {
-                                if (ql.question.type === 'free_text') {
-                                    return <FreeTextBlock key={ql.question.id} layout={ql} />;
-                                } else if (ql.question.type === 'newsletter_optin') {
-                                    return <NewsletterBlock key={ql.question.id} layout={ql} />;
-                                } else {
-                                    return <QuestionBlock key={ql.question.id} layout={ql} mode={layoutMode} />;
-                                }
-                            })}
+                        {/* 上部ルーラー */}
+                        <div style={{
+                            position: 'absolute', top: 0, left: `${RULER_SIZE}px`,
+                            width: `${A4_WIDTH_PX}px`, height: `${RULER_SIZE}px`,
+                            zIndex: 2,
+                        }}>
+                            <HorizontalRuler widthMm={A4_WIDTH_MM} mouseX={mousePos?.x ?? null} />
                         </div>
 
-                        {/* ルーラー追従ライン（水平） */}
-                        {mousePos && (
-                            <div style={{
-                                position: 'absolute', top: `${mmToPx(mousePos.y)}px`, left: 0,
-                                width: '100%', height: '1px',
-                                backgroundColor: 'rgba(59, 130, 246, 0.4)',
-                                pointerEvents: 'none', zIndex: 5,
-                            }} />
-                        )}
-                        {/* ルーラー追従ライン（垂直） */}
-                        {mousePos && (
-                            <div style={{
-                                position: 'absolute', left: `${mmToPx(mousePos.x)}px`, top: 0,
-                                width: '1px', height: '100%',
-                                backgroundColor: 'rgba(59, 130, 246, 0.4)',
-                                pointerEvents: 'none', zIndex: 5,
-                            }} />
-                        )}
+                        {/* 左ルーラー */}
+                        <div style={{
+                            position: 'absolute', top: `${RULER_SIZE}px`, left: 0,
+                            width: `${RULER_SIZE}px`, height: `${A4_HEIGHT_PX}px`,
+                            zIndex: 2,
+                        }}>
+                            <VerticalRuler heightMm={A4_HEIGHT_MM} mouseY={mousePos?.y ?? null} />
+                        </div>
+
+                        {/* A4 キャンバス */}
+                        <div
+                            data-canvas
+                            style={{
+                                position: 'relative',
+                                marginTop: `${RULER_SIZE}px`,
+                                marginLeft: `${RULER_SIZE}px`,
+                                width: `${A4_WIDTH_PX}px`,
+                                height: `${A4_HEIGHT_PX}px`,
+                                backgroundColor: isOverflow ? '#fffafa' : '#ffffff', // オーバーフロー時に薄く赤を敷く
+                                boxShadow: '0 4px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)',
+                                cursor: 'crosshair',
+                                transition: 'background-color 0.3s',
+                            }}
+                        >
+                            <GridOverlay widthPx={A4_WIDTH_PX} heightPx={A4_HEIGHT_PX} />
+                            <DeadZoneOverlay />
+                            {showMarkers && <CornerMarkers />}
+
+                            {/* オーバーフロー・ハイライトエリア */}
+                            {isOverflow && (
+                                <svg
+                                    width={A4_WIDTH_PX} height={A4_HEIGHT_PX}
+                                    style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 4 }}
+                                >
+                                    <rect
+                                        x={0} y={mmToPx(CONTENT_AREA.bottom)}
+                                        width={mmToPx(A4_WIDTH_MM)} height={mmToPx(A4_HEIGHT_MM - CONTENT_AREA.bottom)}
+                                        fill="rgba(239, 68, 68, 0.25)"
+                                    />
+                                </svg>
+                            )}
+                            {/* ヘッダーセクション（svgコンポーネント） */}
+                            <HeaderBlock layout={headerLayout} fontScale={fontSizeMode === '小' ? 0.85 : fontSizeMode === '大' ? 1.15 : 1.0} />
+
+                            {/* メインコンテンツエリア（設問svgのコンテナ） */}
+                            <div className="MainContentArea" style={{ position: 'relative' }}>
+                                {questionLayouts.map((ql: QuestionLayout) => {
+                                    const fScale = fontSizeMode === '小' ? 0.85 : fontSizeMode === '大' ? 1.15 : 1.0;
+                                    if (ql.question.type === 'free_text') {
+                                        return (
+                                            <FreeTextBlock
+                                                key={ql.question.id}
+                                                layout={ql}
+                                                fontScale={fScale}
+                                                onResizeStart={(clientY, currentH) => handleResizeStart(ql.question.id, clientY, currentH)}
+                                            />
+                                        );
+                                    } else if (ql.question.type === 'newsletter_optin') {
+                                        return <NewsletterBlock key={ql.question.id} layout={ql} fontScale={fScale} />;
+                                    } else {
+                                        return <QuestionBlock key={ql.question.id} layout={ql} mode={layoutMode} fontScale={fScale} />;
+                                    }
+                                })}
+                            </div>
+
+                            {/* ルーラー追従ライン（水平） */}
+                            {mousePos && (
+                                <div style={{
+                                    position: 'absolute', top: `${mmToPx(mousePos.y)}px`, left: 0,
+                                    width: '100%', height: '1px',
+                                    backgroundColor: 'rgba(59, 130, 246, 0.4)',
+                                    pointerEvents: 'none', zIndex: 5,
+                                }} />
+                            )}
+                            {/* ルーラー追従ライン（垂直） */}
+                            {mousePos && (
+                                <div style={{
+                                    position: 'absolute', left: `${mmToPx(mousePos.x)}px`, top: 0,
+                                    width: '1px', height: '100%',
+                                    backgroundColor: 'rgba(59, 130, 246, 0.4)',
+                                    pointerEvents: 'none', zIndex: 5,
+                                }} />
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -645,11 +772,11 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
    ヘッダーブロック
    ========================================= */
 
-function HeaderBlock({ layout }: { layout: HeaderLayout }) {
+function HeaderBlock({ layout, fontScale }: { layout: HeaderLayout; fontScale: number }) {
     const { troupeName, productionName, greeting, qrUrl, boundingBoxes } = layout;
 
-    const titleFS = mmToPx(HEADER_TITLE_FONT_SIZE_MM);
-    const textFS = mmToPx(HEADER_TEXT_FONT_SIZE_MM);
+    const titleFS = Math.round(mmToPx(HEADER_TITLE_FONT_SIZE_MM * fontScale));
+    const textFS = Math.round(mmToPx(HEADER_TEXT_FONT_SIZE_MM * fontScale));
 
     return (
         <svg
@@ -698,7 +825,7 @@ function HeaderBlock({ layout }: { layout: HeaderLayout }) {
                     <div style={{
                         fontSize: `${textFS}px`, color: '#000000', lineHeight: 1.5, textAlign: 'left',
                         fontFamily: "'Hiragino Kaku Gothic ProN', 'MS Gothic', 'Noto Sans JP', sans-serif",
-                        whiteSpace: 'pre-wrap'
+                        whiteSpace: 'pre-wrap', // 改行を反映
                     }}>
                         {greeting}
                     </div>
@@ -733,7 +860,7 @@ function HeaderBlock({ layout }: { layout: HeaderLayout }) {
                     </text>
                 </g>
             </g>
-        </svg>
+        </svg >
     );
 }
 
@@ -952,13 +1079,12 @@ function GridOverlay({ widthPx, heightPx }: { widthPx: number; heightPx: number 
    CV最適化: 「枠内のピクセル変化」でレ点/丸を検知
    ========================================= */
 
-function QuestionBlock({ layout, mode }: { layout: QuestionLayout; mode: 'vertical' | 'horizontal' }) {
+function QuestionBlock({ layout, mode, fontScale }: { layout: QuestionLayout; mode: 'vertical' | 'horizontal'; fontScale: number }) {
     const { question, questionIndex, x: blockX_MM, y: blockY_MM, boxes } = layout;
     if (!boxes) return null;
 
     const sw = mmToPx(OMR_STROKE_MM);
-    const boxSize = mmToPx(OMR_BOX_SIZE_MM);
-    const fontSize = mmToPx(OMR_FONT_SIZE_MM);
+    const fontSize = Math.round(mmToPx(OMR_FONT_SIZE_MM * fontScale));
     const gap = mmToPx(OMR_GAP_MM);
 
     const blockX = mmToPx(blockX_MM);
@@ -991,6 +1117,7 @@ function QuestionBlock({ layout, mode }: { layout: QuestionLayout; mode: 'vertic
             {boxes.map((box) => {
                 const bx = mmToPx(box.boundingBox.x);
                 const by = mmToPx(box.boundingBox.y);
+                const boxSize = mmToPx(box.boundingBox.w); // 動的な枠サイズを使用
                 const option = question.options.find(o => o.id === box.optionId);
 
                 return (
@@ -1030,12 +1157,12 @@ function QuestionBlock({ layout, mode }: { layout: QuestionLayout; mode: 'vertic
    外枠: 0.3mm、補助線: 0.1mm (10mm間隔)
    ========================================= */
 
-function FreeTextBlock({ layout }: { layout: QuestionLayout }) {
+function FreeTextBlock({ layout, fontScale, onResizeStart }: { layout: QuestionLayout; fontScale: number; onResizeStart: (clientY: number, currentH: number) => void }) {
     const { question, x: blockX_MM, y: blockY_MM, width: blockW_MM, ocrBoxes } = layout;
     if (!ocrBoxes || ocrBoxes.length === 0) return null;
 
     const box = ocrBoxes[0];
-    const fontSize = mmToPx(OMR_FONT_SIZE_MM);
+    const fontSize = Math.round(mmToPx(OMR_FONT_SIZE_MM * fontScale));
     const blockX = mmToPx(blockX_MM);
     const labelY = mmToPx(blockY_MM);
     const bx = mmToPx(box.boundingBox.x);
@@ -1094,6 +1221,27 @@ function FreeTextBlock({ layout }: { layout: QuestionLayout }) {
                     strokeDasharray="1,2"
                 />
             ))}
+
+            {/* リサイズハンドル (底辺中央) */}
+            <foreignObject
+                x={bx + bw / 2 - 25}
+                y={by + bh - 10}
+                width={50}
+                height={20}
+                style={{ cursor: 'ns-resize', pointerEvents: 'auto' }}
+                onMouseDown={(e) => {
+                    e.preventDefault();
+                    onResizeStart(e.clientY, box.boundingBox.h);
+                }}
+            >
+                <div style={{
+                    width: '100%', height: '100%',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px'
+                }}>
+                    <div style={{ width: '20px', height: '2.5px', backgroundColor: '#3b82f6', borderRadius: '1.25px', boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
+                    <div style={{ width: '20px', height: '2.5px', backgroundColor: '#3b82f6', borderRadius: '1.25px', boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
+                </div>
+            </foreignObject>
         </svg>
     );
 }
@@ -1104,10 +1252,10 @@ function FreeTextBlock({ layout }: { layout: QuestionLayout }) {
    構成: 区切り線 + ナンバリング無し見出し + 縦並び入力枠
    ========================================= */
 
-function NewsletterBlock({ layout }: { layout: QuestionLayout }) {
+function NewsletterBlock({ layout, fontScale }: { layout: QuestionLayout; fontScale: number }) {
     const { x: blockX_MM, y: blockY_MM, width: blockW_MM, ocrBoxes, boxes } = layout;
-    const fontSize = mmToPx(OMR_FONT_SIZE_MM);
-    const labelFontSize = mmToPx(RATING_LABEL_FONT_SIZE_MM);
+    const fontSize = Math.round(mmToPx(OMR_FONT_SIZE_MM * fontScale));
+    const labelFontSize = Math.round(mmToPx(RATING_LABEL_FONT_SIZE_MM * fontScale));
     const blockX = mmToPx(blockX_MM);
     const blockW = mmToPx(blockW_MM);
     const sw = mmToPx(OCR_BOX_STROKE_MM);
@@ -1146,7 +1294,7 @@ function NewsletterBlock({ layout }: { layout: QuestionLayout }) {
             {boxes?.map(box => {
                 const bx = mmToPx(box.boundingBox.x);
                 const by = mmToPx(box.boundingBox.y);
-                const bs = mmToPx(OMR_BOX_SIZE_MM);
+                const bs = mmToPx(box.boundingBox.w); // 動的な枠サイズを使用
                 const swOMR = mmToPx(OMR_STROKE_MM);
                 return (
                     <g key={box.optionId}>

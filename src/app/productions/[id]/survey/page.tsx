@@ -201,7 +201,7 @@ export default function SurveyHubPage({ params }: { params: Promise<{ id: string
         return (
             <PrintLayoutEditor
                 questions={tpl.questions}
-                templateTitle={production.title} // 公演名のみを渡す
+                templateTitle={production.title}
                 templateId={tpl.id}
                 productionId={tpl.productionId}
                 troupeName={troupeName}
