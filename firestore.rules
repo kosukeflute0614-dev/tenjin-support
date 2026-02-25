@@ -38,8 +38,9 @@ service cloud.firestore {
     }
 
     // ロールごとの更新許可フィールド定義
+    // monitor ロールは読み取り専用のため空配列を返す → update 不可
     function getAllowedFields(role) {
-      return role == 'manager' || role == 'reception' ? 
+      return role == 'reception' ? 
         ['checkedInTickets', 'checkinStatus', 'checkedIn', 'remarks', 'staffNote', 'status', 'paymentStatus', 'paidAmount', 'updatedAt'] :
         [];
     }

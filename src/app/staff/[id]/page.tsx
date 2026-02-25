@@ -11,6 +11,7 @@ import { updateReservationByStaffToken, createSameDayTicketStaffClient, fetchPro
 import { useSearchParams } from 'next/navigation';
 import CheckinList from '@/components/CheckinList';
 import SameDayTicketForm from '@/components/SameDayTicketForm';
+import AttendanceStatus from '@/components/AttendanceStatus';
 
 export default function StaffPortalPage({ params }: { params: Promise<{ id: string }> }) {
     const { id: productionId } = use(params);
@@ -302,7 +303,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                         <div>
                             <h1 style={{ fontSize: '1rem', fontWeight: 'bold', margin: 0 }}>{production?.title}</h1>
                             <p style={{ fontSize: '0.75rem', color: '#666', margin: 0 }}>
-                                スタッフ用ポータル ({role === 'manager' ? '管理者' : '受付'})
+                                スタッフ用ポータル ({role === 'monitor' ? 'モニター' : '受付'})
                             </p>
                         </div>
                     </div>
@@ -310,7 +311,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
 
                 <main className="container" style={{ maxWidth: '600px', marginTop: '2rem' }}>
                     <div className="card" style={{ padding: '1.5rem' }}>
-                        <h2 className="heading-md" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>受付する公演を選択してください</h2>
+                        <h2 className="heading-md" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>{role === 'monitor' ? '確認する公演を選択してください' : '受付する公演を選択してください'}</h2>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             {sortedPerformances.map(perf => {
                                 const d = perf.startTime ? new Date(perf.startTime) : new Date();
@@ -359,6 +360,58 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
     const perfDateStr = startDate ? startDate.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' }) : '';
     const perfTimeStr = startDate ? startDate.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '';
 
+    // モニターロール: 来場状況確認画面（読み取り専用）
+    if (role === 'monitor') {
+        return (
+            <div style={{ backgroundColor: '#f4f7f6', minHeight: '100vh', paddingBottom: '4rem' }}>
+                <header style={{ backgroundColor: '#fff', padding: '1rem 0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', position: 'sticky', top: 0, zIndex: 100, borderBottom: '1px solid #eee' }}>
+                    <div className="container" style={{ maxWidth: '1000px' }}>
+                        <div style={{ marginBottom: '1rem' }}>
+                            <button
+                                onClick={() => setSelectedPerformanceId(null)}
+                                className="btn btn-secondary"
+                                style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', borderRadius: '8px' }}
+                            >
+                                &larr; 公演回の選択に戻る
+                            </button>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                            <div>
+                                <div style={{ marginBottom: '0.5rem' }}>
+                                    <span style={{ background: '#f3e8ff', color: '#7c3aed', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                        📺 モニター（読み取り専用）
+                                    </span>
+                                </div>
+                                <div style={{ fontSize: '1rem', fontWeight: 'bold', color: '#666', marginBottom: '0.25rem' }}>
+                                    公演：{production?.title}
+                                </div>
+                                <h1 style={{ fontSize: '1.8rem', fontWeight: '900', margin: 0, color: 'var(--primary)', lineHeight: '1.2' }}>
+                                    {perfDateStr} {perfTimeStr}
+                                </h1>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <main className="container" style={{ maxWidth: '1000px', marginTop: '2rem' }}>
+                    <AttendanceStatus
+                        productionId={resolvedProductionId || productionId}
+                        performances={production?.performances || []}
+                        readOnly={true}
+                    />
+                </main>
+
+                <style jsx>{`
+                    .container {
+                        padding-left: 1.5rem;
+                        padding-right: 1.5rem;
+                    }
+                `}</style>
+            </div>
+        );
+    }
+
+    // 受付ロール: 既存の受付UI
     return (
         <div style={{ backgroundColor: '#f4f7f6', minHeight: '100vh', paddingBottom: '4rem' }}>
             <header style={{ backgroundColor: '#fff', padding: '1rem 0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', position: 'sticky', top: 0, zIndex: 100, borderBottom: '1px solid #eee' }}>
@@ -377,7 +430,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                         <div style={{ flex: '1', minWidth: '300px' }}>
                             <div style={{ marginBottom: '0.5rem' }}>
                                 <span style={{ background: '#eef2f1', color: '#4a5568', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                                    {role === 'manager' ? '管理者' : '受付スタッフ'}
+                                    受付スタッフ
                                 </span>
                             </div>
                             <div style={{ fontSize: '1rem', fontWeight: 'bold', color: '#666', marginBottom: '0.25rem' }}>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import PerformanceManager from './PerformanceManager';
 import TicketTypeManager from './TicketTypeManager';
 import SalesReportView from './SalesReportView'; // Added import for SalesReportView
+
 import { updateProductionCustomIdClient, checkCustomIdDuplicateClient } from '@/lib/client-firestore';
 
 type TabType = 'schedule' | 'tickets' | 'basic' | 'report'; // Added 'report' to TabType
@@ -168,24 +169,6 @@ export default function ProductionSettingsTabs({
                                 {error && <p style={{ color: 'var(--accent)', fontSize: '0.85rem', marginTop: '0.5rem' }}>⚠️ {error}</p>}
                                 {success && <p style={{ color: 'green', fontSize: '0.85rem', marginTop: '0.5rem' }}>✅ {success}</p>}
                             </div>
-
-                            {(production.customId || success) && (
-                                <div className="form-group" style={{ backgroundColor: '#f0f7ff', padding: '1rem', borderRadius: '8px', border: '1px solid #cce3ff' }}>
-                                    <label className="label" style={{ color: '#0056b3' }}>現在の予約用URL</label>
-                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem' }}>
-                                        <code style={{ flex: 1, wordBreak: 'break-all', fontSize: '0.85rem' }}>
-                                            {baseUrl}/book/{customId || production.id}
-                                        </code>
-                                        <button
-                                            onClick={() => copyToClipboard(`${baseUrl}/book/${customId || production.id}`)}
-                                            className="btn btn-secondary"
-                                            style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
-                                        >
-                                            コピー
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     </div>
                 )}

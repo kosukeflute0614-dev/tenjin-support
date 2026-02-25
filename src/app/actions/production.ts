@@ -83,7 +83,7 @@ export async function createProduction(formData: FormData, userId: string) {
         actors: [],
         receptionStatus: 'CLOSED',
         staffTokens: {
-            [crypto.randomUUID()]: 'manager'
+            [crypto.randomUUID()]: 'monitor'
         },
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),

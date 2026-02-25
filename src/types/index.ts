@@ -38,6 +38,7 @@ export interface FirestoreReservation {
     source: 'PRE_RESERVATION' | 'SAME_DAY';
     remarks?: string | null;
     userId: string; // Organizer ID
+    promoterId?: string | null; // Introduction by (Actor ID)
     staffToken?: string; // Access token for this reservation (copied from production)
     checkedInAt?: any;
     performance?: Performance; // Joined data

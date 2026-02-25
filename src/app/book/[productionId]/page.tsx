@@ -3,12 +3,14 @@
 import { useEffect, useState, use } from 'react';
 import { fetchProductionDetailsClient } from '@/lib/client-firestore';
 import PublicReservationForm from '@/components/PublicReservationForm';
-import { notFound } from 'next/navigation';
+import { useSearchParams, notFound } from 'next/navigation';
 import { Production, Performance } from '@/types';
 import { isReceptionOpen } from '@/lib/production';
 
 export default function PublicBookPage({ params }: { params: Promise<{ productionId: string }> }) {
     const { productionId: routeId } = use(params);
+    const searchParams = useSearchParams();
+    const actorParam = searchParams.get('actor');
     const [details, setDetails] = useState<{ production: Production, performances: Performance[] } | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -96,7 +98,10 @@ export default function PublicBookPage({ params }: { params: Promise<{ productio
                 <div style={{ width: '40px', height: '2px', backgroundColor: 'var(--primary)', margin: '0 auto' }}></div>
             </header>
 
-            <PublicReservationForm production={productionWithPerformances as any} />
+            <PublicReservationForm
+                production={productionWithPerformances as any}
+                promoterId={actorParam}
+            />
         </div>
     );
 }

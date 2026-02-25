@@ -8,9 +8,10 @@ import { formatDateTime } from '@/lib/format';
 
 type Props = {
     production: any;
+    promoterId?: string | null;
 };
 
-export default function PublicReservationForm({ production }: Props) {
+export default function PublicReservationForm({ production, promoterId }: Props) {
     const [step, setStep] = useState<'input' | 'confirm' | 'success'>('input');
     const [selectedPerformanceId, setSelectedPerformanceId] = useState<string>("");
     const [ticketCounts, setTicketCounts] = useState<{ [key: string]: number }>({});
@@ -57,7 +58,9 @@ export default function PublicReservationForm({ production }: Props) {
             const perfRef = doc(db, "performances", selectedPerformanceId);
             const perfSnap = await getDoc(perfRef);
             if (!perfSnap.exists()) throw new Error("公演情報が見つかりません。");
-            const ownerId = perfSnap.data().userId;
+            // ユーザー指定の変数名を使用
+            const ownerId = perfSnap.data().userId; // 主催者
+            const userId = promoterId || "";         // 紹介者(役者)
 
             const tickets = Object.entries(ticketCounts)
                 .filter(([_, count]) => count > 0)
@@ -84,7 +87,8 @@ export default function PublicReservationForm({ production }: Props) {
                 paidAmount: 0,
                 source: 'PRE_RESERVATION',
                 remarks: customerInfo.remarks,
-                userId: ownerId,
+                userId: ownerId,      // DB上の管理者カラム
+                promoterId: userId,   // DB上の紹介者カラム (変数名は userId)
             } as any);
 
             setStep('success');

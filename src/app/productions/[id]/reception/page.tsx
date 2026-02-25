@@ -5,6 +5,7 @@ import { fetchProductionDetailsClient } from '@/lib/client-firestore';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ReceptionLinkManager from '@/components/ReceptionLinkManager';
+import ActorUrlManager from '@/components/ActorUrlManager';
 import { useAuth } from '@/components/AuthProvider';
 import { Production, Performance } from '@/types';
 
@@ -81,6 +82,8 @@ export default function ReceptionPage({ params }: { params: Promise<{ id: string
                     performances={performances}
                     customId={production.customId}
                 />
+
+                <ActorUrlManager production={production} />
             </div>
         </div>
     );

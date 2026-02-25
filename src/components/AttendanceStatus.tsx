@@ -10,9 +10,10 @@ import { useAuth } from './AuthProvider';
 type Props = {
     productionId: string;
     performances: any[];
+    readOnly?: boolean;
 };
 
-export default function AttendanceStatus({ productionId, performances }: Props) {
+export default function AttendanceStatus({ productionId, performances, readOnly = false }: Props) {
     const { user } = useAuth();
     const [selectedPerfId, setSelectedPerfId] = useState<string>('');
     const [reservations, setReservations] = useState<FirestoreReservation[]>([]);
@@ -33,7 +34,7 @@ export default function AttendanceStatus({ productionId, performances }: Props) 
 
     // 選択された公演の予約をリアルタイム監視
     useEffect(() => {
-        if (!selectedPerfId || !user) return;
+        if (!selectedPerfId || (!user && !readOnly)) return;
 
         setLoading(true);
         const q = query(
