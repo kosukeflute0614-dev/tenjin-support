@@ -134,5 +134,32 @@ service cloud.firestore {
     match /checkinLogs/{logId} {
       allow read, write: if isSignedIn();
     }
+
+    // ── アンケート関連 ──
+
+    // 将来の「限定共有URL」対応を見据えた閲覧権限判定
+    // 現時点では isOwner() と同義。共有機能実装時にここだけ書き換える。
+    function canViewSurvey(ownerId) {
+      return isOwner(ownerId);
+    }
+
+    // アンケートテンプレート (SurveyTemplates)
+    match /surveyTemplates/{templateId} {
+      // 公開中(active)のテンプレートは匿名読み取りを許可（お客様回答フォーム用）
+      // それ以外はオーナーのみ閲覧可
+      allow read: if resource.data.status == 'active'
+                  || (isSignedIn() && canViewSurvey(resource.data.userId));
+      allow create: if isGoogleUser();
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
+    // アンケート回答（生データ）(SurveyResponses)
+    match /surveyResponses/{responseId} {
+      allow create: if true;  // 匿名回答を許可
+      allow read, list: if isSignedIn() && canViewSurvey(
+        get(/databases/$(database)/documents/surveyTemplates/$(resource.data.surveyTemplateId)).data.userId
+      );
+      allow update, delete: if false;  // 回答の改竄・削除は一切禁止
+    }
   }
 }

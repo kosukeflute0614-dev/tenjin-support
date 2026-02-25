@@ -4,11 +4,11 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getActiveProductionId } from '@/app/actions/production-context';
-import { fetchDashboardStatsClient, fetchDuplicateReservationsClient } from '@/lib/client-firestore';
-import { formatDate, formatTime } from '@/lib/format';
+import { fetchDashboardStatsClient, fetchDuplicateReservationsClient, fetchProductionSalesReportClient } from '@/lib/client-firestore';
+import { formatDate, formatTime, formatCurrency } from '@/lib/format';
 import DuplicateNotification from '@/components/DuplicateNotification';
 import { useAuth } from '@/components/AuthProvider';
-import { PerformanceStats, DuplicateGroup } from '@/types';
+import { PerformanceStats, DuplicateGroup, SalesReport } from '@/types';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
@@ -19,6 +19,7 @@ export default function DashboardPage() {
     const [stats, setStats] = useState<PerformanceStats[]>([]);
     const [duplicateGroups, setDuplicateGroups] = useState<DuplicateGroup[]>([]);
     const [isDataLoading, setIsDataLoading] = useState(true);
+    const [salesReport, setSalesReport] = useState<SalesReport | null>(null);
 
     useEffect(() => {
         let unsubscribe: () => void = () => { };
@@ -34,9 +35,10 @@ export default function DashboardPage() {
             setActiveProductionId(activeId);
 
             try {
-                const [dashboardStats, duplicates] = await Promise.all([
+                const [dashboardStats, duplicates, report] = await Promise.all([
                     fetchDashboardStatsClient(activeId, user.uid),
-                    fetchDuplicateReservationsClient(activeId, user.uid)
+                    fetchDuplicateReservationsClient(activeId, user.uid),
+                    fetchProductionSalesReportClient(activeId, user.uid).catch(() => null)
                 ]);
 
                 // IDは存在するが、DB初期化等でデータが空（無効なID）の場合
@@ -48,6 +50,7 @@ export default function DashboardPage() {
 
                 setStats(dashboardStats);
                 setDuplicateGroups(duplicates);
+                setSalesReport(report);
             } catch (error) {
                 console.error("Dashboard data fetch failed:", error);
                 // 権限エラーや存在しないエラーの場合はCookieが古い可能性が高い
@@ -115,7 +118,7 @@ export default function DashboardPage() {
                     <p>来場処理・当日券対応</p>
                 </Link>
                 <Link href={activeProductionId ? `/productions/${activeProductionId}/attendance` : '/productions'} className="menu-card">
-                    <span className="icon">📊</span>
+                    <span className="icon">👥</span>
                     <h3>来場状況</h3>
                     <p>リアルタイム着券状況の確認</p>
                 </Link>
@@ -124,12 +127,48 @@ export default function DashboardPage() {
                     <h3>スタッフ招待・管理</h3>
                     <p>合鍵（スタッフ用URL）の発行と管理</p>
                 </Link>
+                <Link href={activeProductionId ? `/productions/${activeProductionId}/report` : '/productions'} className="menu-card">
+                    <span className="icon">📋</span>
+                    <h3>レポート</h3>
+                    <p>売上・券種別の詳細集計</p>
+                </Link>
+                <Link href={activeProductionId ? `/productions/${activeProductionId}/survey` : '/productions'} className="menu-card">
+                    <span className="icon">📝</span>
+                    <h3>アンケート管理</h3>
+                    <p>アンケートの作成・集計・分析</p>
+                </Link>
             </div>
 
             <div className="stats-section" style={{ marginTop: '3rem' }}>
                 <h3 className="heading-md" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    <span style={{ fontSize: '1.4rem' }}>📊</span> 直近の予約状況
+                    <span style={{ fontSize: '1.4rem' }}>📊</span> 予約状況
                 </h3>
+
+                {/* サマリーカード */}
+                {salesReport && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                        <div style={{
+                            backgroundColor: 'var(--card-bg)',
+                            borderRadius: 'var(--border-radius)',
+                            border: '1px solid var(--card-border)',
+                            padding: '1.25rem 1.5rem',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                        }}>
+                            <div style={{ fontSize: '0.8rem', color: '#888', fontWeight: 'bold', marginBottom: '0.4rem' }}>💰 売上予定金額</div>
+                            <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--foreground)' }}>{formatCurrency(salesReport.totalRevenue)}</div>
+                        </div>
+                        <div style={{
+                            backgroundColor: 'var(--card-bg)',
+                            borderRadius: 'var(--border-radius)',
+                            border: '1px solid var(--card-border)',
+                            padding: '1.25rem 1.5rem',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                        }}>
+                            <div style={{ fontSize: '0.8rem', color: '#888', fontWeight: 'bold', marginBottom: '0.4rem' }}>🎫 予約総数</div>
+                            <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--foreground)' }}>{salesReport.totalTickets}<span style={{ fontSize: '0.9rem', fontWeight: 'bold', marginLeft: '0.25rem', color: '#666' }}>枚</span></div>
+                        </div>
+                    </div>
+                )}
 
                 {!activeProductionId ? (
                     <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>

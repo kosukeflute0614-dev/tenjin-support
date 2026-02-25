@@ -3,11 +3,10 @@
 import { useState, useEffect } from 'react';
 import PerformanceManager from './PerformanceManager';
 import TicketTypeManager from './TicketTypeManager';
-import SalesReportView from './SalesReportView'; // Added import for SalesReportView
 
 import { updateProductionCustomIdClient, checkCustomIdDuplicateClient } from '@/lib/client-firestore';
 
-type TabType = 'schedule' | 'tickets' | 'basic' | 'report'; // Added 'report' to TabType
+type TabType = 'schedule' | 'tickets' | 'basic';
 
 export default function ProductionSettingsTabs({
     production,
@@ -70,7 +69,6 @@ export default function ProductionSettingsTabs({
         { id: 'schedule', label: '公演スケジュール', icon: '📅' },
         { id: 'tickets', label: '券種・価格', icon: '🎫' },
         { id: 'basic', label: '基本情報', icon: '⚙️' },
-        { id: 'report', label: 'レポート / 集計', icon: '📊' }, // Added 'report' tab
     ];
 
     return (
@@ -173,11 +171,6 @@ export default function ProductionSettingsTabs({
                     </div>
                 )}
 
-                {activeTab === 'report' && (
-                    <div className="card" style={{ padding: '2rem', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-                        <SalesReportView productionId={production.id} />
-                    </div>
-                )}
             </div>
 
             <style jsx>{`
