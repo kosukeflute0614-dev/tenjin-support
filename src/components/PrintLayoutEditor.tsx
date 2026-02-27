@@ -1465,29 +1465,29 @@ function FreeTextBlock({ layout, fontScale, onResizeStart }: { layout: QuestionL
                 strokeWidth={sw}
             />
 
-            {/* 補助線（10mm間隔） 純黒・点線 */}
-            {lines.map((yOffset, i) => (
-                <line
-                    key={i}
-                    x1={bx + sw} y1={by + yOffset}
-                    x2={bx + bw - sw} y2={by + yOffset}
-                    stroke="#000000"
-                    strokeWidth={guideSw}
-                    strokeDasharray="1,2"
-                />
-            ))}
+            {/* 補助線（10mm間隔） 純黒・点線 - 印刷時は非表示 */}
+            <g data-print-hide>
+                {lines.map((yOffset, i) => (
+                    <line
+                        key={i}
+                        x1={bx + sw} y1={by + yOffset}
+                        x2={bx + bw - sw} y2={by + yOffset}
+                        stroke="#000000"
+                        strokeWidth={guideSw}
+                        strokeDasharray="1,2"
+                    />
+                ))}
+            </g>
 
-            {/* リサイズハンドル (底辺中央) */}
+            {/* リサイズハンドル (底辺中央) - 印刷時は非表示 */}
             <foreignObject
+                data-print-hide
                 x={bx + bw / 2 - 25}
                 y={by + bh - 10}
                 width={50}
                 height={20}
-                style={{ cursor: 'ns-resize', pointerEvents: 'auto' }}
-                onMouseDown={(e) => {
-                    e.preventDefault();
-                    onResizeStart(e.clientY, box.boundingBox.h);
-                }}
+                style={{ pointerEvents: 'auto', cursor: 'ns-resize' }}
+                onMouseDown={(e) => onResizeStart(e.clientY, bh)}
             >
                 <div style={{
                     width: '100%', height: '100%',
