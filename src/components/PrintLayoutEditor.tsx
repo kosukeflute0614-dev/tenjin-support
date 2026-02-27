@@ -864,7 +864,9 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                                             'html, body { width: 210mm; height: 297mm; overflow: hidden; background: #fff; }' +
                                             '.print-container { width: 210mm; height: 297mm; position: relative; overflow: hidden; }' +
                                             // 取得した div が margin-top/left を持っている場合があるためリセット
-                                            '[data-canvas] { margin: 0 !important; position: absolute !important; top: 0 !important; left: 0 !important; width: 210mm !important; height: 297mm !important; }' +
+                                            '[data-canvas] { margin: 0 !important; position: absolute !important; top: 0 !important; left: 0 !important; width: 210mm !important; height: 297mm !important; background: #fff !important; box-shadow: none !important; }' +
+                                            // 印刷時に隠すべき要素 (方眼紙、デッドゾーンなど)
+                                            '[data-print-hide] { display: none !important; }' +
                                             'svg { font-family: sans-serif; }' +
                                             '</style>' +
                                             '</head><body>' +
@@ -954,8 +956,8 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                                 transition: 'background-color 0.3s',
                             }}
                         >
-                            <GridOverlay widthPx={A4_WIDTH_PX} heightPx={A4_HEIGHT_PX} />
-                            <DeadZoneOverlay />
+                            <div data-print-hide><GridOverlay widthPx={A4_WIDTH_PX} heightPx={A4_HEIGHT_PX} /></div>
+                            <div data-print-hide><DeadZoneOverlay /></div>
                             {showMarkers && <CornerMarkers />}
 
                             {/* オーバーフロー・ハイライトエリア */}
