@@ -821,22 +821,41 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                         <button
                             onClick={async () => {
                                 if (!user) { setSaveStatus('error'); return; }
+
+                                // ① ブラウザのポップアップブロック対策:
+                                //    window.open はユーザー操作の同期処理内でないとブロックされるため、
+                                //    async/await・setTimeout より前に必ず呼ぶ
+                                const printWin = window.open('', '_blank', 'width=850,height=1150');
+                                if (!printWin) {
+                                    alert('新しいウィンドウがブロックされました。ブラウザのポップアップブロックを解除してください。');
+                                    return;
+                                }
+                                // 待機中のプレースホルダーを表示
+                                printWin.document.write(
+                                    '<!DOCTYPE html><html><head>' +
+                                    '<style>body{display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;font-size:1.2rem;color:#555;}</style>' +
+                                    '</head><body><p>レイアウトを保存中...</p></body></html>'
+                                );
+
                                 setSaveStatus('finalizing');
                                 try {
-                                    // 1. 新バージョンとして Firestore に追記
+                                    // ② Firestore に新バージョンとして追記
                                     const layoutDoc = buildLayoutDocument('DRAFT', false, user.uid, productionId);
                                     const newLayoutId = await finalizeSurveyLayoutVersion(templateId, layoutDoc, user.uid);
-                                    // 2. finalizedLayoutId state 更新 → QR URL が &lid={newLayoutId} に切り替わる
+
+                                    // ③ QR URL を &lid={newLayoutId} 付きに更新（React 再描画を待つ）
                                     setFinalizedLayoutId(newLayoutId);
                                     setSaveStatus('finalized');
-                                    // 3. SVG を別ウィンドウに書き出して印刷
-                                    //    window.print() は Next.js ルート要素ごと非表示になり白紙になるため非使用
+
+                                    // ④ QR コードの再描画を待ってから SVG を取得・書き込み
                                     setTimeout(() => {
                                         const svgEl = document.querySelector('svg[data-canvas]');
-                                        if (!svgEl) return;
+                                        if (!svgEl) {
+                                            printWin.close();
+                                            return;
+                                        }
                                         const svgHtml = svgEl.outerHTML;
-                                        const printWin = window.open('', '_blank', 'width=800,height=1100');
-                                        if (!printWin) return;
+                                        printWin.document.open();
                                         printWin.document.write(
                                             '<!DOCTYPE html><html><head>' +
                                             '<style>' +
@@ -852,9 +871,10 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                                         printWin.document.close();
                                         printWin.focus();
                                         setTimeout(() => { printWin.print(); }, 500);
-                                    }, 300);
+                                    }, 400);
                                 } catch (e) {
                                     console.error(e);
+                                    printWin.close();
                                     setSaveStatus('error');
                                     setTimeout(() => setSaveStatus('idle'), 4000);
                                 }
