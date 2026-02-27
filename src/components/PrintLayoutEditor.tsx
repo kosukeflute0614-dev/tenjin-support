@@ -866,6 +866,7 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                                         printWin.document.title = fileName; // ブラウザのデフォルト保存名に反映される
                                         printWin.document.write(
                                             '<!DOCTYPE html><html><head>' +
+                                            '<title>' + fileName + '</title>' +
                                             '<style>' +
                                             '* { margin: 0; padding: 0; box-sizing: border-box; }' +
                                             '@page { size: A4 portrait; margin: 0; }' +
