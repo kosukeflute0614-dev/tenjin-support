@@ -3,6 +3,8 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { SurveyQuestion } from '@/components/SurveyBuilder';
 import QRCode from 'qrcode';
+import { useAuth } from '@/components/AuthProvider';
+import { saveSurveyLayoutDraft, finalizeSurveyLayout } from '@/lib/client-firestore';
 
 /* =========================================
    物理単位定数 & 変換ユーティリティ
@@ -90,6 +92,46 @@ export interface OCRBoxMeta {
     type: 'OCR_BOX';
     boundingBox: { x: number; y: number; w: number; h: number }; // mm絶対座標
 }
+
+// ── AI解析用JSONスキーマ型定義 ──────────────────────────
+export interface RectMM { x: number; y: number; w: number; h: number; }
+
+export interface LayoutOptionEntry {
+    id: string;
+    text: string;
+    box_rect_mm: RectMM;
+}
+
+export interface OcrFieldEntry {
+    field_key: string;
+    rect_mm: RectMM;
+}
+
+export interface LayoutQuestionEntry {
+    id: string;
+    type: string;
+    label: string;
+    rect_mm: RectMM;
+    options?: LayoutOptionEntry[];
+    ocr_fields?: OcrFieldEntry[]; // newsletter_optin の名前/メール欄
+}
+
+export interface SurveyLayoutMetadata {
+    troupe_id: string;
+    production_id: string;
+    template_id: string;
+    layout_id: string;        // 'DRAFT' or nanoid(6)
+    is_final: boolean;
+    font_size_mode: '小' | '中' | '大';
+    page_count: number;
+    updated_at: string;       // ISO8601
+}
+
+export interface SurveyLayoutDocument {
+    metadata: SurveyLayoutMetadata;
+    questions: LayoutQuestionEntry[];
+}
+// ─────────────────────────────────────────────────────────
 
 // 各設問ブロックのレイアウト情報
 interface QuestionLayout {
@@ -212,7 +254,9 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
     const [fontSizeMode, setFontSizeMode] = useState<'小' | '中' | '大'>('中');
     const [freeTextHeights, setFreeTextHeights] = useState<Record<string, number>>({});
     const [resizing, setResizing] = useState<{ id: string; startY: number; startH: number } | null>(null);
+    const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'finalizing' | 'finalized' | 'error'>('idle');
     const canvasAreaRef = useRef<HTMLDivElement>(null);
+    const { user } = useAuth();
 
     // リサイズ開始ハンドラ
     const handleResizeStart = useCallback((id: string, clientY: number, currentH: number) => {
@@ -475,6 +519,76 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
         return { headerLayout: header, questionLayouts: layouts, isOverflow: isOverflow, finalParams: fParams };
     }, [questions, layoutMode, qrUrl, templateTitle, troupeName, fontSizeMode, freeTextHeights]);
 
+    // ── AI解析用JSON変換関数 ──
+    const buildLayoutDocument = useCallback((
+        layoutId: string,
+        isFinal: boolean,
+        troupeId: string,
+        productionId: string,
+    ): SurveyLayoutDocument => {
+        const fontScale = fontSizeMode === '小' ? 0.85 : fontSizeMode === '大' ? 1.15 : 1.0;
+
+        const qEntries: LayoutQuestionEntry[] = questionLayouts.map(ql => {
+            const blockRect: RectMM = { x: ql.x, y: ql.y, w: ql.width, h: ql.height };
+            const q = ql.question;
+
+            if (q.type === 'free_text') {
+                // OCR 枠の座標を rect_mm として使う
+                const ocrBox = ql.ocrBoxes?.[0]?.boundingBox ?? blockRect;
+                return {
+                    id: q.id, type: 'free_text', label: q.label,
+                    rect_mm: { x: ocrBox.x, y: ocrBox.y, w: ocrBox.w, h: ocrBox.h },
+                };
+            }
+
+            if (q.type === 'newsletter_optin') {
+                const options: LayoutOptionEntry[] = (ql.boxes ?? []).map(box => ({
+                    id: box.optionId,
+                    text: q.options.find(o => o.id === box.optionId)?.label ?? box.optionId,
+                    box_rect_mm: { ...box.boundingBox },
+                }));
+                const ocrFields: OcrFieldEntry[] = (ql.ocrBoxes ?? []).map(ocr => ({
+                    field_key: ocr.fieldKey ?? 'unknown',
+                    rect_mm: { ...ocr.boundingBox },
+                }));
+                return {
+                    id: q.id, type: q.type, label: q.label,
+                    rect_mm: blockRect,
+                    options,
+                    ocr_fields: ocrFields,
+                };
+            }
+
+            // single_choice / multi_choice
+            const options: LayoutOptionEntry[] = (ql.boxes ?? []).map(box => ({
+                id: box.optionId,
+                text: q.options.find(o => o.id === box.optionId)?.label ?? box.optionId,
+                box_rect_mm: { ...box.boundingBox },
+            }));
+            return {
+                id: q.id,
+                type: q.type === 'multi_choice' ? 'multiple_choice' : 'single_choice',
+                label: q.label,
+                rect_mm: blockRect,
+                options,
+            };
+        });
+
+        return {
+            metadata: {
+                troupe_id: troupeId,
+                production_id: productionId,
+                template_id: templateId,
+                layout_id: layoutId,
+                is_final: isFinal,
+                font_size_mode: fontSizeMode,
+                page_count: 1,
+                updated_at: new Date().toISOString(),
+            },
+            questions: qEntries,
+        };
+    }, [questionLayouts, fontSizeMode, templateId]);
+
     const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
         const target = e.currentTarget.querySelector('[data-canvas]') as HTMLElement | null;
         if (!target) return;
@@ -636,13 +750,83 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                         </p>
                     </section>
 
-                    <div style={{ marginTop: 'auto', borderTop: '1px dotted #ccc', paddingTop: '1.5rem' }}>
-                        <button style={{
-                            width: '100%', padding: '0.85rem', backgroundColor: '#1a1a1a', color: '#fff',
-                            border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem', cursor: 'default',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                        }}>
-                            📄 PDFとして出力
+                    <div style={{ marginTop: 'auto', borderTop: '1px dotted #ccc', paddingTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                        {/* 保存状態インジケーター */}
+                        {saveStatus !== 'idle' && (
+                            <div style={{
+                                padding: '0.4rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem',
+                                backgroundColor:
+                                    saveStatus === 'error' ? '#fee2e2' :
+                                        saveStatus === 'finalized' ? '#dcfce7' : '#f0f9ff',
+                                color:
+                                    saveStatus === 'error' ? '#991b1b' :
+                                        saveStatus === 'finalized' ? '#166534' : '#0369a1',
+                                textAlign: 'center',
+                            }}>
+                                {saveStatus === 'saving' && '保存中...'}
+                                {saveStatus === 'saved' && '✔️ 一時保存完了'}
+                                {saveStatus === 'finalizing' && '確定処理中...'}
+                                {saveStatus === 'finalized' && '✅ PDF確定保存完了'}
+                                {saveStatus === 'error' && '❌ 保存に失敗しました'}
+                            </div>
+                        )}
+                        {/* 一時保存 */}
+                        <button
+                            onClick={async () => {
+                                if (!user) { setSaveStatus('error'); return; }
+                                setSaveStatus('saving');
+                                try {
+                                    const draft = buildLayoutDocument('DRAFT', false, user.uid, productionId);
+                                    await saveSurveyLayoutDraft(templateId, draft, user.uid);
+                                    setSaveStatus('saved');
+                                    setTimeout(() => setSaveStatus('idle'), 3000);
+                                } catch (e) {
+                                    console.error(e);
+                                    setSaveStatus('error');
+                                    setTimeout(() => setSaveStatus('idle'), 4000);
+                                }
+                            }}
+                            disabled={saveStatus === 'saving' || saveStatus === 'finalizing'}
+                            style={{
+                                width: '100%', padding: '0.7rem', borderRadius: '8px',
+                                border: '1.5px solid #1a1a1a', backgroundColor: '#fff',
+                                color: '#1a1a1a', fontWeight: 'bold', fontSize: '0.85rem',
+                                cursor: (saveStatus === 'saving' || saveStatus === 'finalizing') ? 'not-allowed' : 'pointer',
+                                opacity: (saveStatus === 'saving' || saveStatus === 'finalizing') ? 0.6 : 1,
+                                transition: 'all 0.15s',
+                            }}
+                        >
+                            💾 一時保存
+                        </button>
+                        {/* PDF確定・書き出し */}
+                        <button
+                            onClick={async () => {
+                                if (!user) { setSaveStatus('error'); return; }
+                                setSaveStatus('finalizing');
+                                try {
+                                    const draft = buildLayoutDocument('DRAFT', false, user.uid, productionId);
+                                    const newLayoutId = await finalizeSurveyLayout(templateId, draft, user.uid);
+                                    setSaveStatus('finalized');
+                                    console.log('[PrintLayoutEditor] 確定 layout_id:', newLayoutId);
+                                    setTimeout(() => setSaveStatus('idle'), 5000);
+                                } catch (e) {
+                                    console.error(e);
+                                    setSaveStatus('error');
+                                    setTimeout(() => setSaveStatus('idle'), 4000);
+                                }
+                            }}
+                            disabled={saveStatus === 'saving' || saveStatus === 'finalizing'}
+                            style={{
+                                width: '100%', padding: '0.85rem', borderRadius: '8px',
+                                border: 'none', backgroundColor: '#1a1a1a',
+                                color: '#fff', fontWeight: 'bold', fontSize: '0.9rem',
+                                cursor: (saveStatus === 'saving' || saveStatus === 'finalizing') ? 'not-allowed' : 'pointer',
+                                opacity: (saveStatus === 'saving' || saveStatus === 'finalizing') ? 0.6 : 1,
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                                transition: 'all 0.15s',
+                            }}
+                        >
+                            ✅ PDF確定・書き出し
                         </button>
                     </div>
                 </aside>

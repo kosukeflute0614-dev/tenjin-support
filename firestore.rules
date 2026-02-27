@@ -161,5 +161,13 @@ service cloud.firestore {
       );
       allow update, delete: if false;  // 回答の改竄・削除は一切禁止
     }
+
+    // レイアウトデータ（AI解析用座標JSON）(SurveyLayouts)
+    // is_final: false → 下書き保存、is_final: true → PDF確定済み
+    match /surveyLayouts/{layoutId} {
+      allow read, list: if isSignedIn() && isOwner(resource.data.user_id);
+      allow create: if isGoogleUser();
+      allow update, delete: if isSignedIn() && isOwner(resource.data.user_id);
+    }
   }
 }

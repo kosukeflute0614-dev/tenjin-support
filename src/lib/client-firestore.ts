@@ -1459,3 +1459,91 @@ export async function deleteActorClient(productionId: string, actorId: string, u
         throw error;
     }
 }
+
+// ─────────────────────────────────────────────────────────────
+// AI解析用レイアウトデータ (surveyLayouts コレクション)
+// templateId をドキュメントIDとして使い upsert → ドキュメント増殖しない
+// ─────────────────────────────────────────────────────────────
+
+import type { SurveyLayoutDocument } from '@/components/PrintLayoutEditor';
+
+/**
+ * レイアウトを下書き保存する（is_final: false）
+ * 同一 templateId のドキュメントを上書き（upsert）する。
+ */
+export async function saveSurveyLayoutDraft(
+    templateId: string,
+    layoutDoc: SurveyLayoutDocument,
+    userId: string
+): Promise<void> {
+    if (!templateId || !userId) throw new Error('Missing required parameters');
+
+    const ref = doc(db, 'surveyLayouts', templateId);
+    const snap = await getDoc(ref);
+
+    const data = {
+        ...layoutDoc,
+        user_id: userId,
+        updated_at: serverTimestamp(),
+    };
+
+    if (snap.exists()) {
+        // 所有権チェック
+        if (snap.data().user_id !== userId) throw new Error('Unauthorized');
+        await updateDoc(ref, data);
+    } else {
+        // 新規作成（set で ID 固定）
+        const { setDoc } = await import('firebase/firestore');
+        await setDoc(ref, { ...data, created_at: serverTimestamp() });
+    }
+}
+
+/**
+ * レイアウトを確定保存する（is_final: true）
+ * layout_id を生成して埋め込み、QR URL 用の ID として使用する。
+ */
+export async function finalizeSurveyLayout(
+    templateId: string,
+    layoutDoc: SurveyLayoutDocument,
+    userId: string
+): Promise<string> {
+    if (!templateId || !userId) throw new Error('Missing required parameters');
+
+    // 6文字のランダムIDを生成（既存があれば再利用）
+    const ref = doc(db, 'surveyLayouts', templateId);
+    const snap = await getDoc(ref);
+
+    let layoutId: string;
+    if (snap.exists() && snap.data().metadata?.layout_id && snap.data().metadata.layout_id !== 'DRAFT') {
+        layoutId = snap.data().metadata.layout_id;
+    } else {
+        // crypto.randomUUID の先頭6文字を使用
+        layoutId = crypto.randomUUID().replace(/-/g, '').slice(0, 6);
+    }
+
+    const finalDoc: SurveyLayoutDocument = {
+        ...layoutDoc,
+        metadata: {
+            ...layoutDoc.metadata,
+            layout_id: layoutId,
+            is_final: true,
+            updated_at: new Date().toISOString(),
+        },
+    };
+
+    const data = {
+        ...finalDoc,
+        user_id: userId,
+        updated_at: serverTimestamp(),
+    };
+
+    if (snap.exists()) {
+        if (snap.data().user_id !== userId) throw new Error('Unauthorized');
+        await updateDoc(ref, data);
+    } else {
+        const { setDoc } = await import('firebase/firestore');
+        await setDoc(ref, { ...data, created_at: serverTimestamp() });
+    }
+
+    return layoutId;
+}
