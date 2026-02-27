@@ -836,18 +836,25 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                                     '<style>body{display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;font-size:1.2rem;color:#555;}</style>' +
                                     '</head><body><p>レイアウトを保存中...</p></body></html>'
                                 );
-
                                 setSaveStatus('finalizing');
                                 try {
                                     // ② Firestore に新バージョンとして追記
                                     const layoutDoc = buildLayoutDocument('DRAFT', false, user.uid, productionId);
-                                    const newLayoutId = await finalizeSurveyLayoutVersion(templateId, layoutDoc, user.uid);
+                                    const { layoutId, serial } = await finalizeSurveyLayoutVersion(templateId, layoutDoc, user.uid);
 
-                                    // ③ QR URL を &lid={newLayoutId} 付きに更新（React 再描画を待つ）
-                                    setFinalizedLayoutId(newLayoutId);
+                                    // ③ QR URL を &lid={layoutId} 付きに更新（React 再描画を待つ）
+                                    setFinalizedLayoutId(layoutId);
                                     setSaveStatus('finalized');
 
-                                    // ④ クエリセレクターを修正 ([data-canvas] を持つ要素を取得。以前は svg[data-canvas] としていたが実際は div)
+                                    // ファイル名を生成 (例: 20260228-01-試験-アンケート)
+                                    const now = new Date();
+                                    const yyyy = now.getFullYear();
+                                    const mm = (now.getMonth() + 1).toString().padStart(2, '0');
+                                    const dd = now.getDate().toString().padStart(2, '0');
+                                    const dateStr = `${yyyy}${mm}${dd}`;
+                                    const fileName = `${dateStr}-${serial}-${templateTitle}-アンケート`;
+
+                                    // ④ QR コードの再描画を待ってから SVG を取得・書き込み
                                     setTimeout(() => {
                                         const canvasEl = document.querySelector('[data-canvas]');
                                         if (!canvasEl) {
@@ -856,6 +863,7 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                                         }
                                         const canvasHtml = canvasEl.outerHTML;
                                         printWin.document.open();
+                                        printWin.document.title = fileName; // ブラウザのデフォルト保存名に反映される
                                         printWin.document.write(
                                             '<!DOCTYPE html><html><head>' +
                                             '<style>' +

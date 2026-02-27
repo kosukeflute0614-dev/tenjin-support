@@ -1534,20 +1534,37 @@ import type { SurveyLayoutDocument } from '@/components/PrintLayoutEditor';
 /**
  * レイアウトを新バージョンとして確定保存する。
  * 毎回新しいドキュメントが作成される（バージョン管理）。
- * @returns 生成された layout_id（QRコードに埋め込む）
+ * @returns 生成された layout_id（QRコードに埋め込む）と、当日の連番（ファイル名用）
  */
 export async function finalizeSurveyLayoutVersion(
     templateId: string,
     layoutDoc: SurveyLayoutDocument,
     userId: string
-): Promise<string> {
+): Promise<{ layoutId: string; serial: string }> {
     if (!templateId || !userId) throw new Error('Missing required parameters');
 
-    // 既存バージョン数を取得して連番を決める
-    const { setDoc, collection: fsCollection, getDocs: fsGetDocs } = await import('firebase/firestore');
+    const { setDoc, collection: fsCollection, getDocs: fsGetDocs, query: fsQuery, where: fsWhere, orderBy: fsOrderBy } = await import('firebase/firestore');
     const versionsRef = fsCollection(db, 'surveyLayouts', templateId, 'versions');
-    const existingSnap = await fsGetDocs(versionsRef);
-    const nextVersionNumber = existingSnap.size + 1;
+
+    // 1. 全バージョン数を取得して連番（内部管理用）を決める
+    const totalSnap = await fsGetDocs(versionsRef);
+    const nextVersionNumber = totalSnap.size + 1;
+
+    // 2. 「当日」の作成件数をカウントしてファイル名用の連番を生成
+    //    JST 0:00 基準で計算（サーバー側でなくクライアント側の時刻に基づく）
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    // 当日のドキュメントをクエリ（created_at は serverTimestamp なので少し前に作成したものも含む可能性を考慮）
+    const todayQuery = fsQuery(
+        versionsRef,
+        fsWhere('user_id', '==', userId),
+        fsWhere('created_at', '>=', todayStart),
+        fsOrderBy('created_at', 'asc')
+    );
+    const todaySnap = await fsGetDocs(todayQuery);
+    const serialNumber = todaySnap.size + 1;
+    const serialStr = serialNumber.toString().padStart(2, '0');
 
     // バージョン固有のランダムID（= layout_id = QRに埋め込む値）
     const layoutId = crypto.randomUUID().replace(/-/g, '').slice(0, 8);
@@ -1558,7 +1575,7 @@ export async function finalizeSurveyLayoutVersion(
             ...layoutDoc.metadata,
             layout_id: layoutId,
             is_final: true,
-            updated_at: new Date().toISOString(),
+            updated_at: now.toISOString(),
         },
     };
 
@@ -1566,9 +1583,10 @@ export async function finalizeSurveyLayoutVersion(
     await setDoc(versionRef, {
         ...finalDoc,
         version_number: nextVersionNumber,
+        serial_of_day: serialStr, // 当日の連番を保存（デバッグ用）
         user_id: userId,
         created_at: serverTimestamp(),
     });
 
-    return layoutId;
+    return { layoutId, serial: serialStr };
 }
