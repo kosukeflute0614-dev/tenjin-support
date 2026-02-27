@@ -618,23 +618,6 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
 
     const handleMouseLeave = useCallback(() => setMousePos(null), []);
 
-    // @media print CSS を動的注入（テンプレートリテラルは JSX 内でパースエラーになるため useEffect で注入）
-    useEffect(() => {
-        const styleEl = document.createElement('style');
-        styleEl.id = 'print-layout-editor-style';
-        styleEl.textContent = [
-            '@media print {',
-            '  body > * { display: none !important; }',
-            '  #print-canvas-root { display: block !important; }',
-            '  #print-canvas-root * { display: revert !important; }',
-            '  @page { size: A4 portrait; margin: 0; }',
-            '  svg[data-canvas] { width: 210mm !important; height: 297mm !important; }',
-            '}',
-        ].join('\n');
-        document.head.appendChild(styleEl);
-        return () => { document.head.removeChild(styleEl); };
-    }, []);
-
     return (
         <div
             id="print-canvas-root"
@@ -846,9 +829,29 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                                     // 2. finalizedLayoutId state 更新 → QR URL が &lid={newLayoutId} に切り替わる
                                     setFinalizedLayoutId(newLayoutId);
                                     setSaveStatus('finalized');
-                                    // 3. QR の再描画を待ってから印刷
+                                    // 3. SVG を別ウィンドウに書き出して印刷
+                                    //    window.print() は Next.js ルート要素ごと非表示になり白紙になるため非使用
                                     setTimeout(() => {
-                                        window.print();
+                                        const svgEl = document.querySelector('svg[data-canvas]');
+                                        if (!svgEl) return;
+                                        const svgHtml = svgEl.outerHTML;
+                                        const printWin = window.open('', '_blank', 'width=800,height=1100');
+                                        if (!printWin) return;
+                                        printWin.document.write(
+                                            '<!DOCTYPE html><html><head>' +
+                                            '<style>' +
+                                            '* { margin: 0; padding: 0; box-sizing: border-box; }' +
+                                            '@page { size: A4 portrait; margin: 0; }' +
+                                            'html, body { width: 210mm; height: 297mm; overflow: hidden; }' +
+                                            'svg { width: 210mm; height: 297mm; display: block; }' +
+                                            '</style>' +
+                                            '</head><body>' +
+                                            svgHtml +
+                                            '</body></html>'
+                                        );
+                                        printWin.document.close();
+                                        printWin.focus();
+                                        setTimeout(() => { printWin.print(); }, 500);
                                     }, 300);
                                 } catch (e) {
                                     console.error(e);

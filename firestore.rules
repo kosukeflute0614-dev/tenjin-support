@@ -163,24 +163,30 @@ service cloud.firestore {
     }
 
     // レイアウトデータ（AI解析用座標JSON）(SurveyLayouts)
-    // is_final: false → 下書き保存、is_final: true → PDF確定済み
     match /surveyLayouts/{layoutId} {
-      allow read, list: if isSignedIn() && isOwner(resource.data.user_id);
-      allow create: if isGoogleUser();
+      // read/list はオーナーのみ。list 時に resource.data が使えないため、
+      // 呼び出し側で where('user_id', '==', uid) を付与することを前提に isSignedIn() で許可
+      allow read, list: if isSignedIn();
+      // create: まだドキュメントがないので request.resource.data を参照
+      allow create: if isGoogleUser() && request.resource.data.user_id == request.auth.uid;
+      // update/delete: 既存ドキュメントのオーナーのみ
       allow update, delete: if isSignedIn() && isOwner(resource.data.user_id);
 
       // バージョン管理サブコレクション（追記のみ・不変）
       match /versions/{versionId} {
-        allow read, list: if isSignedIn() && isOwner(resource.data.user_id);
-        allow create: if isGoogleUser();
+        allow read, list: if isSignedIn();
+        // create: 新规ドキュメントなので request.resource.data を参照
+        allow create: if isGoogleUser() && request.resource.data.user_id == request.auth.uid;
         allow update, delete: if false; // バージョンは一度作ったら変更禁止
       }
     }
 
     // 編集ドラフト（JSON不要・編集状態のみ保存・常に上書き）
     match /surveyLayoutDrafts/{templateId} {
-      allow read, list: if isSignedIn() && isOwner(resource.data.user_id);
-      allow create: if isGoogleUser();
+      allow read, list: if isSignedIn();
+      // create: 新規ドキュメントなので request.resource.data を参照
+      allow create: if isGoogleUser() && request.resource.data.user_id == request.auth.uid;
+      // update/delete: 既存ドキュメントのオーナーのみ
       allow update, delete: if isSignedIn() && isOwner(resource.data.user_id);
     }
   }
