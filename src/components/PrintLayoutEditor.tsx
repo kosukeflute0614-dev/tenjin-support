@@ -847,30 +847,35 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                                     setFinalizedLayoutId(newLayoutId);
                                     setSaveStatus('finalized');
 
-                                    // ④ QR コードの再描画を待ってから SVG を取得・書き込み
+                                    // ④ クエリセレクターを修正 ([data-canvas] を持つ要素を取得。以前は svg[data-canvas] としていたが実際は div)
                                     setTimeout(() => {
-                                        const svgEl = document.querySelector('svg[data-canvas]');
-                                        if (!svgEl) {
+                                        const canvasEl = document.querySelector('[data-canvas]');
+                                        if (!canvasEl) {
                                             printWin.close();
                                             return;
                                         }
-                                        const svgHtml = svgEl.outerHTML;
+                                        const canvasHtml = canvasEl.outerHTML;
                                         printWin.document.open();
                                         printWin.document.write(
                                             '<!DOCTYPE html><html><head>' +
                                             '<style>' +
                                             '* { margin: 0; padding: 0; box-sizing: border-box; }' +
                                             '@page { size: A4 portrait; margin: 0; }' +
-                                            'html, body { width: 210mm; height: 297mm; overflow: hidden; }' +
-                                            'svg { width: 210mm; height: 297mm; display: block; }' +
+                                            'html, body { width: 210mm; height: 297mm; overflow: hidden; background: #fff; }' +
+                                            '.print-container { width: 210mm; height: 297mm; position: relative; overflow: hidden; }' +
+                                            // 取得した div が margin-top/left を持っている場合があるためリセット
+                                            '[data-canvas] { margin: 0 !important; position: absolute !important; top: 0 !important; left: 0 !important; width: 210mm !important; height: 297mm !important; }' +
+                                            'svg { font-family: sans-serif; }' +
                                             '</style>' +
                                             '</head><body>' +
-                                            svgHtml +
+                                            '<div class="print-container">' +
+                                            canvasHtml +
+                                            '</div>' +
                                             '</body></html>'
                                         );
                                         printWin.document.close();
                                         printWin.focus();
-                                        setTimeout(() => { printWin.print(); }, 500);
+                                        setTimeout(() => { printWin.print(); }, 800);
                                     }, 400);
                                 } catch (e) {
                                     console.error(e);
