@@ -1461,65 +1461,96 @@ export async function deleteActorClient(productionId: string, actorId: string, u
 }
 
 // ─────────────────────────────────────────────────────────────
-// AI解析用レイアウトデータ (surveyLayouts コレクション)
-// templateId をドキュメントIDとして使い upsert → ドキュメント増殖しない
+// 編集状態ドラフト保存 (surveyLayoutDrafts コレクション)
+// JSON座標データは作らない。fontSizeMode / freeTextHeights のみ保存・復元する。
 // ─────────────────────────────────────────────────────────────
 
-import type { SurveyLayoutDocument } from '@/components/PrintLayoutEditor';
+export interface EditorDraftData {
+    font_size_mode: '小' | '中' | '大';
+    free_text_heights: Record<string, number>;
+}
 
 /**
- * レイアウトを下書き保存する（is_final: false）
- * 同一 templateId のドキュメントを上書き（upsert）する。
+ * 編集状態だけを一時保存する（JSON座標データは作成しない）
+ * templateId をドキュメント ID として使い、常に上書きする。
  */
-export async function saveSurveyLayoutDraft(
+export async function saveEditorDraft(
     templateId: string,
-    layoutDoc: SurveyLayoutDocument,
+    draft: EditorDraftData,
     userId: string
 ): Promise<void> {
     if (!templateId || !userId) throw new Error('Missing required parameters');
 
-    const ref = doc(db, 'surveyLayouts', templateId);
+    const { setDoc } = await import('firebase/firestore');
+    const ref = doc(db, 'surveyLayoutDrafts', templateId);
     const snap = await getDoc(ref);
 
     const data = {
-        ...layoutDoc,
+        ...draft,
         user_id: userId,
+        template_id: templateId,
         updated_at: serverTimestamp(),
     };
 
     if (snap.exists()) {
-        // 所有権チェック
         if (snap.data().user_id !== userId) throw new Error('Unauthorized');
         await updateDoc(ref, data);
     } else {
-        // 新規作成（set で ID 固定）
-        const { setDoc } = await import('firebase/firestore');
         await setDoc(ref, { ...data, created_at: serverTimestamp() });
     }
 }
 
 /**
- * レイアウトを確定保存する（is_final: true）
- * layout_id を生成して埋め込み、QR URL 用の ID として使用する。
+ * 保存済みの編集状態を取得する（エディタ起動時の復元用）
+ * 存在しない場合は null を返す。
  */
-export async function finalizeSurveyLayout(
+export async function loadEditorDraft(
+    templateId: string,
+    userId: string
+): Promise<EditorDraftData | null> {
+    if (!templateId || !userId) return null;
+
+    const ref = doc(db, 'surveyLayoutDrafts', templateId);
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) return null;
+    const data = snap.data();
+    if (data.user_id !== userId) return null;
+
+    return {
+        font_size_mode: data.font_size_mode ?? '中',
+        free_text_heights: data.free_text_heights ?? {},
+    };
+}
+
+// ─────────────────────────────────────────────────────────────
+// バージョン管理 (surveyLayouts/{templateId}/versions/{layout_id})
+// 確定するたびに新バージョンをサブコレクションに「追記」する。
+// 既存バージョンの update / delete は Firestore ルールで禁止済み。
+// ─────────────────────────────────────────────────────────────
+
+import type { SurveyLayoutDocument } from '@/components/PrintLayoutEditor';
+
+/**
+ * レイアウトを新バージョンとして確定保存する。
+ * 毎回新しいドキュメントが作成される（バージョン管理）。
+ * @returns 生成された layout_id（QRコードに埋め込む）
+ */
+export async function finalizeSurveyLayoutVersion(
     templateId: string,
     layoutDoc: SurveyLayoutDocument,
     userId: string
 ): Promise<string> {
     if (!templateId || !userId) throw new Error('Missing required parameters');
 
-    // 6文字のランダムIDを生成（既存があれば再利用）
-    const ref = doc(db, 'surveyLayouts', templateId);
-    const snap = await getDoc(ref);
+    // 既存バージョン数を取得して連番を決める
+    const { setDoc, collection: fsCollection, getDocs: fsGetDocs } = await import('firebase/firestore');
+    const versionsRef = fsCollection(db, 'surveyLayouts', templateId, 'versions');
+    const existingSnap = await fsGetDocs(versionsRef);
+    const nextVersionNumber = existingSnap.size + 1;
 
-    let layoutId: string;
-    if (snap.exists() && snap.data().metadata?.layout_id && snap.data().metadata.layout_id !== 'DRAFT') {
-        layoutId = snap.data().metadata.layout_id;
-    } else {
-        // crypto.randomUUID の先頭6文字を使用
-        layoutId = crypto.randomUUID().replace(/-/g, '').slice(0, 6);
-    }
+    // バージョン固有のランダムID（= layout_id = QRに埋め込む値）
+    const layoutId = crypto.randomUUID().replace(/-/g, '').slice(0, 8);
 
     const finalDoc: SurveyLayoutDocument = {
         ...layoutDoc,
@@ -1531,19 +1562,13 @@ export async function finalizeSurveyLayout(
         },
     };
 
-    const data = {
+    const versionRef = doc(db, 'surveyLayouts', templateId, 'versions', layoutId);
+    await setDoc(versionRef, {
         ...finalDoc,
+        version_number: nextVersionNumber,
         user_id: userId,
-        updated_at: serverTimestamp(),
-    };
-
-    if (snap.exists()) {
-        if (snap.data().user_id !== userId) throw new Error('Unauthorized');
-        await updateDoc(ref, data);
-    } else {
-        const { setDoc } = await import('firebase/firestore');
-        await setDoc(ref, { ...data, created_at: serverTimestamp() });
-    }
+        created_at: serverTimestamp(),
+    });
 
     return layoutId;
 }

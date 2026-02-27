@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { SurveyQuestion } from '@/components/SurveyBuilder';
 import QRCode from 'qrcode';
 import { useAuth } from '@/components/AuthProvider';
-import { saveSurveyLayoutDraft, finalizeSurveyLayout } from '@/lib/client-firestore';
+import { saveEditorDraft, loadEditorDraft, finalizeSurveyLayoutVersion } from '@/lib/client-firestore';
 
 /* =========================================
    物理単位定数 & 変換ユーティリティ
@@ -255,8 +255,22 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
     const [freeTextHeights, setFreeTextHeights] = useState<Record<string, number>>({});
     const [resizing, setResizing] = useState<{ id: string; startY: number; startH: number } | null>(null);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'finalizing' | 'finalized' | 'error'>('idle');
+    const [finalizedLayoutId, setFinalizedLayoutId] = useState<string | null>(null);
     const canvasAreaRef = useRef<HTMLDivElement>(null);
     const { user } = useAuth();
+
+    // マウント時にドラフトを復元
+    useEffect(() => {
+        if (!user) return;
+        loadEditorDraft(templateId, user.uid).then(draft => {
+            if (!draft) return;
+            setFontSizeMode(draft.font_size_mode);
+            if (Object.keys(draft.free_text_heights).length > 0) {
+                setFreeTextHeights(draft.free_text_heights);
+            }
+        }).catch(console.error);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [templateId, user?.uid]);
 
     // リサイズ開始ハンドラ
     const handleResizeStart = useCallback((id: string, clientY: number, currentH: number) => {
@@ -289,9 +303,9 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
         };
     }, [resizing]);
 
-    // QRコード用URL生成
+    // QRコード用URL生成（確定後は &lid={layout_id} を追加）
     const qrUrl = typeof window !== 'undefined'
-        ? `${window.location.origin}/book/${productionId}/survey?tid=${templateId}&mode=paper_scan`
+        ? `${window.location.origin}/book/${productionId}/survey?tid=${templateId}&mode=paper_scan${finalizedLayoutId ? `&lid=${finalizedLayoutId}` : ''}`
         : '';
 
     // 自動レイアウト計算：Header + questions → 配置座標
@@ -604,13 +618,32 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
 
     const handleMouseLeave = useCallback(() => setMousePos(null), []);
 
+    // @media print CSS を動的注入（テンプレートリテラルは JSX 内でパースエラーになるため useEffect で注入）
+    useEffect(() => {
+        const styleEl = document.createElement('style');
+        styleEl.id = 'print-layout-editor-style';
+        styleEl.textContent = [
+            '@media print {',
+            '  body > * { display: none !important; }',
+            '  #print-canvas-root { display: block !important; }',
+            '  #print-canvas-root * { display: revert !important; }',
+            '  @page { size: A4 portrait; margin: 0; }',
+            '  svg[data-canvas] { width: 210mm !important; height: 297mm !important; }',
+            '}',
+        ].join('\n');
+        document.head.appendChild(styleEl);
+        return () => { document.head.removeChild(styleEl); };
+    }, []);
+
     return (
-        <div style={{
-            position: 'fixed', inset: 0, zIndex: 50,
-            backgroundColor: '#1e1e1e',
-            display: 'flex', flexDirection: 'column',
-            fontFamily: "'Inter', 'Segoe UI', sans-serif",
-        }}>
+        <div
+            id="print-canvas-root"
+            style={{
+                position: 'fixed', inset: 0, zIndex: 50,
+                backgroundColor: '#1e1e1e',
+                display: 'flex', flexDirection: 'column',
+                fontFamily: "'Inter', 'Segoe UI', sans-serif",
+            }}>
             {/* ── ヘッダーバー ── */}
             <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -766,18 +799,21 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                                 {saveStatus === 'saving' && '保存中...'}
                                 {saveStatus === 'saved' && '✔️ 一時保存完了'}
                                 {saveStatus === 'finalizing' && '確定処理中...'}
-                                {saveStatus === 'finalized' && '✅ PDF確定保存完了'}
+                                {saveStatus === 'finalized' && `✅ v${finalizedLayoutId ? finalizedLayoutId.slice(0, 4) : '?'} 確定済み`}
                                 {saveStatus === 'error' && '❌ 保存に失敗しました'}
                             </div>
                         )}
-                        {/* 一時保存 */}
+                        {/* 一時保存（編集状態のみ・JSON不要） */}
                         <button
                             onClick={async () => {
                                 if (!user) { setSaveStatus('error'); return; }
                                 setSaveStatus('saving');
                                 try {
-                                    const draft = buildLayoutDocument('DRAFT', false, user.uid, productionId);
-                                    await saveSurveyLayoutDraft(templateId, draft, user.uid);
+                                    await saveEditorDraft(
+                                        templateId,
+                                        { font_size_mode: fontSizeMode, free_text_heights: freeTextHeights },
+                                        user.uid
+                                    );
                                     setSaveStatus('saved');
                                     setTimeout(() => setSaveStatus('idle'), 3000);
                                 } catch (e) {
@@ -804,11 +840,16 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                                 if (!user) { setSaveStatus('error'); return; }
                                 setSaveStatus('finalizing');
                                 try {
-                                    const draft = buildLayoutDocument('DRAFT', false, user.uid, productionId);
-                                    const newLayoutId = await finalizeSurveyLayout(templateId, draft, user.uid);
+                                    // 1. 新バージョンとして Firestore に追記
+                                    const layoutDoc = buildLayoutDocument('DRAFT', false, user.uid, productionId);
+                                    const newLayoutId = await finalizeSurveyLayoutVersion(templateId, layoutDoc, user.uid);
+                                    // 2. finalizedLayoutId state 更新 → QR URL が &lid={newLayoutId} に切り替わる
+                                    setFinalizedLayoutId(newLayoutId);
                                     setSaveStatus('finalized');
-                                    console.log('[PrintLayoutEditor] 確定 layout_id:', newLayoutId);
-                                    setTimeout(() => setSaveStatus('idle'), 5000);
+                                    // 3. QR の再描画を待ってから印刷
+                                    setTimeout(() => {
+                                        window.print();
+                                    }, 300);
                                 } catch (e) {
                                     console.error(e);
                                     setSaveStatus('error');

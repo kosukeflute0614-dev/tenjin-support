@@ -168,6 +168,20 @@ service cloud.firestore {
       allow read, list: if isSignedIn() && isOwner(resource.data.user_id);
       allow create: if isGoogleUser();
       allow update, delete: if isSignedIn() && isOwner(resource.data.user_id);
+
+      // バージョン管理サブコレクション（追記のみ・不変）
+      match /versions/{versionId} {
+        allow read, list: if isSignedIn() && isOwner(resource.data.user_id);
+        allow create: if isGoogleUser();
+        allow update, delete: if false; // バージョンは一度作ったら変更禁止
+      }
+    }
+
+    // 編集ドラフト（JSON不要・編集状態のみ保存・常に上書き）
+    match /surveyLayoutDrafts/{templateId} {
+      allow read, list: if isSignedIn() && isOwner(resource.data.user_id);
+      allow create: if isGoogleUser();
+      allow update, delete: if isSignedIn() && isOwner(resource.data.user_id);
     }
   }
 }
