@@ -840,6 +840,7 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                                 try {
                                     // ② Firestore に新バージョンとして追記
                                     const layoutDoc = buildLayoutDocument('DRAFT', false, user.uid, productionId);
+                                    console.log('[SAVE DEBUG] Finalizing Layout JSON:', JSON.stringify(layoutDoc, null, 2));
                                     const { layoutId, serial } = await finalizeSurveyLayoutVersion(templateId, layoutDoc, user.uid);
 
                                     // ③ QR URL を &lid={layoutId} 付きに更新（React 再描画を待つ）
