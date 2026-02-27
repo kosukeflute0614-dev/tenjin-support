@@ -1495,7 +1495,10 @@ function FreeTextBlock({ layout, fontScale, onResizeStart }: { layout: QuestionL
                 width={50}
                 height={20}
                 style={{ pointerEvents: 'auto', cursor: 'ns-resize' }}
-                onMouseDown={(e) => onResizeStart(e.clientY, bh)}
+                onMouseDown={(e) => {
+                    e.preventDefault();
+                    onResizeStart(e.clientY, box.boundingBox.h);
+                }}
             >
                 <div style={{
                     width: '100%', height: '100%',

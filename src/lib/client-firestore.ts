@@ -1546,24 +1546,25 @@ export async function finalizeSurveyLayoutVersion(
     const { setDoc, collection: fsCollection, getDocs: fsGetDocs, query: fsQuery, where: fsWhere, orderBy: fsOrderBy } = await import('firebase/firestore');
     const versionsRef = fsCollection(db, 'surveyLayouts', templateId, 'versions');
 
-    // 1. 全バージョン数を取得して連番（内部管理用）を決める
+    // 1. 全バージョンを取得して連番を決める
     const totalSnap = await fsGetDocs(versionsRef);
     const nextVersionNumber = totalSnap.size + 1;
 
     // 2. 「当日」の作成件数をカウントしてファイル名用の連番を生成
-    //    JST 0:00 基準で計算（サーバー側でなくクライアント側の時刻に基づく）
+    //    インデックスエラー回避のため、クライアントサイドでフィルタリングを行う
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
-    // 当日のドキュメントをクエリ（created_at は serverTimestamp なので少し前に作成したものも含む可能性を考慮）
-    const todayQuery = fsQuery(
-        versionsRef,
-        fsWhere('user_id', '==', userId),
-        fsWhere('created_at', '>=', todayStart),
-        fsOrderBy('created_at', 'asc')
-    );
-    const todaySnap = await fsGetDocs(todayQuery);
-    const serialNumber = todaySnap.size + 1;
+    const todayDocs = totalSnap.docs.filter(d => {
+        const data = d.data();
+        if (data.user_id !== userId) return false;
+        // created_at が null（保存直後）の場合は当日のものとして扱う
+        if (!data.created_at) return true;
+        const createdAtDate = timestampToDate(data.created_at);
+        return createdAtDate && createdAtDate.getTime() >= todayStart;
+    });
+
+    const serialNumber = todayDocs.length + 1;
     const serialStr = serialNumber.toString().padStart(2, '0');
 
     // バージョン固有のランダムID（= layout_id = QRに埋め込む値）
