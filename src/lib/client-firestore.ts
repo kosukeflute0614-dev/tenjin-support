@@ -1159,6 +1159,7 @@ export async function processCheckinWithPaymentStaffClient(
         const logsRef = doc(collection(db, "checkinLogs"));
         transaction.set(logsRef, {
             reservationId,
+            userId: reservation.userId,
             productionId,
             performanceId,
             type: 'CHECKIN',
@@ -1205,6 +1206,7 @@ export async function resetCheckInStaffClient(
         const logsRef = doc(collection(db, "checkinLogs"));
         transaction.set(logsRef, {
             reservationId,
+            userId: reservation.userId,
             productionId,
             performanceId,
             type: 'RESET',
@@ -1276,6 +1278,7 @@ export async function processPartialResetStaffClient(
         const logsRef = doc(collection(db, "checkinLogs"));
         transaction.set(logsRef, {
             reservationId,
+            userId: reservation.userId,
             productionId,
             performanceId,
             type: 'RESET',

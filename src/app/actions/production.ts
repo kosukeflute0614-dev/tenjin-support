@@ -93,10 +93,16 @@ export async function createProduction(formData: FormData, userId: string) {
     redirect('/productions')
 }
 
-export async function updateProduction(id: string, formData: FormData) {
+export async function updateProduction(id: string, formData: FormData, userId: string) {
+    if (!userId) throw new Error('Unauthorized');
     const title = formData.get('title') as string
 
     const productionRef = doc(db, "productions", id);
+    const productionSnap = await getDoc(productionRef);
+    if (!productionSnap.exists() || productionSnap.data().userId !== userId) {
+        throw new Error('Not found or unauthorized');
+    }
+
     await updateDoc(productionRef, {
         title,
         updatedAt: serverTimestamp()
@@ -106,13 +112,28 @@ export async function updateProduction(id: string, formData: FormData) {
     revalidatePath('/productions')
 }
 
-export async function deleteProduction(id: string) {
-    await deleteDoc(doc(db, "productions", id));
+export async function deleteProduction(id: string, userId: string) {
+    if (!userId) throw new Error('Unauthorized');
+
+    const productionRef = doc(db, "productions", id);
+    const productionSnap = await getDoc(productionRef);
+    if (!productionSnap.exists() || productionSnap.data().userId !== userId) {
+        throw new Error('Not found or unauthorized');
+    }
+
+    await deleteDoc(productionRef);
     revalidatePath('/productions')
 }
 
-export async function updateReceptionStatus(id: string, status: 'OPEN' | 'CLOSED') {
+export async function updateReceptionStatus(id: string, status: 'OPEN' | 'CLOSED', userId: string) {
+    if (!userId) throw new Error('Unauthorized');
+
     const productionRef = doc(db, "productions", id);
+    const productionSnap = await getDoc(productionRef);
+    if (!productionSnap.exists() || productionSnap.data().userId !== userId) {
+        throw new Error('Not found or unauthorized');
+    }
+
     await updateDoc(productionRef, {
         receptionStatus: status,
         updatedAt: serverTimestamp()
@@ -124,8 +145,15 @@ export async function updateReceptionStatus(id: string, status: 'OPEN' | 'CLOSED
     revalidatePath('/')
 }
 
-export async function updateReceptionStart(id: string, startStr: string | null) {
+export async function updateReceptionStart(id: string, startStr: string | null, userId: string) {
+    if (!userId) throw new Error('Unauthorized');
+
     const productionRef = doc(db, "productions", id);
+    const productionSnap = await getDoc(productionRef);
+    if (!productionSnap.exists() || productionSnap.data().userId !== userId) {
+        throw new Error('Not found or unauthorized');
+    }
+
     await updateDoc(productionRef, {
         receptionStart: startStr ? new Date(startStr) : null,
         receptionStatus: 'CLOSED',
@@ -138,12 +166,18 @@ export async function updateReceptionStart(id: string, startStr: string | null) 
     revalidatePath('/')
 }
 
-export async function updateReceptionEnd(id: string, formData: FormData) {
+export async function updateReceptionEnd(id: string, formData: FormData, userId: string) {
+    if (!userId) throw new Error('Unauthorized');
     const endStr = formData.get('receptionEnd') as string
     const mode = formData.get('receptionEndMode') as string
     const minutes = parseInt(formData.get('receptionEndMinutes') as string || '0', 10)
 
     const productionRef = doc(db, "productions", id);
+    const productionSnap = await getDoc(productionRef);
+    if (!productionSnap.exists() || productionSnap.data().userId !== userId) {
+        throw new Error('Not found or unauthorized');
+    }
+
     await updateDoc(productionRef, {
         receptionEnd: endStr ? new Date(endStr) : null,
         receptionEndMode: mode || 'MANUAL',
@@ -158,13 +192,19 @@ export async function updateReceptionEnd(id: string, formData: FormData) {
     revalidatePath('/')
 }
 
-export async function updateReceptionSchedule(id: string, formData: FormData) {
+export async function updateReceptionSchedule(id: string, formData: FormData, userId: string) {
+    if (!userId) throw new Error('Unauthorized');
     const startStr = formData.get('receptionStart') as string
     const endStr = formData.get('receptionEnd') as string
     const mode = formData.get('receptionEndMode') as string
     const minutes = parseInt(formData.get('receptionEndMinutes') as string || '0', 10)
 
     const productionRef = doc(db, "productions", id);
+    const productionSnap = await getDoc(productionRef);
+    if (!productionSnap.exists() || productionSnap.data().userId !== userId) {
+        throw new Error('Not found or unauthorized');
+    }
+
     await updateDoc(productionRef, {
         receptionStart: startStr ? new Date(startStr) : null,
         receptionEnd: endStr ? new Date(endStr) : null,
@@ -177,8 +217,15 @@ export async function updateReceptionSchedule(id: string, formData: FormData) {
     revalidatePath('/')
 }
 
-export async function updateProductionCustomId(id: string, customId: string) {
+export async function updateProductionCustomId(id: string, customId: string, userId: string) {
+    if (!userId) throw new Error('Unauthorized');
+
     const productionRef = doc(db, "productions", id);
+    const productionSnap = await getDoc(productionRef);
+    if (!productionSnap.exists() || productionSnap.data().userId !== userId) {
+        throw new Error('Not found or unauthorized');
+    }
+
     await updateDoc(productionRef, {
         customId: customId || null,
         updatedAt: serverTimestamp()

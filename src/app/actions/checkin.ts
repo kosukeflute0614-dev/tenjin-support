@@ -43,6 +43,7 @@ export async function addCheckedInTickets(reservationId: string, count: number, 
         const logsRef = collection(db, "checkinLogs");
         transaction.set(doc(logsRef), {
             reservationId,
+            userId,
             type: 'CHECKIN',
             count: count,
             createdAt: serverTimestamp()
@@ -81,6 +82,7 @@ export async function resetCheckIn(reservationId: string, performanceId: string,
         const logsRef = collection(db, "checkinLogs");
         transaction.set(doc(logsRef), {
             reservationId,
+            userId,
             type: 'RESET',
             count: reservation.checkedInTickets || 0,
             createdAt: serverTimestamp()
@@ -150,6 +152,7 @@ export async function processCheckinWithPayment(
         const logsRef = collection(db, "checkinLogs");
         transaction.set(doc(logsRef), {
             reservationId,
+            userId,
             type: 'CHECKIN',
             count: checkinCount,
             paymentInfo: JSON.stringify(paymentBreakdown),
@@ -220,6 +223,7 @@ export async function processPartialReset(
         const logsRef = collection(db, "checkinLogs");
         transaction.set(doc(logsRef), {
             reservationId,
+            userId,
             type: 'RESET',
             count: resetCheckinCount,
             paymentInfo: JSON.stringify(Object.fromEntries(
