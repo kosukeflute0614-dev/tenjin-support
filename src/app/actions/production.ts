@@ -18,7 +18,7 @@ import {
 import { Production } from "@/types";
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { serializeDoc, serializeDocs } from "@/lib/firestore-utils";
+import { serializeDoc, serializeDocs, toDate } from "@/lib/firestore-utils";
 import crypto from 'crypto';
 
 function hashPasscode(passcode: string): string {
@@ -37,8 +37,8 @@ export async function getProductions(userId: string): Promise<Production[]> {
 
         const prods = serializeDocs<Production>(querySnapshot.docs);
         return prods.sort((a, b) => {
-            const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-            const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+            const timeA = a.updatedAt ? toDate(a.updatedAt).getTime() : 0;
+            const timeB = b.updatedAt ? toDate(b.updatedAt).getTime() : 0;
             return timeB - timeA;
         });
     } catch (error) {
@@ -241,8 +241,8 @@ export async function updateProductionCustomId(id: string, customId: string, use
 
 export async function updateStaffPasscode(id: string, passcode: string, userId: string) {
     if (!userId) throw new Error('Unauthorized');
-    if (!/^\d{4}$/.test(passcode)) {
-        throw new Error('Passcode must be 4 digits');
+    if (!/^\d{6}$/.test(passcode)) {
+        throw new Error('Passcode must be 6 digits');
     }
 
     const productionRef = doc(db, "productions", id);

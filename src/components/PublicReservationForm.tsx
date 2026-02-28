@@ -5,9 +5,12 @@ import { createReservation } from '@/app/actions/reservation';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { formatDateTime } from '@/lib/format';
+import { Production, Performance, TicketType } from '@/types';
+
+type ProductionWithPerformances = Production & { performances: Performance[] };
 
 type Props = {
-    production: any;
+    production: ProductionWithPerformances;
     promoterId?: string | null;
 };
 
@@ -25,7 +28,7 @@ export default function PublicReservationForm({ production, promoterId }: Props)
     const [error, setError] = useState<string | null>(null);
 
     const performances = production.performances || [];
-    const selectedPerformance = performances.find((p: any) => p.id === selectedPerformanceId);
+    const selectedPerformance = performances.find((p: Performance) => p.id === selectedPerformanceId);
     const ticketTypes = production.ticketTypes || [];
 
     const handleTicketChange = (ticketId: string, count: number) => {
@@ -65,7 +68,7 @@ export default function PublicReservationForm({ production, promoterId }: Props)
             const tickets = Object.entries(ticketCounts)
                 .filter(([_, count]) => count > 0)
                 .map(([id, count]) => {
-                    const type = production.ticketTypes.find((tt: any) => tt.id === id);
+                    const type = production.ticketTypes.find((tt: TicketType) => tt.id === id);
                     return {
                         ticketTypeId: id,
                         count: count,
@@ -147,7 +150,7 @@ export default function PublicReservationForm({ production, promoterId }: Props)
                         <div style={{ display: 'grid', gap: '0.5rem' }}>
                             {Object.entries(ticketCounts).map(([typeId, count]) => {
                                 if (count === 0) return null;
-                                const type = ticketTypes.find((t: any) => t.id === typeId);
+                                const type = ticketTypes.find((t: TicketType) => t.id === typeId);
                                 return (
                                     <div key={typeId} style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span>{type?.name || '不明'}</span>
@@ -269,7 +272,7 @@ export default function PublicReservationForm({ production, promoterId }: Props)
                     required
                 >
                     <option value="">日時を選択してください</option>
-                    {performances.map((perf: any) => {
+                    {performances.map((perf: Performance) => {
                         const { isPerformanceReceptionOpen } = require('@/lib/production');
                         const isOpen = isPerformanceReceptionOpen(perf, production);
                         return (
@@ -287,7 +290,7 @@ export default function PublicReservationForm({ production, promoterId }: Props)
                         券種・枚数 <span style={{ color: 'var(--primary)', fontSize: '0.8rem' }}>(必須: 合計1枚以上)</span>
                     </label>
                     <div style={{ display: 'grid', gap: '0.75rem' }}>
-                        {ticketTypes.map((ticket: any) => (
+                        {ticketTypes.map((ticket: TicketType) => (
                             <div key={ticket.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', borderBottom: '1px solid #f0f0f0' }}>
                                 <div>
                                     <div style={{ fontWeight: 'bold' }}>{ticket.name}</div>

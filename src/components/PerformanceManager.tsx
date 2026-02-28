@@ -3,10 +3,12 @@ import { addPerformanceClient, updatePerformanceClient, deletePerformanceClient 
 import { formatDate, formatTime } from '@/lib/format';
 import { SmartMaskedDatePicker, SmartMaskedTimeInput, SmartNumberInput } from './SmartInputs';
 import { useAuth } from './AuthProvider';
+import { Performance } from '@/types';
+import { toDate } from '@/lib/firestore-utils';
 
 type Props = {
     productionId: string;
-    performances: any[];
+    performances: Performance[];
 };
 
 export default function PerformanceManager({ productionId, performances }: Props) {
@@ -19,12 +21,12 @@ export default function PerformanceManager({ productionId, performances }: Props
 
     // グループ化ロジック
     const groupedPerformances = performances.reduce((acc, perf) => {
-        const d = new Date(perf.startTime);
+        const d = toDate(perf.startTime);
         const dateKey = formatDate(d);
         if (!acc[dateKey]) acc[dateKey] = [];
         acc[dateKey].push(perf);
         return acc;
-    }, {} as Record<string, any[]>);
+    }, {} as Record<string, Performance[]>);
 
     const sortedDateKeys = Object.keys(groupedPerformances).sort();
 
@@ -212,7 +214,7 @@ export default function PerformanceManager({ productionId, performances }: Props
                             <span style={{ fontSize: '0.8rem', color: '#888', fontWeight: 'normal' }}>{groupedPerformances[dateKey].length} 公演</span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            {groupedPerformances[dateKey].map((perf: any) => (
+                            {groupedPerformances[dateKey].map((perf) => (
                                 <div key={perf.id} style={{
                                     background: '#fff',
                                     border: '1px solid #eee',
@@ -247,14 +249,14 @@ export default function PerformanceManager({ productionId, performances }: Props
 
                                             <SmartMaskedDatePicker
                                                 name="date"
-                                                defaultValue={new Date(perf.startTime).toISOString()}
+                                                defaultValue={toDate(perf.startTime).toISOString()}
                                                 required
                                                 label="日付"
                                                 style={{ flex: 2, minWidth: '180px' }}
                                             />
                                             <SmartMaskedTimeInput
                                                 name="time"
-                                                defaultValue={new Date(perf.startTime).toTimeString().slice(0, 5)}
+                                                defaultValue={toDate(perf.startTime).toTimeString().slice(0, 5)}
                                                 required
                                                 label="時間"
                                                 style={{ flex: 1, minWidth: '100px' }}

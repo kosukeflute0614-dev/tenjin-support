@@ -9,7 +9,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { Production } from '@/types';
 import { db } from '@/lib/firebase';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { serializeDocs } from '@/lib/firestore-utils';
+import { serializeDocs, toDate } from '@/lib/firestore-utils';
 
 export default function ProductionsPage() {
     const { user, loading } = useAuth();
@@ -39,8 +39,8 @@ export default function ProductionsPage() {
                         const prods = serializeDocs<Production>(snapshot.docs);
                         // Manual sort by updatedAt descending
                         const sortedProds = prods.sort((a, b) => {
-                            const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-                            const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+                            const timeA = a.updatedAt ? toDate(a.updatedAt!).getTime() : 0;
+                            const timeB = b.updatedAt ? toDate(b.updatedAt!).getTime() : 0;
                             return timeB - timeA;
                         });
                         setProductions(sortedProds);

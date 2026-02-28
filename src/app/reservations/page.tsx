@@ -9,7 +9,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { FirestoreReservation } from '@/types';
 import { db } from '@/lib/firebase';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { serializeDocs } from '@/lib/firestore-utils';
+import { serializeDocs, toDate } from '@/lib/firestore-utils';
 
 export default function ReservationsPage() {
     const { user, loading } = useAuth();
@@ -43,8 +43,8 @@ export default function ReservationsPage() {
                         const res = serializeDocs<FirestoreReservation>(snapshot.docs);
                         // Manual sort by createdAt descending
                         const sortedRes = res.sort((a, b) => {
-                            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                            const timeA = a.createdAt ? toDate(a.createdAt!).getTime() : 0;
+                            const timeB = b.createdAt ? toDate(b.createdAt!).getTime() : 0;
                             return timeB - timeA;
                         });
                         setReservations(sortedRes);

@@ -4,9 +4,12 @@ import { useState } from 'react';
 import { createReservationClient } from '@/lib/client-firestore';
 import { formatDateTime } from '@/lib/format';
 import { useAuth } from './AuthProvider';
+import { Production, Performance, TicketType } from '@/types';
+
+type ProductionWithPerformances = Production & { performances: Performance[] };
 
 type Props = {
-    productions: any[]; // refine type later if needed
+    productions: ProductionWithPerformances[];
 };
 
 export default function ReservationForm({ productions }: Props) {
@@ -16,7 +19,7 @@ export default function ReservationForm({ productions }: Props) {
 
     // Flatten all performances from all productions
     const allPerformances = productions.flatMap(prod =>
-        prod.performances.map((perf: any) => ({
+        prod.performances.map(perf => ({
             ...perf,
             productionTitle: prod.title,
             ticketTypes: prod.ticketTypes // Attach ticket types to performance for easy access
@@ -44,7 +47,7 @@ export default function ReservationForm({ productions }: Props) {
         const tickets = Object.entries(ticketCounts)
             .filter(([_, count]) => count > 0)
             .map(([id, count]) => {
-                const type = selectedPerformance.ticketTypes.find((tt: any) => tt.id === id);
+                const type = selectedPerformance.ticketTypes.find((tt: TicketType) => tt.id === id);
                 return {
                     ticketTypeId: id,
                     count: count,
@@ -161,7 +164,7 @@ export default function ReservationForm({ productions }: Props) {
                         <p className="text-muted">券種が登録されていません。</p>
                     ) : (
                         <div style={{ display: 'grid', gap: '0.75rem' }}>
-                            {ticketTypes.map((ticket: any) => (
+                            {ticketTypes.map((ticket: TicketType) => (
                                 <div key={ticket.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', borderBottom: '1px solid #eee' }}>
                                     <div>
                                         <div style={{ fontWeight: 'bold' }}>{ticket.name}</div>

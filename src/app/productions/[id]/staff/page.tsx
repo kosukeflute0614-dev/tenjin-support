@@ -62,7 +62,7 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
         try {
             const { token, passcode } = await generateStaffTokenClient(production.id, newRole);
             const message = passcode
-                ? `新しいスタッフ用URLを発行しました。\n\n【重要】4桁のパスコードが設定されました：${passcode}\nスタッフに入場チェック画面で入力するよう伝えてください。`
+                ? `新しいスタッフ用URLを発行しました。\n\n【重要】6桁のパスコードが設定されました：${passcode}\nスタッフに入場チェック画面で入力するよう伝えてください。`
                 : '新しいスタッフ用URLを発行しました。';
             alert(message);
         } catch (error: any) {
@@ -89,11 +89,11 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
 
     const handleUpdatePasscode = async (token: string, currentPasscode: string) => {
         if (!production) return; // Added null check
-        const newPasscode = prompt(`新しい4桁のパスコードを入力してください（現在の値: ${currentPasscode}）`, currentPasscode);
+        const newPasscode = prompt(`新しい6桁のパスコードを入力してください（現在の値: ${currentPasscode}）`, currentPasscode);
         if (!newPasscode || newPasscode === currentPasscode) return;
 
-        if (!/^\d{4}$/.test(newPasscode)) {
-            alert('パスコードは数字4桁で入力してください。');
+        if (!/^\d{6}$/.test(newPasscode)) {
+            alert('パスコードは数字6桁で入力してください。');
             return;
         }
 

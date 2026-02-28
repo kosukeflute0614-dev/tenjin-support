@@ -12,6 +12,7 @@ import {
     onSnapshot
 } from "firebase/firestore";
 import { notFound, useRouter } from 'next/navigation';
+import { toDate } from '@/lib/firestore-utils';
 import { formatDateTime } from '@/lib/format';
 import CheckinList from '@/components/CheckinList';
 import SameDayTicketForm from '@/components/SameDayTicketForm';
@@ -208,7 +209,7 @@ export default function CheckinPage({ params }: { params: any }) {
     };
 
     const startTime = performance?.startTime;
-    const startDate = startTime ? (typeof startTime === 'string' ? new Date(startTime) : (startTime.toDate ? startTime.toDate() : new Date(startTime.seconds * 1000))) : null;
+    const startDate = startTime ? toDate(startTime) : null;
     const perfDateStr = startDate ? startDate.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' }) : '';
     const perfTimeStr = startDate ? startDate.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '';
 

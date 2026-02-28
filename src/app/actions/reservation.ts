@@ -15,7 +15,7 @@ import {
 } from "firebase/firestore";
 import { revalidatePath } from "next/cache";
 import { FirestoreReservation, Production } from "@/types";
-import { serializeDoc, serializeDocs } from "@/lib/firestore-utils";
+import { serializeDoc, serializeDocs, toDate } from "@/lib/firestore-utils";
 
 export async function getBookingOptions(activeProductionId?: string, userId?: string): Promise<Production[]> {
     let prods: Production[] = [];
@@ -43,8 +43,8 @@ export async function getBookingOptions(activeProductionId?: string, userId?: st
                 const querySnapshot = await getDocs(q);
                 prods = serializeDocs<Production>(querySnapshot.docs);
                 prods.sort((a, b) => {
-                    const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-                    const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+                    const timeA = a.updatedAt ? toDate(a.updatedAt!).getTime() : 0;
+                    const timeB = b.updatedAt ? toDate(b.updatedAt!).getTime() : 0;
                     return timeB - timeA;
                 });
             }
@@ -70,8 +70,8 @@ export async function getBookingOptions(activeProductionId?: string, userId?: st
             ...p,
             performances: allPerfs.filter(perf => perf.productionId === p.id)
                 .sort((a, b) => {
-                    const tA = a.startTime ? (a.startTime.toDate ? a.startTime.toDate().getTime() : new Date(a.startTime).getTime()) : 0;
-                    const tB = b.startTime ? (b.startTime.toDate ? b.startTime.toDate().getTime() : new Date(b.startTime).getTime()) : 0;
+                    const tA = a.startTime ? toDate(a.startTime).getTime() : 0;
+                    const tB = b.startTime ? toDate(b.startTime).getTime() : 0;
                     return tA - tB;
                 })
         }));
@@ -194,8 +194,8 @@ export async function getReservations(performanceId: string | undefined, userId:
             return res
                 .filter(r => r.userId === userId) // Filter userId in memory
                 .sort((a, b) => {
-                    const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                    const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                    const timeA = a.createdAt ? toDate(a.createdAt!).getTime() : 0;
+                    const timeB = b.createdAt ? toDate(b.createdAt!).getTime() : 0;
                     return timeB - timeA;
                 });
         } else {
@@ -208,8 +208,8 @@ export async function getReservations(performanceId: string | undefined, userId:
         const querySnapshot = await getDocs(q);
         const res = serializeDocs<FirestoreReservation>(querySnapshot.docs);
         return res.sort((a, b) => {
-            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            const timeA = a.createdAt ? toDate(a.createdAt!).getTime() : 0;
+            const timeB = b.createdAt ? toDate(b.createdAt!).getTime() : 0;
             return timeB - timeA;
         });
     } catch (error) {

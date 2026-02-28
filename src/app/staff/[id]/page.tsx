@@ -5,7 +5,7 @@ import { auth, db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot, doc, getDoc, getDocs, setDoc, serverTimestamp } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
 import { Production, FirestoreReservation } from '@/types';
-import { serializeDoc, serializeDocs } from '@/lib/firestore-utils';
+import { serializeDoc, serializeDocs, toDate } from '@/lib/firestore-utils';
 import { verifyStaffPasscode, checkStaffSession } from '@/app/actions/staff-auth';
 import { updateReservationByStaffToken, createSameDayTicketStaffClient, fetchProductionDetailsClient } from '@/lib/client-firestore';
 import { useSearchParams } from 'next/navigation';
@@ -291,8 +291,8 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
     if (!selectedPerformanceId) {
         // 公演選択画面
         const sortedPerformances = [...(production?.performances || [])].sort((a, b) => {
-            const timeA = a.startTime ? new Date(a.startTime).getTime() : 0;
-            const timeB = b.startTime ? new Date(b.startTime).getTime() : 0;
+            const timeA = a.startTime ? toDate(a.startTime).getTime() : 0;
+            const timeB = b.startTime ? toDate(b.startTime).getTime() : 0;
             return timeA - timeB;
         });
 
@@ -314,7 +314,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                         <h2 className="heading-md" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>{role === 'monitor' ? '確認する公演を選択してください' : '受付する公演を選択してください'}</h2>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             {sortedPerformances.map(perf => {
-                                const d = perf.startTime ? new Date(perf.startTime) : new Date();
+                                const d = perf.startTime ? toDate(perf.startTime) : new Date();
                                 return (
                                     <button
                                         key={perf.id}
@@ -356,7 +356,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
     const remainingCount = capacity - totalReserved;
 
     const startTime = performance?.startTime;
-    const startDate = startTime ? (typeof startTime === 'string' ? new Date(startTime) : (startTime.toDate ? startTime.toDate() : new Date(startTime.seconds * 1000))) : null;
+    const startDate = startTime ? toDate(startTime) : null;
     const perfDateStr = startDate ? startDate.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' }) : '';
     const perfTimeStr = startDate ? startDate.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '';
 

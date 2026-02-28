@@ -1,3 +1,6 @@
+// Firestore Timestamp / サーバーシリアライズ後の ISO 文字列 / JS Date の共用型
+export type FirestoreTimestamp = string | Date | { seconds: number; nanoseconds: number; toDate?(): Date };
+
 export interface TicketType {
     id: string;
     name: string;
@@ -15,7 +18,7 @@ export interface Actor {
 
 export interface ReservationTicket {
     ticketTypeId: string;
-    ticketType?: any;
+    ticketType?: TicketType;
     count: number;
     price: number;
     paidCount?: number;
@@ -40,10 +43,10 @@ export interface FirestoreReservation {
     userId: string; // Organizer ID
     promoterId?: string | null; // Introduction by (Actor ID)
     staffToken?: string; // Access token for this reservation (copied from production)
-    checkedInAt?: any;
+    checkedInAt?: FirestoreTimestamp | null;
     performance?: Performance; // Joined data
-    createdAt?: any;
-    updatedAt?: any;
+    createdAt?: FirestoreTimestamp;
+    updatedAt?: FirestoreTimestamp;
 }
 
 export interface Troupe {
@@ -53,8 +56,8 @@ export interface Troupe {
     ownerId: string;
     description?: string | null;
     logoUrl?: string | null;
-    createdAt: any;
-    updatedAt: any;
+    createdAt: FirestoreTimestamp;
+    updatedAt: FirestoreTimestamp;
 }
 
 export interface Membership {
@@ -62,8 +65,8 @@ export interface Membership {
     userId: string;
     troupeId: string;
     role: 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
-    joinedAt: any;
-    updatedAt: any;
+    joinedAt: FirestoreTimestamp;
+    updatedAt: FirestoreTimestamp;
 }
 
 export interface Production {
@@ -76,8 +79,8 @@ export interface Production {
     ticketTypes: TicketType[];
     actors: Actor[];
     receptionStatus: 'OPEN' | 'CLOSED';
-    receptionStart?: any | null;
-    receptionEnd?: any | null;
+    receptionStart?: FirestoreTimestamp | null;
+    receptionEnd?: FirestoreTimestamp | null;
     receptionEndMode?: 'MANUAL' | 'AUTO_PERFORMANCE_START' | 'AUTO_TIME_BEFORE';
     receptionEndMinutes?: number;
     performances?: Performance[];
@@ -90,25 +93,25 @@ export interface Production {
         } | string; // string is for legacy support during migration
     };
     staffPasscodeHashed?: string; // Legacy: Common passcode
-    createdAt?: any;
-    updatedAt?: any;
+    createdAt?: FirestoreTimestamp;
+    updatedAt?: FirestoreTimestamp;
 }
 
 export interface Performance {
     id: string;
     productionId: string;
-    startTime: any; // Firestore Timestamp or Date
+    startTime: FirestoreTimestamp; // Firestore Timestamp or Date
     capacity: number;
     receptionEndHours: number;
     receptionEndMinutes: number;
     userId: string; // Owner ID
-    createdAt?: any;
-    updatedAt?: any;
+    createdAt?: FirestoreTimestamp;
+    updatedAt?: FirestoreTimestamp;
 }
 
 export interface PerformanceStats {
     id: string;
-    startTime: any;
+    startTime: FirestoreTimestamp;
     capacity: number;
     bookedCount: number;
     remainingCount: number;
@@ -129,8 +132,8 @@ export interface AppUser {
     uid: string;
     email: string | null;
     troupeName: string;
-    createdAt: any;
-    updatedAt: any;
+    createdAt: FirestoreTimestamp;
+    updatedAt: FirestoreTimestamp;
 }
 export interface SalesReport {
     totalRevenue: number;
@@ -144,7 +147,7 @@ export interface SalesReport {
     };
     performanceSummaries: {
         id: string;
-        startTime: any;
+        startTime: FirestoreTimestamp;
         bookedCount: number;
         checkedInCount: number;
         revenue: number;

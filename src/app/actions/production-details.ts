@@ -18,7 +18,7 @@ import {
 } from "firebase/firestore";
 import { revalidatePath } from 'next/cache'
 import { Production, Performance, TicketType, Actor, FirestoreReservation } from "@/types";
-import { serializeDoc, serializeDocs } from "@/lib/firestore-utils";
+import { serializeDoc, serializeDocs, toDate } from "@/lib/firestore-utils";
 
 export async function addPerformance(formData: FormData, userId: string) {
     if (!userId) throw new Error('Unauthorized');
@@ -149,8 +149,8 @@ export async function getPerformancesByProductionId(productionId: string, userId
                 capacity: perf.capacity,
                 productionId: perf.productionId
             } as Performance)).sort((a, b) => {
-                const timeA = a.startTime ? new Date(a.startTime).getTime() : 0;
-                const timeB = b.startTime ? new Date(b.startTime).getTime() : 0;
+                const timeA = a.startTime ? toDate(a.startTime).getTime() : 0;
+                const timeB = b.startTime ? toDate(b.startTime).getTime() : 0;
                 return timeA - timeB;
             });
     } else {
@@ -171,8 +171,8 @@ export async function getPerformancesByProductionId(productionId: string, userId
         capacity: perf.capacity,
         productionId: perf.productionId
     } as Performance)).sort((a, b) => {
-        const timeA = a.startTime ? new Date(a.startTime).getTime() : 0;
-        const timeB = b.startTime ? new Date(b.startTime).getTime() : 0;
+        const timeA = a.startTime ? toDate(a.startTime).getTime() : 0;
+        const timeB = b.startTime ? toDate(b.startTime).getTime() : 0;
         return timeA - timeB;
     });
 }

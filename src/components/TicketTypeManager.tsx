@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { addTicketTypeClient, updateTicketTypeClient, deleteTicketTypeClient } from '@/lib/client-firestore';
 import { SmartNumberInput } from './SmartInputs';
 import { useAuth } from './AuthProvider';
+import { TicketType } from '@/types';
 
 type Props = {
     productionId: string;
-    ticketTypes: any[];
+    ticketTypes: TicketType[];
 };
 
 export default function TicketTypeManager({ productionId, ticketTypes }: Props) {

@@ -1,7 +1,7 @@
 import { db } from '@/lib/firebase';
 import { collection, doc, getDoc, getDocs, query, where, addDoc, updateDoc, serverTimestamp, deleteDoc, arrayUnion, runTransaction, onSnapshot } from 'firebase/firestore';
 import { Production, Performance, PerformanceStats, FirestoreReservation, DuplicateGroup, TicketType, SalesReport } from '@/types';
-import { serializeDocs, serializeDoc } from '@/lib/firestore-utils';
+import { serializeDocs, serializeDoc, toDate } from '@/lib/firestore-utils';
 
 /**
  * Firestore の Timestamp または日付型を安全に Date に変換する
@@ -108,8 +108,8 @@ export async function fetchProductionDetailsClient(
                 productionId: perf.productionId
             } as Performance))
             .sort((a, b) => {
-                const timeA = a.startTime ? new Date(a.startTime).getTime() : 0;
-                const timeB = b.startTime ? new Date(b.startTime).getTime() : 0;
+                const timeA = a.startTime ? timestampToDate(a.startTime)!.getTime() : 0;
+                const timeB = b.startTime ? timestampToDate(b.startTime)!.getTime() : 0;
                 return timeA - timeB;
             });
 
@@ -138,8 +138,8 @@ export async function fetchDashboardStatsClient(
         const performances = serializeDocs<Performance>(perfSnapshot.docs)
             .filter(p => p.userId === userId)
             .sort((a, b) => {
-                const timeA = a.startTime ? new Date(a.startTime).getTime() : 0;
-                const timeB = b.startTime ? new Date(b.startTime).getTime() : 0;
+                const timeA = a.startTime ? timestampToDate(a.startTime)!.getTime() : 0;
+                const timeB = b.startTime ? timestampToDate(b.startTime)!.getTime() : 0;
                 return timeA - timeB;
             });
 
@@ -341,8 +341,8 @@ export async function fetchBookingOptionsClient(
         const querySnapshot = await getDocs(q);
         prods = serializeDocs<Production>(querySnapshot.docs);
         prods.sort((a, b) => {
-            const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-            const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+            const timeA = a.updatedAt ? toDate(a.updatedAt).getTime() : 0;
+            const timeB = b.updatedAt ? toDate(b.updatedAt).getTime() : 0;
             return timeB - timeA;
         });
 
@@ -356,8 +356,8 @@ export async function fetchBookingOptionsClient(
             ...p,
             performances: allPerfs.filter(perf => perf.productionId === p.id)
                 .sort((a, b) => {
-                    const tA = a.startTime ? (a.startTime.toDate ? a.startTime.toDate().getTime() : new Date(a.startTime).getTime()) : 0;
-                    const tB = b.startTime ? (b.startTime.toDate ? b.startTime.toDate().getTime() : new Date(b.startTime).getTime()) : 0;
+                    const tA = a.startTime ? timestampToDate(a.startTime)!.getTime() : 0;
+                    const tB = b.startTime ? timestampToDate(b.startTime)!.getTime() : 0;
                     return tA - tB;
                 })
         }));
@@ -1317,8 +1317,8 @@ export async function fetchProductionSalesReportClient(
         const performances = serializeDocs<Performance>(perfSnapshot.docs)
             .filter(p => p.userId === userId)
             .sort((a, b) => {
-                const at = a.startTime ? new Date(a.startTime).getTime() : 0;
-                const bt = b.startTime ? new Date(b.startTime).getTime() : 0;
+                const at = a.startTime ? timestampToDate(a.startTime)!.getTime() : 0;
+                const bt = b.startTime ? timestampToDate(b.startTime)!.getTime() : 0;
                 return at - bt;
             });
 

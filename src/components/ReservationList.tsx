@@ -6,27 +6,31 @@ import { useAuth } from './AuthProvider';
 import { STATUS_LABELS, PAYMENT_STATUS_LABELS } from '@/lib/constants';
 import { formatDateTime, formatDate, formatTime } from '@/lib/format';
 import { exportToCSV } from '@/lib/export-utils';
-import { ReservationTicket } from '@/types';
+import { FirestoreReservation, Production, Performance, TicketType } from '@/types';
+
+type PerformanceOption = Performance & { productionTitle: string; ticketTypes: TicketType[] };
+type BookingOption = Production & { performances: Performance[] };
+type JoinedReservation = Omit<FirestoreReservation, 'performance'> & { performance: PerformanceOption | null };
 
 type Props = {
-    reservations: any[];
-    bookingOptions: any[];
+    reservations: FirestoreReservation[];
+    bookingOptions: BookingOption[];
 };
 
 export default function ReservationList({ reservations, bookingOptions }: Props) {
     const { user } = useAuth();
-    const [editingReservation, setEditingReservation] = useState<any | null>(null);
-    const [cancellingReservation, setCancellingReservation] = useState<any | null>(null);
+    const [editingReservation, setEditingReservation] = useState<JoinedReservation | null>(null);
+    const [cancellingReservation, setCancellingReservation] = useState<JoinedReservation | null>(null);
     const [showCancelled, setShowCancelled] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedPerformanceId, setSelectedPerformanceId] = useState('all');
 
-    const handleEdit = (res: any) => {
+    const handleEdit = (res: JoinedReservation) => {
         setEditingReservation(res);
     };
 
-    const handleOpenCancelConfirm = (res: any) => {
+    const handleOpenCancelConfirm = (res: JoinedReservation) => {
         setCancellingReservation(res);
         setEditingReservation(null); // Close edit modal if open
     };
@@ -119,8 +123,8 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
         ]);
     };
 
-    const allPerformances = bookingOptions.flatMap(prod =>
-        (prod.performances || []).map((perf: any) => ({
+    const allPerformances: PerformanceOption[] = bookingOptions.flatMap(prod =>
+        (prod.performances || []).map(perf => ({
             ...perf,
             productionTitle: prod.title,
             ticketTypes: prod.ticketTypes
@@ -128,7 +132,7 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
     );
 
     // Join reservations with performance data
-    const joinedReservations = reservations.map(res => {
+    const joinedReservations: JoinedReservation[] = reservations.map(res => {
         const performance = allPerformances.find(p => p.id === res.performanceId);
         return {
             ...res,
@@ -395,7 +399,7 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
 
                                 <div className="form-group" style={{ marginBottom: '1rem' }}>
                                     <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold' }}>メールアドレス</label>
-                                    <input name="customerEmail" defaultValue={editingReservation.customerEmail} className="input" />
+                                    <input name="customerEmail" defaultValue={editingReservation.customerEmail ?? undefined} className="input" />
                                 </div>
 
                                 <div className="form-group" style={{ marginBottom: '1rem' }}>
@@ -440,7 +444,7 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
 
                                 <div className="form-group" style={{ marginBottom: '1.5rem' }}>
                                     <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold' }}>備考</label>
-                                    <textarea name="remarks" defaultValue={editingReservation.remarks} className="input" rows={3} />
+                                    <textarea name="remarks" defaultValue={editingReservation.remarks ?? undefined} className="input" rows={3} />
                                 </div>
 
                                 <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>

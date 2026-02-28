@@ -8,6 +8,7 @@ import ReceptionLinkManager from '@/components/ReceptionLinkManager';
 import ActorUrlManager from '@/components/ActorUrlManager';
 import { useAuth } from '@/components/AuthProvider';
 import { Production, Performance } from '@/types';
+import { toDate } from '@/lib/firestore-utils';
 
 export default function ReceptionPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -75,8 +76,8 @@ export default function ReceptionPage({ params }: { params: Promise<{ id: string
                 <ReceptionLinkManager
                     productionId={production.id}
                     initialStatus={production.receptionStatus}
-                    initialStart={production.receptionStart}
-                    initialEnd={production.receptionEnd}
+                    initialStart={production.receptionStart ? toDate(production.receptionStart).toISOString() : null}
+                    initialEnd={production.receptionEnd ? toDate(production.receptionEnd).toISOString() : null}
                     initialEndMode={(production as any).receptionEndMode || 'MANUAL'}
                     initialEndMinutes={(production as any).receptionEndMinutes || 0}
                     performances={performances}

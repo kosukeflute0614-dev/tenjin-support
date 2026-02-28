@@ -11,7 +11,7 @@ import {
     orderBy
 } from "firebase/firestore";
 import { PerformanceStats, FirestoreReservation, Production, Performance, DuplicateGroup, SalesReport } from "@/types";
-import { serializeDoc, serializeDocs } from "@/lib/firestore-utils";
+import { serializeDoc, serializeDocs, toDate } from "@/lib/firestore-utils";
 
 export async function getDashboardStats(productionId: string, userId: string): Promise<PerformanceStats[]> {
     if (!productionId || !userId) return [];
@@ -26,8 +26,8 @@ export async function getDashboardStats(productionId: string, userId: string): P
         const performances = serializeDocs<Performance>(perfSnapshot.docs)
             .filter(p => p.userId === userId) // Filter userId in memory
             .sort((a, b) => {
-                const timeA = a.startTime ? new Date(a.startTime).getTime() : 0;
-                const timeB = b.startTime ? new Date(b.startTime).getTime() : 0;
+                const timeA = a.startTime ? toDate(a.startTime).getTime() : 0;
+                const timeB = b.startTime ? toDate(b.startTime).getTime() : 0;
                 return timeA - timeB;
             });
 
@@ -159,8 +159,8 @@ export async function getProductionSalesReport(productionId: string, userId: str
         const performances = serializeDocs<Performance>(perfSnapshot.docs)
             .filter(p => p.userId === userId)
             .sort((a, b) => {
-                const at = a.startTime ? new Date(a.startTime).getTime() : 0;
-                const bt = b.startTime ? new Date(b.startTime).getTime() : 0;
+                const at = a.startTime ? toDate(a.startTime).getTime() : 0;
+                const bt = b.startTime ? toDate(b.startTime).getTime() : 0;
                 return at - bt;
             });
 

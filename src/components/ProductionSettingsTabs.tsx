@@ -5,6 +5,7 @@ import PerformanceManager from './PerformanceManager';
 import TicketTypeManager from './TicketTypeManager';
 
 import { updateProductionCustomIdClient, checkCustomIdDuplicateClient } from '@/lib/client-firestore';
+import { Production, Performance, TicketType } from '@/types';
 
 type TabType = 'schedule' | 'tickets' | 'basic';
 
@@ -13,9 +14,9 @@ export default function ProductionSettingsTabs({
     performances,
     ticketTypes
 }: {
-    production: any;
-    performances: any[];
-    ticketTypes: any[];
+    production: Production;
+    performances: Performance[];
+    ticketTypes: TicketType[];
 }) {
     const [activeTab, setActiveTab] = useState<TabType>('schedule');
     const [customId, setCustomId] = useState(production.customId || '');

@@ -11,6 +11,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { PerformanceStats, DuplicateGroup, SalesReport } from '@/types';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { toDate } from '@/lib/firestore-utils';
 
 export default function DashboardPage() {
     const { user, loading, profile } = useAuth();
@@ -206,7 +207,7 @@ export default function DashboardPage() {
                                         const sortedDates = Object.keys(grouped).sort();
 
                                         return sortedDates.map(dateKey => {
-                                            const dateObj = new Date(grouped[dateKey][0].startTime);
+                                            const dateObj = toDate(grouped[dateKey][0].startTime);
                                             const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()];
 
                                             return (

@@ -11,7 +11,7 @@ import {
     orderBy
 } from "firebase/firestore";
 import { FirestoreReservation, Production, Performance } from "@/types";
-import { serializeDoc, serializeDocs } from "@/lib/firestore-utils";
+import { serializeDoc, serializeDocs, toDate } from "@/lib/firestore-utils";
 
 export async function searchReservations(queryStr: string, userId: string) {
     if (!queryStr || !userId) return []
@@ -25,8 +25,8 @@ export async function searchReservations(queryStr: string, userId: string) {
         const snapshot = await getDocs(q);
 
         const allReservations = serializeDocs<any>(snapshot.docs).sort((a, b) => {
-            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            const timeA = a.createdAt ? toDate(a.createdAt!).getTime() : 0;
+            const timeB = b.createdAt ? toDate(b.createdAt!).getTime() : 0;
             return timeB - timeA;
         });
 

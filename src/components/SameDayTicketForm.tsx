@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { createSameDayTicketClient, createSameDayTicketStaffClient } from '@/lib/client-firestore'
 import { NumberStepper, SoftKeypad } from './TouchInputs'
 import { useAuth } from './AuthProvider'
+import { TicketType } from '@/types'
 
 export default function SameDayTicketForm({
     productionId,
@@ -15,7 +16,7 @@ export default function SameDayTicketForm({
 }: {
     productionId: string,
     performanceId: string,
-    ticketTypes: any[],
+    ticketTypes: TicketType[],
     remainingCount: number,
     nextNumber?: number,
     staffToken?: string
@@ -23,7 +24,7 @@ export default function SameDayTicketForm({
     const { user } = useAuth()
     const [customerName, setCustomerName] = useState(`当日_${nextNumber}`)
     const [ticketCounts, setTicketCounts] = useState<{ [id: string]: number }>(() => {
-        const initial: any = {}
+        const initial: { [id: string]: number } = {}
         ticketTypes.forEach(t => initial[t.id] = 0)
         return initial
     })
@@ -48,7 +49,7 @@ export default function SameDayTicketForm({
     const keypadRef = useRef<HTMLDivElement>(null)
 
     const totalQuantity = Object.values(ticketCounts).reduce((sum, count) => sum + count, 0)
-    const totalPrice = (ticketTypes as any[]).reduce((sum, t) => sum + ((t.doorPrice ?? t.price) * (ticketCounts[t.id] || 0)), 0)
+    const totalPrice = ticketTypes.reduce((sum, t) => sum + ((t.doorPrice ?? t.price) * (ticketCounts[t.id] || 0)), 0)
     const change = received - totalPrice
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -87,7 +88,7 @@ export default function SameDayTicketForm({
 
             // Reset form
             setCustomerName(`当日_${nextNumber + 1}`) // 次の番号を予測してセット（CheckinPageからも降ってくるが即応性のため）
-            const resetCounts: any = {}
+            const resetCounts: { [id: string]: number } = {}
             ticketTypes.forEach(t => resetCounts[t.id] = 0)
             setTicketCounts(resetCounts)
             setReceivedStr('')

@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from 'react';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, collection, query, where, getDocs, getDoc, limit } from 'firebase/firestore';
-import { serializeDoc, serializeDocs } from '@/lib/firestore-utils';
+import { serializeDoc, serializeDocs, toDate } from '@/lib/firestore-utils';
 import Link from 'next/link';
 import ProductionSettingsTabs from '@/components/ProductionSettingsTabs';
 import { useAuth } from '@/components/AuthProvider';
@@ -67,8 +67,8 @@ export default function ProductionDetailPage({ params }: { params: Promise<{ id:
                                 unsubscribePerf = onSnapshot(q, (perfSnap) => {
                                     const performances = serializeDocs<Performance>(perfSnap.docs)
                                         .sort((a, b) => {
-                                            const tA = new Date(a.startTime).getTime();
-                                            const tB = new Date(b.startTime).getTime();
+                                            const tA = toDate(a.startTime).getTime();
+                                            const tB = toDate(b.startTime).getTime();
                                             return tA - tB;
                                         });
 

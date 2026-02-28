@@ -1,3 +1,15 @@
+import { FirestoreTimestamp } from '@/types';
+
+/**
+ * FirestoreTimestamp / ISO string / Date / number を Date に変換する
+ */
+export function toDate(ts: FirestoreTimestamp | Date | string | number): Date {
+    if (ts instanceof Date) return ts;
+    if (typeof ts === 'string' || typeof ts === 'number') return new Date(ts);
+    if (typeof ts.toDate === 'function') return ts.toDate!();
+    return new Date((ts as { seconds: number }).seconds * 1000);
+}
+
 /**
  * Helper to serialize Firestore documents (handles Timestamps)
  * Convert Firestore Timestamp objects within a document to ISO strings
