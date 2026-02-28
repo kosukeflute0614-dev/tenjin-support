@@ -58,7 +58,7 @@ export default function AttendanceStatus({ productionId, performances, readOnly 
         });
 
         return () => unsubscribe();
-    }, [selectedPerfId, user]);
+    }, [selectedPerfId, user, readOnly]);
 
     const selectedPerf = performances.find(p => p.id === selectedPerfId);
 

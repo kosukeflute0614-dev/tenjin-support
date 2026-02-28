@@ -482,26 +482,20 @@ export async function deletePerformanceClient(id: string, userId: string) {
  * 券種を追加する（クライアント側）
  */
 export async function addTicketTypeClient(productionId: string, name: string, advancePrice: number, doorPrice: number, userId: string) {
-    console.log("[DEBUG] lib: addTicketTypeClient 開始", { productionId, name, userId });
-
     const docRef = doc(db, "productions", productionId);
     const docSnap = await getDoc(docRef);
     if (!docSnap.exists()) {
-        console.error("[DEBUG] lib: Production が見つかりません", productionId);
         throw new Error('Production not found');
     }
 
     const prodData = docSnap.data();
-    console.log("[DEBUG] lib: 所有権チェック", { docUserId: prodData.userId, requestUserId: userId });
 
     if (prodData.userId !== userId) {
-        console.error("[DEBUG] lib: Unauthorized - userId が一致しません");
         throw new Error('Unauthorized');
     }
 
     // Firestore 標準の方式で ID を生成 (ランダム文字列)
     const newId = doc(collection(db, "_temp_")).id;
-    console.log("[DEBUG] lib: 生成された新チケットID:", newId);
 
     const newTicketType: TicketType = {
         id: newId,
@@ -516,7 +510,6 @@ export async function addTicketTypeClient(productionId: string, name: string, ad
         ticketTypes: arrayUnion(newTicketType),
         updatedAt: serverTimestamp()
     });
-    console.log("[DEBUG] lib: updateDoc 成功");
 }
 
 /**
@@ -1302,7 +1295,6 @@ export async function fetchProductionSalesReportClient(
     if (!productionId || !userId) return null;
 
     try {
-        console.log(`[SalesReport] Generating client-side report for production: ${productionId}`);
 
         // 1. プロダクション情報の取得
         const productionRef = doc(db, "productions", productionId);
@@ -1404,7 +1396,6 @@ export async function fetchProductionSalesReportClient(
             delete report.ticketTypeBreakdown[OTHER_TT_ID];
         }
 
-        console.log(`[SalesReport] Client-side report generated: Total Revenue = ${report.totalRevenue}`);
         return report;
     } catch (error) {
         console.error("[SalesReport] Client-side calculation error:", error);

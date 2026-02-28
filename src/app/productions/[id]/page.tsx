@@ -48,14 +48,13 @@ export default function ProductionDetailPage({ params }: { params: Promise<{ id:
 
                 // 監視の設定
                 const startMonitoring = (realId: string) => {
-                    console.log("[Debug] Monitoring production:", realId);
                     const prodRef = doc(db, "productions", realId);
                     unsubscribeProd = onSnapshot(prodRef, (docSnap) => {
                         if (docSnap.exists()) {
                             const prodData = serializeDoc<Production>(docSnap);
 
                             if (prodData.userId !== user.uid) {
-                                console.error("[Debug] 所有権がありません:", { docUserId: prodData.userId, currentUserId: user.uid });
+                                console.error("Unauthorized: production ownership mismatch");
                                 setDetails(null);
                                 setIsInitialLoading(false);
                                 return;
@@ -75,19 +74,19 @@ export default function ProductionDetailPage({ params }: { params: Promise<{ id:
                                     setDetails({ production: prodData, performances });
                                     setIsInitialLoading(false);
                                 }, (err) => {
-                                    console.error("[Debug] Performances listener error:", err);
+                                    console.error("Performances listener error:", err);
                                     setIsInitialLoading(false);
                                 });
                             } else {
                                 setDetails(prev => prev ? { ...prev, production: prodData } : null);
                             }
                         } else {
-                            console.error("[Debug] Production が存在しません:", realId);
+                            console.error("Production not found:", realId);
                             setDetails(null);
                             setIsInitialLoading(false);
                         }
                     }, (err) => {
-                        console.error("[Debug] Production listener error:", err);
+                        console.error("Production listener error:", err);
                         setIsInitialLoading(false);
                     });
                 };
@@ -97,11 +96,11 @@ export default function ProductionDetailPage({ params }: { params: Promise<{ id:
                     if (resSnap) {
                         startMonitoring(resSnap.id);
                     } else {
-                        console.error("[Debug] IDを解決できませんでした:", id);
+                        console.error("Production ID could not be resolved:", id);
                         setIsInitialLoading(false);
                     }
                 } catch (err) {
-                    console.error("[Debug] ID resolution error:", err);
+                    console.error("ID resolution error:", err);
                     setIsInitialLoading(false);
                 }
             } else if (!loading) {

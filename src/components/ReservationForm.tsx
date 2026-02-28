@@ -41,6 +41,10 @@ export default function ReservationForm({ productions }: Props) {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!user || !selectedPerformance) return;
+        if (totalTickets === 0) {
+            alert('チケットを1枚以上選択してください');
+            return;
+        }
 
         const formData = new FormData(e.currentTarget);
 

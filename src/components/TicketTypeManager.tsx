@@ -146,6 +146,11 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                                     const name = formData.get('name') as string;
                                     const advancePrice = parseInt(formData.get('advancePrice') as string);
                                     const doorPrice = parseInt(formData.get('doorPrice') as string);
+                                    if (isNaN(advancePrice) || isNaN(doorPrice) || advancePrice < 0 || doorPrice < 0) {
+                                        setError('料金は0以上の数値で入力してください');
+                                        setIsProcessing(false);
+                                        return;
+                                    }
                                     try {
                                         await updateTicketTypeClient(productionId, ticket.id, name, advancePrice, doorPrice, user.uid);
                                         setEditingId(null);
@@ -231,10 +236,8 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                 </h4>
                 <form onSubmit={async (e) => {
                     e.preventDefault();
-                    console.log("[DEBUG] Click: 券種追加ボタンが押されました");
 
                     if (!user) {
-                        console.error("[DEBUG] Error: ユーザーがログインしていません");
                         setError("ログイン状態が確認できません。再度ログインしてください。");
                         return;
                     }
@@ -245,14 +248,17 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                     const advancePrice = parseInt(formData.get('advancePrice') as string);
                     const doorPrice = parseInt(formData.get('doorPrice') as string);
 
-                    console.log("[DEBUG] Saving Payload:", { productionId, name, advancePrice, doorPrice, userId: user.uid });
+                    if (isNaN(advancePrice) || isNaN(doorPrice) || advancePrice < 0 || doorPrice < 0) {
+                        setError('料金は0以上の数値で入力してください');
+                        setIsProcessing(false);
+                        return;
+                    }
 
                     try {
                         await addTicketTypeClient(productionId, name, advancePrice, doorPrice, user.uid);
-                        console.log("[DEBUG] Success: 券種の追加に成功しました");
                         (e.target as HTMLFormElement).reset(); // フォームをクリア
                     } catch (error: any) {
-                        console.error("[DEBUG] Error: 保存に失敗しました", error);
+                        console.error('Failed to add ticket type:', error);
                         setError(error.message || '追加に失敗しました。');
                     } finally {
                         setIsProcessing(false);

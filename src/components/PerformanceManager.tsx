@@ -153,6 +153,11 @@ export default function PerformanceManager({ productionId, performances }: Props
                             const date = formData.get('date') as string;
                             const time = formData.get('time') as string;
                             const capacity = parseInt(formData.get('capacity') as string);
+                            if (isNaN(capacity) || capacity < 1) {
+                                setError('定員は1以上の数値で入力してください');
+                                setIsProcessing(false);
+                                return;
+                            }
                             try {
                                 const startTime = `${date}T${time}`;
                                 await addPerformanceClient(productionId, startTime, capacity, user.uid);
@@ -234,6 +239,11 @@ export default function PerformanceManager({ productionId, performances }: Props
                                             const date = formData.get('date') as string;
                                             const time = formData.get('time') as string;
                                             const capacity = parseInt(formData.get('capacity') as string);
+                                            if (isNaN(capacity) || capacity < 1) {
+                                                setError('定員は1以上の数値で入力してください');
+                                                setIsProcessing(false);
+                                                return;
+                                            }
                                             try {
                                                 const startTime = new Date(`${date}T${time}`);
                                                 await updatePerformanceClient(perf.id, startTime, capacity, user.uid);

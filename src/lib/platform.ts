@@ -51,8 +51,6 @@ export async function ensureUserTroupe(userId: string, profile: AppUser): Promis
     const existingMembership = await getCurrentUserMembership(userId);
     if (existingMembership) return;
 
-    console.log('[Platform] Starting automatic troupe generation for:', userId);
-
     try {
         let newTroupeId = '';
 
@@ -85,7 +83,6 @@ export async function ensureUserTroupe(userId: string, profile: AppUser): Promis
         // 3. 既存公演のマイグレーション
         await migrateProductionsToTroupe(userId, newTroupeId);
 
-        console.log('[Platform] Automatic generation and migration completed successfully.');
     } catch (error) {
         console.error('[Platform] Failed to ensure user troupe:', error);
     }
@@ -102,7 +99,6 @@ export async function initializeTroupeAndMembership(user: User, troupeName: stri
         // 1. すでに所属があるか確認
         const existingMembership = await getCurrentUserMembership(userId);
         if (existingMembership) {
-            console.log('[Platform] User already has a membership. Skipping initialization.');
             return;
         }
 
@@ -148,7 +144,6 @@ export async function initializeTroupeAndMembership(user: User, troupeName: stri
             await migrateProductionsToTroupe(userId, newMembership.troupeId);
         }
 
-        console.log('[Platform] Full initialization completed.');
     } catch (error: any) {
         console.error('[Platform] Failed to initialize troupe and membership:', error);
         // エラーコードやメッセージをより詳細に把握するために出力
@@ -166,7 +161,6 @@ async function migrateProductionsToTroupe(userId: string, troupeId: string): Pro
     const prodSnapshot = await getDocs(qProd);
 
     if (!prodSnapshot.empty) {
-        console.log(`[Platform] Migrating ${prodSnapshot.size} productions to troupe: ${troupeId}`);
         const batch = writeBatch(db);
         prodSnapshot.docs.forEach((prodDoc) => {
             const data = prodDoc.data();

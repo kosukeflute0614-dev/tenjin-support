@@ -104,21 +104,17 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                 const sessionKey = `staff_session_${realId}`;
                 sessionStorage.setItem('last_staff_production_id', realId);
                 sessionStorage.setItem('last_staff_token', token);
-                console.log(`[StaffPortal] Checking session for realId: ${realId}, token: ${token}`);
 
                 const sessionValid = await checkStaffSession(realId, token, uid);
                 if (sessionValid) {
                     const sessionSnap = await getDoc(doc(db, "staffSessions", uid));
                     if (sessionSnap.exists()) {
                         const sessData = sessionSnap.data();
-                        console.log(`[StaffPortal] Firestore session found:`, sessData);
                         if (sessData.productionId === realId && sessData.token === token) {
                             setIsAuthenticated(true);
                             setIsLoading(false);
                             return;
                         }
-                    } else {
-                        console.log(`[StaffPortal] Firestore session document NOT found for UID: ${uid}`);
                     }
                 }
             } catch (err: any) {
@@ -139,7 +135,6 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
         }
 
         const currentProdId = resolvedProductionId || productionId;
-        console.log(`[StaffPortal] Snapshot query: prodId=${currentProdId}, perfId=${selectedPerformanceId}`);
         const reservationsRef = collection(db, "reservations");
         const q = query(
             collection(db, "reservations"),
@@ -148,7 +143,6 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            console.log(`[StaffPortal] Received ${snapshot.docs.length} reservations`);
             const docs = serializeDocs<FirestoreReservation>(snapshot.docs);
             const mappedReservations = docs
                 .filter(r => r.status !== 'CANCELED')
@@ -166,7 +160,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
         });
 
         return () => unsubscribe();
-    }, [isAuthenticated, resolvedProductionId, productionId, token, selectedPerformanceId]);
+    }, [isAuthenticated, resolvedProductionId, token, selectedPerformanceId]);
 
     // 公演が1つだけの場合は自動選択、または初期選択を補助
     useEffect(() => {
@@ -191,7 +185,6 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
             const res = await verifyStaffPasscode(resolvedProductionId || productionId, token, passcode, uid);
             if (res.success && res.passcodeHashed) {
                 // Firestore 側にセッションドキュメントを作成
-                console.log(`[StaffPortal] Auth success, syncing session to Firestore...`);
                 await syncStaffSessionToFirestore(uid, res.passcodeHashed);
                 setIsAuthenticated(true);
             } else {

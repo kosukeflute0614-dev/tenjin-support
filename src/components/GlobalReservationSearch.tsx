@@ -11,20 +11,23 @@ export default function GlobalReservationSearch({ productionId }: { productionId
     const [query, setQuery] = useState('')
     const [results, setResults] = useState<any[]>([])
     const [isSearching, setIsSearching] = useState(false)
+    const [searchError, setSearchError] = useState<string | null>(null)
 
     const handleSearch = async (q: string) => {
         setQuery(q)
         if (q.length < 2 || !user) {
             setResults([])
+            setSearchError(null)
             return
         }
         setIsSearching(true)
+        setSearchError(null)
         try {
             const data = await searchReservations(q, user.uid)
-            // 当該プロジェクト以外の予約が混ざる可能性があればフィルタリング（今回はプロジェクト内全公演想定）
             setResults(data)
         } catch (err) {
             console.error(err)
+            setSearchError('検索に失敗しました。もう一度お試しください。')
         } finally {
             setIsSearching(false)
         }
@@ -59,7 +62,8 @@ export default function GlobalReservationSearch({ productionId }: { productionId
 
             <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
                 {isSearching && <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>検索中...</p>}
-                {!isSearching && query.length >= 2 && results.length === 0 && (
+                {searchError && <p style={{ fontSize: '0.85rem', color: '#c0392b', padding: '0.25rem 0' }}>{searchError}</p>}
+                {!isSearching && !searchError && query.length >= 2 && results.length === 0 && (
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>見つかりませんでした</p>
                 )}
                 {results.map(res => (

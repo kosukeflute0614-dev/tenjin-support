@@ -42,6 +42,10 @@ export default function PublicReservationForm({ production, promoterId }: Props)
 
     const handleToConfirm = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if (totalTickets === 0) {
+            setError('チケットを1枚以上選択してください');
+            return;
+        }
         const formData = new FormData(e.currentTarget);
         setCustomerInfo({
             name: formData.get('customerName') as string,
