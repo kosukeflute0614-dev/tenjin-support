@@ -4,10 +4,12 @@ import { createProductionClient } from '@/lib/client-firestore';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/components/Toast';
 
 export default function NewProductionPage() {
     const { user, profile, loading } = useAuth();
     const router = useRouter();
+    const { showToast } = useToast();
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -28,7 +30,7 @@ export default function NewProductionPage() {
             router.push(`/productions/${newId}`);
         } catch (error) {
             console.error("Error creating production:", error);
-            alert("公演の作成に失敗しました。");
+            showToast('公演の作成に失敗しました。', 'error');
         }
     };
 

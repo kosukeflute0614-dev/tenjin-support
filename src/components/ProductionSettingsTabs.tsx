@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import PerformanceManager from './PerformanceManager';
 import TicketTypeManager from './TicketTypeManager';
 
 import { updateProductionCustomIdClient, checkCustomIdDuplicateClient } from '@/lib/client-firestore';
 import { Production, Performance, TicketType } from '@/types';
+import { Calendar, Ticket, Settings } from 'lucide-react';
+import { useToast } from '@/components/Toast';
 
 type TabType = 'schedule' | 'tickets' | 'basic';
 
@@ -18,6 +20,7 @@ export default function ProductionSettingsTabs({
     performances: Performance[];
     ticketTypes: TicketType[];
 }) {
+    const { showToast } = useToast();
     const [activeTab, setActiveTab] = useState<TabType>('schedule');
     const [customId, setCustomId] = useState(production.customId || '');
     const [isSaving, setIsSaving] = useState(false);
@@ -63,13 +66,19 @@ export default function ProductionSettingsTabs({
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
-        alert('URLをクリップボードにコピーしました。');
+        showToast('URLをクリップボードにコピーしました。', 'success');
+    };
+
+    const tabIcons: Record<string, React.ReactNode> = {
+        schedule: <Calendar size={20} />,
+        tickets: <Ticket size={20} />,
+        basic: <Settings size={20} />,
     };
 
     const tabs = [
-        { id: 'schedule', label: '公演スケジュール', icon: '📅' },
-        { id: 'tickets', label: '券種・価格', icon: '🎫' },
-        { id: 'basic', label: '基本情報', icon: '⚙️' },
+        { id: 'schedule', label: '公演スケジュール' },
+        { id: 'tickets', label: '券種・価格' },
+        { id: 'basic', label: '基本情報' },
     ];
 
     return (
@@ -103,7 +112,7 @@ export default function ProductionSettingsTabs({
                             marginBottom: '-2px'
                         }}
                     >
-                        <span style={{ fontSize: '1.2rem' }}>{tab.icon}</span>
+                        <span style={{ display: 'flex', alignItems: 'center' }}>{tabIcons[tab.id]}</span>
                         {tab.label}
                     </button>
                 ))}
@@ -112,19 +121,19 @@ export default function ProductionSettingsTabs({
             {/* コンテンツエリア */}
             <div style={{ animation: 'fadeIn 0.3s ease-in-out' }}>
                 {activeTab === 'schedule' && (
-                    <div className="card" style={{ padding: '2rem', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                    <div className="card" style={{ padding: '2rem', border: 'none', boxShadow: 'var(--shadow-md)' }}>
                         <PerformanceManager productionId={production.id} performances={performances} />
                     </div>
                 )}
 
                 {activeTab === 'tickets' && (
-                    <div className="card" style={{ padding: '2rem', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                    <div className="card" style={{ padding: '2rem', border: 'none', boxShadow: 'var(--shadow-md)' }}>
                         <TicketTypeManager productionId={production.id} ticketTypes={ticketTypes} />
                     </div>
                 )}
 
                 {activeTab === 'basic' && (
-                    <div className="card" style={{ padding: '2rem', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                    <div className="card" style={{ padding: '2rem', border: 'none', boxShadow: 'var(--shadow-md)' }}>
                         <h3 className="heading-md">公演基本情報</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1.5rem' }}>
                             <div className="form-group">

@@ -5,6 +5,7 @@ import { switchProduction } from '@/app/actions/production-context';
 import { deleteProductionClient } from '@/lib/client-firestore';
 import Link from 'next/link';
 import { Production } from '@/types';
+import { useToast } from '@/components/Toast';
 
 type Props = {
     productions: Production[];
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export default function ProductionList({ productions, activeId }: Props) {
+    const { showToast } = useToast();
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
     const handleSwitch = async (id: string) => {
@@ -24,7 +26,7 @@ export default function ProductionList({ productions, activeId }: Props) {
             try {
                 await deleteProductionClient(id);
             } catch (error) {
-                alert("公演の削除に失敗しました。権限がないか、エラーが発生しました。");
+                showToast('公演の削除に失敗しました。権限がないか、エラーが発生しました。', 'error');
             } finally {
                 setIsDeleting(null);
             }

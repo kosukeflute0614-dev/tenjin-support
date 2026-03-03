@@ -391,3 +391,110 @@ p a, li a, span a, td a {
 @media (min-width: 1280px) {
   .container { max-width: 1400px; }
 }
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #1a1a2e;
+    --foreground: #e2e8f0;
+    --card-bg: #16213e;
+    --card-border: #334155;
+    --primary: #e74c3c;
+    --primary-hover: #c0392b;
+    --secondary: #1e293b;
+    --accent: #ef4444;
+    --success: #4ade80;
+    --text-muted-color: #94a3b8;
+    --text-muted: #94a3b8;
+    --border-radius: 6px;
+
+    /* Slate overrides for dark */
+    --slate-50: #0f172a;
+    --slate-100: #1e293b;
+    --slate-200: #334155;
+    --slate-300: #475569;
+    --slate-400: #64748b;
+    --slate-500: #94a3b8;
+    --slate-600: #cbd5e1;
+    --slate-700: #e2e8f0;
+    --slate-800: #f1f5f9;
+    --slate-900: #f8fafc;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+
+  .card {
+    background-color: var(--card-bg);
+    border-color: var(--card-border);
+  }
+
+  .input {
+    background-color: var(--slate-100);
+    border-color: var(--card-border);
+    color: var(--foreground);
+  }
+
+  .global-header {
+    background-color: var(--card-bg);
+    border-bottom-color: var(--card-border);
+  }
+
+  .global-footer {
+    background-color: var(--slate-100);
+    border-top-color: var(--card-border);
+    color: var(--slate-400);
+  }
+
+  .btn-secondary {
+    background-color: var(--secondary);
+    color: var(--foreground);
+    border-color: var(--card-border);
+  }
+
+  .menu-card {
+    background-color: var(--card-bg);
+    border-color: var(--card-border);
+  }
+
+  .menu-card:hover {
+    border-color: var(--primary);
+  }
+
+  .text-muted {
+    color: var(--text-muted-color);
+  }
+
+  .heading-lg, .heading-md {
+    color: var(--foreground);
+  }
+
+  /* Table headers */
+  thead, th {
+    background-color: var(--slate-100) !important;
+    color: var(--foreground);
+  }
+
+  td {
+    border-color: var(--card-border);
+  }
+
+  /* Skip link dark mode */
+  .skip-link {
+    background-color: var(--primary);
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

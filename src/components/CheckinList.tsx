@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, Fragment, useRef } from 'react'
+import { CheckCircle, MinusCircle, Circle } from 'lucide-react'
 import {
     processCheckinWithPaymentClient,
     resetCheckInClient,
@@ -12,6 +13,7 @@ import {
 import { formatTime } from '@/lib/format'
 import { NumberStepper, SoftKeypad } from './TouchInputs'
 import { useAuth } from './AuthProvider'
+import { useToast } from '@/components/Toast'
 
 type ReservationWithTickets = any
 
@@ -29,6 +31,7 @@ export default function CheckinList({
     staffRole?: string
 }) {
     const { user } = useAuth()
+    const { showToast } = useToast()
     const [isPending, startTransition] = useTransition()
     const [selectedRes, setSelectedRes] = useState<any | null>(null)
 
@@ -144,31 +147,31 @@ export default function CheckinList({
                                 if (staffToken) {
                                     processCheckinWithPaymentStaffClient(selectedRes.id, count, additionalPayment || 0, fullBreakdown, performanceId, productionId, staffToken)
                                         .then(() => setSelectedRes(null))
-                                        .catch(err => alert(err.message))
+                                        .catch(err => showToast(err.message, 'error'))
                                 } else if (user) {
                                     processCheckinWithPaymentClient(selectedRes.id, count, additionalPayment || 0, fullBreakdown, performanceId, productionId, user.uid)
                                         .then(() => setSelectedRes(null))
-                                        .catch(err => alert(err.message))
+                                        .catch(err => showToast(err.message, 'error'))
                                 }
                             } else if (type === 'complex_checkin') {
                                 if (staffToken) {
                                     processCheckinWithPaymentStaffClient(selectedRes.id, count, additionalPayment || 0, breakdown || {}, performanceId, productionId, staffToken)
                                         .then(() => setSelectedRes(null))
-                                        .catch(err => alert(err.message))
+                                        .catch(err => showToast(err.message, 'error'))
                                 } else if (user) {
                                     processCheckinWithPaymentClient(selectedRes.id, count, additionalPayment || 0, breakdown || {}, performanceId, productionId, user.uid)
                                         .then(() => setSelectedRes(null))
-                                        .catch(err => alert(err.message))
+                                        .catch(err => showToast(err.message, 'error'))
                                 }
                             } else if (type === 'reset') {
                                 if (staffToken) {
                                     resetCheckInStaffClient(selectedRes.id, performanceId, productionId, staffToken)
                                         .then(() => setSelectedRes(null))
-                                        .catch(err => alert(err.message))
+                                        .catch(err => showToast(err.message, 'error'))
                                 } else if (user) {
                                     resetCheckInClient(selectedRes.id, performanceId, productionId, user.uid)
                                         .then(() => setSelectedRes(null))
-                                        .catch(err => alert(err.message))
+                                        .catch(err => showToast(err.message, 'error'))
                                 }
                             }
                         })
@@ -187,7 +190,14 @@ function CheckinBadge({ status }: { status: string }) {
         NOT_CHECKED_IN: { bg: '#eee', color: '#666', label: '未入場' }
     }
     const style = styles[status] || styles.NOT_CHECKED_IN
-    return <span style={{ padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', background: style.bg, color: style.color }}>{style.label}</span>
+
+    const iconMap: Record<string, React.ReactNode> = {
+        CHECKED_IN: <CheckCircle size={14} />,
+        PARTIALLY_CHECKED_IN: <MinusCircle size={14} />,
+        NOT_CHECKED_IN: <Circle size={14} />
+    }
+
+    return <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', background: style.bg, color: style.color }}>{iconMap[status] || iconMap.NOT_CHECKED_IN}{style.label}</span>
 }
 
 // 受付詳細モーダル
@@ -211,6 +221,7 @@ function DetailModal({
     staffRole?: string
 }) {
     const { user } = useAuth()
+    const { showToast } = useToast()
     const [isTransitionPending, startTransition] = useTransition()
     const tickets = res.tickets || []
     const totalTickets = tickets.reduce((sum: number, t: any) => sum + (t.count || 0), 0)
@@ -271,11 +282,11 @@ function DetailModal({
             if (staffToken) {
                 processPartialResetStaffClient(res.id, resetCount, totalRefund, refundBreakdown, performanceId, productionId, staffToken)
                     .then(() => onClose())
-                    .catch(err => alert(err.message))
+                    .catch(err => showToast(err.message, 'error'))
             } else if (user) {
                 processPartialResetClient(res.id, resetCount, totalRefund, refundBreakdown, performanceId, productionId, user.uid)
                     .then(() => onClose())
-                    .catch(err => alert(err.message))
+                    .catch(err => showToast(err.message, 'error'))
             }
         })
     }

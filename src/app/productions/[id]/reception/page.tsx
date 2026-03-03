@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ReceptionLinkManager from '@/components/ReceptionLinkManager';
 import ActorUrlManager from '@/components/ActorUrlManager';
+import Breadcrumb from '@/components/Breadcrumb';
 import { useAuth } from '@/components/AuthProvider';
 import { Production, Performance } from '@/types';
 import { toDate } from '@/lib/firestore-utils';
@@ -51,19 +52,12 @@ export default function ReceptionPage({ params }: { params: Promise<{ id: string
 
     return (
         <div className="container" style={{ maxWidth: '800px' }}>
+            <Breadcrumb items={[
+                { label: 'ダッシュボード', href: '/dashboard' },
+                { label: production.title, href: `/productions/${id}` },
+                { label: '受付設定' }
+            ]} />
             <div className="page-header" style={{ marginBottom: '2.5rem' }}>
-                <div style={{ marginBottom: '1.5rem' }}>
-                    <Link href="/dashboard" className="btn btn-secondary" style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        padding: '0.75rem 1.5rem',
-                        fontWeight: 'bold'
-                    }}>
-                        <span>&larr;</span> ダッシュボードに戻る
-                    </Link>
-                </div>
-
                 <h2 className="heading-lg" style={{ borderLeft: '4px solid var(--primary)', paddingLeft: '1rem', margin: 0 }}>
                     予約受付管理: {production.title}
                 </h2>

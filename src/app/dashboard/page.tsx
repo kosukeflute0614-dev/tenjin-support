@@ -12,6 +12,7 @@ import { PerformanceStats, DuplicateGroup, SalesReport } from '@/types';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { toDate } from '@/lib/firestore-utils';
+import { Settings, Ticket, Bell, Smartphone, Users, Key, ClipboardList, FileEdit, Wallet, Mail, BarChart3, Calendar } from 'lucide-react';
 
 export default function DashboardPage() {
     const { user, loading, profile } = useAuth();
@@ -99,57 +100,57 @@ export default function DashboardPage() {
 
             <div className="menu-grid">
                 <Link href={activeProductionId ? `/productions/${activeProductionId}` : '/productions'} className="menu-card">
-                    <span className="icon">⚙️</span>
+                    <span className="icon"><Settings size={32} color="var(--primary)" /></span>
                     <h3>公演設定</h3>
                     <p>価格・回・詳細設定</p>
                 </Link>
                 <Link href="/reservations" className="menu-card">
-                    <span className="icon">🎫</span>
+                    <span className="icon"><Ticket size={32} color="var(--primary)" /></span>
                     <h3>予約管理</h3>
                     <p>予約の確認・追加・メール送信</p>
                 </Link>
                 <Link href={activeProductionId ? `/productions/${activeProductionId}/reception` : '/productions'} className="menu-card">
-                    <span className="icon">🔔</span>
+                    <span className="icon"><Bell size={32} color="var(--primary)" /></span>
                     <h3>予約受付</h3>
                     <p>受付の開始・停止・期間設定</p>
                 </Link>
                 <Link href="/reception" className="menu-card">
-                    <span className="icon">📱</span>
+                    <span className="icon"><Smartphone size={32} color="var(--primary)" /></span>
                     <h3>当日受付</h3>
                     <p>来場処理・当日券対応</p>
                 </Link>
                 <Link href={activeProductionId ? `/productions/${activeProductionId}/attendance` : '/productions'} className="menu-card">
-                    <span className="icon">👥</span>
+                    <span className="icon"><Users size={32} color="var(--primary)" /></span>
                     <h3>来場状況</h3>
                     <p>リアルタイム着券状況の確認</p>
                 </Link>
                 <Link href={activeProductionId ? `/productions/${activeProductionId}/staff` : '/productions'} className="menu-card">
-                    <span className="icon">🔑</span>
+                    <span className="icon"><Key size={32} color="var(--primary)" /></span>
                     <h3>スタッフ招待・管理</h3>
                     <p>合鍵（スタッフ用URL）の発行と管理</p>
                 </Link>
                 <Link href={activeProductionId ? `/productions/${activeProductionId}/report` : '/productions'} className="menu-card">
-                    <span className="icon">📋</span>
+                    <span className="icon"><ClipboardList size={32} color="var(--primary)" /></span>
                     <h3>レポート</h3>
                     <p>売上・券種別の詳細集計</p>
                 </Link>
                 <Link href={activeProductionId ? `/productions/${activeProductionId}/survey` : '/productions'} className="menu-card">
-                    <span className="icon">📝</span>
+                    <span className="icon"><FileEdit size={32} color="var(--primary)" /></span>
                     <h3>アンケート管理</h3>
                     <p>アンケートの作成・集計・分析</p>
                 </Link>
                 <Link href={activeProductionId ? `/productions/${activeProductionId}/cashclose-report` : '/productions'} className="menu-card">
-                    <span className="icon">💰</span>
+                    <span className="icon"><Wallet size={32} color="var(--primary)" /></span>
                     <h3>レジ締めレポート</h3>
                     <p>各公演回の精算結果を確認</p>
                 </Link>
                 <Link href={activeProductionId ? `/productions/${activeProductionId}/email` : '/productions'} className="menu-card">
-                    <span className="icon">✉️</span>
+                    <span className="icon"><Mail size={32} color="var(--primary)" /></span>
                     <h3>メール管理</h3>
                     <p>自動メール・一斉送信の設定</p>
                 </Link>
                 <Link href={activeProductionId ? `/productions/${activeProductionId}/form-editor` : '/productions'} className="menu-card">
-                    <span className="icon">📝</span>
+                    <span className="icon"><FileEdit size={32} color="var(--primary)" /></span>
                     <h3>予約フォーム編集</h3>
                     <p>予約フォームの項目設定</p>
                 </Link>
@@ -157,7 +158,7 @@ export default function DashboardPage() {
 
             <div className="stats-section" style={{ marginTop: '3rem' }}>
                 <h3 className="heading-md" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    <span style={{ fontSize: '1.4rem' }}>📊</span> 予約状況
+                    <BarChart3 size={22} color="var(--primary)" /> 予約状況
                 </h3>
 
                 {/* サマリーカード */}
@@ -168,9 +169,9 @@ export default function DashboardPage() {
                             borderRadius: 'var(--border-radius)',
                             border: '1px solid var(--card-border)',
                             padding: '1.25rem 1.5rem',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                            boxShadow: 'var(--shadow-sm)'
                         }}>
-                            <div style={{ fontSize: '0.8rem', color: '#888', fontWeight: 'bold', marginBottom: '0.4rem' }}>💰 売上予定金額</div>
+                            <div style={{ fontSize: '0.8rem', color: '#888', fontWeight: 'bold', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Wallet size={16} /> 売上予定金額</div>
                             <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--foreground)' }}>{formatCurrency(salesReport.totalRevenue)}</div>
                         </div>
                         <div style={{
@@ -178,9 +179,9 @@ export default function DashboardPage() {
                             borderRadius: 'var(--border-radius)',
                             border: '1px solid var(--card-border)',
                             padding: '1.25rem 1.5rem',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                            boxShadow: 'var(--shadow-sm)'
                         }}>
-                            <div style={{ fontSize: '0.8rem', color: '#888', fontWeight: 'bold', marginBottom: '0.4rem' }}>🎫 予約総数</div>
+                            <div style={{ fontSize: '0.8rem', color: '#888', fontWeight: 'bold', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Ticket size={16} /> 予約総数</div>
                             <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--foreground)' }}>{salesReport.totalTickets}<span style={{ fontSize: '0.9rem', fontWeight: 'bold', marginLeft: '0.25rem', color: '#666' }}>枚</span></div>
                         </div>
                     </div>
@@ -199,7 +200,7 @@ export default function DashboardPage() {
                         borderRadius: 'var(--border-radius)',
                         border: '1px solid var(--card-border)',
                         overflow: 'hidden',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                        boxShadow: 'var(--shadow-sm)'
                     }}>
                         <div style={{ overflowX: 'auto' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.95rem', minWidth: '500px' }}>
@@ -229,7 +230,7 @@ export default function DashboardPage() {
                                                 <React.Fragment key={dateKey}>
                                                     <tr style={{ background: '#fcfcfc', borderBottom: '1px solid var(--card-border)' }}>
                                                         <td colSpan={3} style={{ padding: '0.6rem 1.2rem', fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
-                                                            📅 {dateKey} ({dayOfWeek})
+                                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}><Calendar size={16} /> {dateKey} ({dayOfWeek})</span>
                                                         </td>
                                                     </tr>
                                                     {grouped[dateKey].map(perf => (

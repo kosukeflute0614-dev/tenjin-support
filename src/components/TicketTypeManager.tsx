@@ -5,6 +5,7 @@ import { addTicketTypeClient, updateTicketTypeClient, deleteTicketTypeClient } f
 import { SmartNumberInput } from './SmartInputs';
 import { useAuth } from './AuthProvider';
 import { TicketType } from '@/types';
+import { Ticket } from 'lucide-react';
 
 type Props = {
     productionId: string;
@@ -64,7 +65,7 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                         maxWidth: '400px',
                         padding: '2rem',
                         textAlign: 'center',
-                        boxShadow: '0 15px 35px rgba(0,0,0,0.1)',
+                        boxShadow: 'var(--shadow-xl)',
                         border: '2px solid var(--primary)',
                         backgroundColor: '#fff'
                     }}>
@@ -116,7 +117,7 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                         maxWidth: '400px',
                         padding: '2rem',
                         textAlign: 'center',
-                        boxShadow: '0 15px 35px rgba(0,0,0,0.1)',
+                        boxShadow: 'var(--shadow-xl)',
                         border: '2px solid var(--primary)',
                         backgroundColor: '#fff'
                     }}>
@@ -232,7 +233,7 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                     gap: '0.6rem',
                     fontWeight: 'bold'
                 }}>
-                    <span style={{ fontSize: '1.4rem' }}>🎟️</span> 券種を追加
+                    <Ticket size={22} color="#8b0000" /> 券種を追加
                 </h4>
                 <form onSubmit={async (e) => {
                     e.preventDefault();

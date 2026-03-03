@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, use } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
+import { useToast } from '@/components/Toast';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { serializeDoc } from '@/lib/firestore-utils';
@@ -69,6 +70,7 @@ interface AddFieldForm {
 export default function FormEditorPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const { user, loading } = useAuth();
+    const { showToast } = useToast();
     const [production, setProduction] = useState<Production | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [fields, setFields] = useState<FormField[]>([...INITIAL_FIELDS]);
@@ -276,7 +278,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
             setTimeout(() => setSaveSuccess(false), 3000);
         } catch (err) {
             console.error('Failed to save form fields:', err);
-            alert('保存に失敗しました。');
+            showToast('保存に失敗しました。', 'error');
         } finally {
             setIsSaving(false);
         }

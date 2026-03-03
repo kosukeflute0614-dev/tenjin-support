@@ -5,6 +5,7 @@ import { DuplicateGroup, FirestoreReservation } from '@/types';
 import { cancelReservation } from '@/app/actions/reservation';
 import { formatDate, formatTime } from '@/lib/format';
 import { useAuth } from './AuthProvider';
+import { useToast } from '@/components/Toast';
 
 type Props = {
     groups: DuplicateGroup[];
@@ -12,6 +13,7 @@ type Props = {
 
 export default function DuplicateNotification({ groups }: Props) {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [isOpen, setIsOpen] = useState(false);
     const [selectedGroup, setSelectedGroup] = useState<DuplicateGroup | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -47,7 +49,7 @@ export default function DuplicateNotification({ groups }: Props) {
             setConfirmReservationId(null);
         } catch (error) {
             console.error('Failed to cancel reservation:', error);
-            alert('キャンセルの実行に失敗しました。');
+            showToast('キャンセルの実行に失敗しました。', 'error');
         } finally {
             setIsProcessing(false);
         }

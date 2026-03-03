@@ -8,6 +8,7 @@ import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import { NumberStepper } from '@/components/TouchInputs';
 import { SmartMaskedDatePicker, SmartMaskedTimeInput } from './SmartInputs';
 import { useAuth } from './AuthProvider';
+import { useToast } from '@/components/Toast';
 import { useRouter } from 'next/navigation';
 
 type Props = {
@@ -34,6 +35,7 @@ export default function ReceptionLinkManager({
     customId = null
 }: Props) {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const router = useRouter();
     const [baseUrl, setBaseUrl] = useState('');
     const [copied, setCopied] = useState(false);
@@ -274,7 +276,7 @@ export default function ReceptionLinkManager({
             router.refresh();
         } catch (err) {
             console.error('Action failed:', err);
-            alert('操作に失敗しました。');
+            showToast('操作に失敗しました。', 'error');
         } finally {
             setIsUpdating(false);
         }

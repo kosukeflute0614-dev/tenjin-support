@@ -4,6 +4,7 @@ import { Inter, Playfair_Display } from 'next/font/google'
 import HeaderNav from '@/components/HeaderNav'
 import Link from 'next/link';
 import { AuthProvider } from '@/components/AuthProvider';
+import { ToastProvider } from '@/components/Toast';
 import RouteGuard from '@/components/RouteGuard';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
@@ -24,6 +25,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${playfair.variable}`}>
         <a href="#main-content" className="skip-link">メインコンテンツへスキップ</a>
         <AuthProvider>
+          <ToastProvider>
           <RouteGuard>
             <header className="global-header">
               <div className="container header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 0' }}>
@@ -42,6 +44,7 @@ export default function RootLayout({
               </div>
             </footer>
           </RouteGuard>
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>

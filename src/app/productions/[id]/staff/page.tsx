@@ -6,6 +6,8 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { serializeDoc } from '@/lib/firestore-utils';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
+import { useToast } from '@/components/Toast';
+import Breadcrumb from '@/components/Breadcrumb';
 import { Production } from '@/types';
 import { useRouter } from 'next/navigation';
 import { generateStaffTokenClient, revokeStaffTokenClient, updateStaffTokenPasscodeClient } from '@/lib/client-firestore';
@@ -13,6 +15,7 @@ import { generateStaffTokenClient, revokeStaffTokenClient, updateStaffTokenPassc
 export default function StaffManagementPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const { user, loading } = useAuth();
+    const { showToast } = useToast();
     const router = useRouter();
     const [production, setProduction] = useState<Production | null>(null);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -64,9 +67,9 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
             const message = passcode
                 ? `新しいスタッフ用URLを発行しました。\n\n【重要】6桁のパスコードが設定されました：${passcode}\nスタッフに入場チェック画面で入力するよう伝えてください。`
                 : '新しいスタッフ用URLを発行しました。';
-            alert(message);
+            showToast(message, 'success');
         } catch (error: any) {
-            alert(`発行に失敗しました: ${error.message}`);
+            showToast(`発行に失敗しました: ${error.message}`, 'error');
         } finally {
             setIsProcessing(false);
         }
@@ -79,9 +82,9 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
         setIsProcessing(true);
         try {
             await revokeStaffTokenClient(production.id, token);
-            alert('URLを無効化しました。');
+            showToast('URLを無効化しました。', 'success');
         } catch (error: any) {
-            alert(`無効化に失敗しました: ${error.message}`);
+            showToast(`無効化に失敗しました: ${error.message}`, 'error');
         } finally {
             setIsProcessing(false);
         }
@@ -93,16 +96,16 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
         if (!newPasscode || newPasscode === currentPasscode) return;
 
         if (!/^\d{6}$/.test(newPasscode)) {
-            alert('パスコードは数字6桁で入力してください。');
+            showToast('パスコードは数字6桁で入力してください。', 'warning');
             return;
         }
 
         setIsProcessing(true);
         try {
             await updateStaffTokenPasscodeClient(production.id, token, newPasscode);
-            alert('パスコードを更新しました。');
+            showToast('パスコードを更新しました。', 'success');
         } catch (error: any) {
-            alert(`更新に失敗しました: ${error.message}`);
+            showToast(`更新に失敗しました: ${error.message}`, 'error');
         } finally {
             setIsProcessing(false);
         }
@@ -110,7 +113,7 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
-        alert('招待URLをクリップボードにコピーしました。');
+        showToast('招待URLをクリップボードにコピーしました。', 'success');
     };
 
     if (loading || isInitialLoading) {
@@ -136,12 +139,12 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
 
     return (
         <div className="container" style={{ maxWidth: '800px' }}>
+            <Breadcrumb items={[
+                { label: 'ダッシュボード', href: '/dashboard' },
+                { label: production.title, href: `/productions/${id}` },
+                { label: 'スタッフ管理' }
+            ]} />
             <div className="page-header" style={{ marginBottom: '2rem' }}>
-                <div style={{ marginBottom: '1.25rem' }}>
-                    <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
-                        <span>&larr;</span> ダッシュボードに戻る
-                    </Link>
-                </div>
                 <h2 className="heading-lg" style={{ marginBottom: '0.5rem' }}>🔑 スタッフ招待・管理</h2>
                 <p className="text-muted">ログイン不要でアクセスできる「合鍵（スタッフ用URL）」を発行・管理します。</p>
             </div>

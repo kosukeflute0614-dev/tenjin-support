@@ -22,21 +22,33 @@ export default function UserMenu() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    // Escapeキーでメニューを閉じる
+    useEffect(() => {
+        if (!isOpen) return;
+        function handleKeyDown(event: KeyboardEvent) {
+            if (event.key === 'Escape') {
+                setIsOpen(false);
+            }
+        }
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen]);
+
     const handleLogout = async () => {
         if (confirm('ログアウトしますか？')) {
             await logout();
         }
     };
 
-    // 共通のスタイル定数
-    const slate400 = '#94a3b8';
-    const slate50 = '#f8fafc';
-    const slate100 = '#f1f5f9';
-    const slate600 = '#475569';
-    const slate700 = '#334155';
-    const slate900 = '#0f172a';
+    // 共通のスタイル定数（CSS変数参照）
+    const slate400 = 'var(--slate-400)';
+    const slate50 = 'var(--slate-50)';
+    const slate100 = 'var(--slate-100)';
+    const slate600 = 'var(--slate-600)';
+    const slate700 = 'var(--slate-700)';
+    const slate900 = 'var(--slate-900)';
     const red50 = 'rgba(254, 242, 242, 0.5)';
-    const red600 = '#dc2626';
+    const red600 = 'var(--accent)';
 
     const itemStyle = (id: string) => ({
         display: 'flex',
@@ -90,7 +102,7 @@ export default function UserMenu() {
                         backgroundColor: '#FFFFFF',
                         border: `1px solid ${slate100}`,
                         borderRadius: '12px',
-                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                        boxShadow: 'var(--shadow-xl)',
                         width: '240px',
                         zIndex: 100,
                         overflow: 'hidden',

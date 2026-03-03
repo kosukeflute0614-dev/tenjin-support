@@ -21,6 +21,7 @@ import GlobalReservationSearch from '@/components/GlobalReservationSearch';
 import Link from 'next/link';
 import { Production, Performance, FirestoreReservation } from "@/types";
 import { useAuth } from '@/components/AuthProvider';
+import Breadcrumb from '@/components/Breadcrumb';
 import { serializeDoc, serializeDocs } from '@/lib/firestore-utils';
 
 export default function CheckinPage({ params }: { params: any }) {
@@ -217,6 +218,11 @@ export default function CheckinPage({ params }: { params: any }) {
 
     return (
         <div className="container" style={{ paddingBottom: '4rem', maxWidth: '1200px' }}>
+            <Breadcrumb items={[
+                { label: 'ダッシュボード', href: '/dashboard' },
+                { label: data.production.title, href: `/productions/${data.production.id}` },
+                { label: 'チェックイン' }
+            ]} />
             <header style={{
                 marginBottom: '2rem',
                 borderBottom: '1px solid #eee',

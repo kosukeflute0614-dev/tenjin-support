@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createReservationClient } from '@/lib/client-firestore';
 import { formatDateTime } from '@/lib/format';
 import { useAuth } from './AuthProvider';
+import { useToast } from '@/components/Toast';
 import { Production, Performance, TicketType } from '@/types';
 
 type ProductionWithPerformances = Production & { performances: Performance[] };
@@ -14,6 +15,7 @@ type Props = {
 
 export default function ReservationForm({ productions }: Props) {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [selectedPerformanceId, setSelectedPerformanceId] = useState<string>("");
     const [ticketCounts, setTicketCounts] = useState<{ [key: string]: number }>({});
 
@@ -42,7 +44,7 @@ export default function ReservationForm({ productions }: Props) {
         e.preventDefault();
         if (!user || !selectedPerformance) return;
         if (totalTickets === 0) {
-            alert('チケットを1枚以上選択してください');
+            showToast('チケットを1枚以上選択してください', 'warning');
             return;
         }
 
@@ -81,10 +83,10 @@ export default function ReservationForm({ productions }: Props) {
             setSelectedPerformanceId("");
             setTicketCounts({});
             (e.target as HTMLFormElement).reset();
-            alert("予約を登録しました。");
+            showToast('予約を登録しました。', 'success');
         } catch (error: any) {
             console.error("Error creating reservation:", error);
-            alert("予約の登録に失敗しました。");
+            showToast('予約の登録に失敗しました。', 'error');
         }
     };
 

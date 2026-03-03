@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { cancelReservationClient, updateReservationFullClient } from '@/lib/client-firestore';
 import { useAuth } from './AuthProvider';
+import { useToast } from '@/components/Toast';
 import { STATUS_LABELS, PAYMENT_STATUS_LABELS } from '@/lib/constants';
 import { formatDateTime, formatDate, formatTime } from '@/lib/format';
 import { exportToCSV } from '@/lib/export-utils';
+import { CheckCircle, Clock, XCircle, AlertCircle, MinusCircle } from 'lucide-react';
 import { FirestoreReservation, Production, Performance, TicketType } from '@/types';
 
 type PerformanceOption = Performance & { productionTitle: string; ticketTypes: TicketType[] };
@@ -19,6 +21,7 @@ type Props = {
 
 export default function ReservationList({ reservations, bookingOptions }: Props) {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [editingReservation, setEditingReservation] = useState<JoinedReservation | null>(null);
     const [cancellingReservation, setCancellingReservation] = useState<JoinedReservation | null>(null);
     const [showCancelled, setShowCancelled] = useState(false);
@@ -42,7 +45,7 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
             await cancelReservationClient(cancellingReservation.id, user.uid);
             setCancellingReservation(null);
         } catch (error: any) {
-            alert(error.message || '操作に失敗しました。');
+            showToast(error.message || '操作に失敗しました。', 'error');
         } finally {
             setIsProcessing(false);
         }
@@ -54,7 +57,7 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
         try {
             await updateReservationFullClient(id, { status: 'CONFIRMED' }, user.uid);
         } catch (error: any) {
-            alert(error.message || '操作に失敗しました。');
+            showToast(error.message || '操作に失敗しました。', 'error');
         } finally {
             setIsProcessing(false);
         }
@@ -66,7 +69,7 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
         try {
             await updateReservationFullClient(id, { status: 'CONFIRMED' }, user.uid);
         } catch (error: any) {
-            alert(error.message || '操作に失敗しました。');
+            showToast(error.message || '操作に失敗しました。', 'error');
         } finally {
             setIsProcessing(false);
         }
@@ -229,6 +232,8 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
                             <th style={{ padding: '1rem' }}>公演回</th>
                             <th style={{ padding: '1rem' }}>内訳</th>
                             <th style={{ padding: '1rem', textAlign: 'center' }}>合計枚数</th>
+                            <th style={{ padding: '1rem' }}>ステータス</th>
+                            <th style={{ padding: '1rem' }}>支払い</th>
                             <th style={{ padding: '1rem' }}>操作</th>
                         </tr>
                     </thead>
@@ -275,6 +280,12 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
                                     </td>
                                     <td style={{ padding: '1rem', textAlign: 'center', fontWeight: 'bold' }}>
                                         {totalCount}
+                                    </td>
+                                    <td style={{ padding: '1rem' }}>
+                                        <StatusBadge status={res.status} />
+                                    </td>
+                                    <td style={{ padding: '1rem' }}>
+                                        <PaymentBadge status={res.paymentStatus} />
                                     </td>
                                     <td style={{ padding: '1rem' }}>
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -388,7 +399,7 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
                                     }, user.uid);
                                     handleCloseModal();
                                 } catch (error: any) {
-                                    alert(error.message || '更新に失敗しました。');
+                                    showToast(error.message || '更新に失敗しました。', 'error');
                                 } finally {
                                     setIsProcessing(false);
                                 }
@@ -547,5 +558,33 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
                 )}
             </div>
         </div>
+    );
+}
+
+function StatusBadge({ status }: { status: string }) {
+    const config: Record<string, { bg: string; color: string; label: string; icon: React.ReactNode }> = {
+        CONFIRMED: { bg: '#d4edda', color: '#155724', label: '予約確定', icon: <CheckCircle size={14} /> },
+        PENDING: { bg: '#fff3cd', color: '#856404', label: '未確定', icon: <Clock size={14} /> },
+        CANCELED: { bg: '#f8d7da', color: '#721c24', label: 'キャンセル', icon: <XCircle size={14} /> },
+    };
+    const c = config[status] || config.PENDING;
+    return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: c.bg, color: c.color }}>
+            {c.icon}{c.label}
+        </span>
+    );
+}
+
+function PaymentBadge({ status }: { status: string }) {
+    const config: Record<string, { bg: string; color: string; label: string; icon: React.ReactNode }> = {
+        PAID: { bg: '#d4edda', color: '#155724', label: '支払い済み', icon: <CheckCircle size={14} /> },
+        UNPAID: { bg: '#f8d7da', color: '#721c24', label: '未払い', icon: <AlertCircle size={14} /> },
+        PARTIAL: { bg: '#fff3cd', color: '#856404', label: '一部支払い', icon: <MinusCircle size={14} /> },
+    };
+    const c = config[status] || config.UNPAID;
+    return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: c.bg, color: c.color }}>
+            {c.icon}{c.label}
+        </span>
     );
 }

@@ -5,6 +5,7 @@ import { SmartMaskedDatePicker, SmartMaskedTimeInput, SmartNumberInput } from '.
 import { useAuth } from './AuthProvider';
 import { Performance } from '@/types';
 import { toDate } from '@/lib/firestore-utils';
+import { Calendar } from 'lucide-react';
 
 type Props = {
     productionId: string;
@@ -71,7 +72,7 @@ export default function PerformanceManager({ productionId, performances }: Props
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.5rem',
-                        boxShadow: '0 4px 10px rgba(139, 0, 0, 0.2)'
+                        boxShadow: 'var(--shadow-md)'
                     }}
                 >
                     <span style={{ fontSize: '1.2rem' }}>+</span> 公演を新規追加
@@ -123,7 +124,7 @@ export default function PerformanceManager({ productionId, performances }: Props
                         padding: '2.5rem',
                         background: '#fff',
                         borderRadius: '24px',
-                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+                        boxShadow: 'var(--shadow-xl)'
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                             <h4 id="modal-title-perf-add" style={{
@@ -135,7 +136,7 @@ export default function PerformanceManager({ productionId, performances }: Props
                                 alignItems: 'center',
                                 gap: '0.75rem'
                             }}>
-                                <span style={{ fontSize: '1.8rem' }}>📅</span> 公演回の新規登録
+                                <Calendar size={28} color="#8b0000" /> 公演回の新規登録
                             </h4>
                             <button
                                 onClick={() => setIsAddModalOpen(false)}
