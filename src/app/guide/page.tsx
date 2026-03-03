@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { BookOpen, Users, Zap, CheckCircle, Mail, ChevronRight, Menu, X, Landmark, CalendarDays, ClipboardList, ScanLine } from 'lucide-react';
 
 const sections = [
@@ -98,6 +99,12 @@ export default function GuidePage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     return (
+        <div>
+            <div className="container" style={{ paddingTop: '1rem' }}>
+                <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
+                    <span>&larr;</span> ダッシュボードに戻る
+                </Link>
+            </div>
         <div style={{ display: 'flex', minHeight: 'calc(100vh - 150px)', background: '#fff' }}>
             {/* サイドバーナビゲーション */}
             <aside style={{
@@ -231,6 +238,7 @@ export default function GuidePage() {
                     }
                 }
             `}</style>
+        </div>
         </div>
     );
 }

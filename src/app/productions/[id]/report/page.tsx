@@ -62,6 +62,11 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
                 { label: production.title, href: `/productions/${id}` },
                 { label: 'レポート' }
             ]} />
+            <div style={{ marginBottom: '1.25rem' }}>
+                <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
+                    <span>&larr;</span> ダッシュボードに戻る
+                </Link>
+            </div>
             <div style={{ marginBottom: '2rem' }}>
                 <h2 className="heading-lg" style={{ marginBottom: '0.5rem' }}>📊 {production.title} — レポート</h2>
                 <p className="text-muted" style={{ fontSize: '0.9rem' }}>売上・チケット種別・公演別の集計データを確認できます。</p>

@@ -56,6 +56,11 @@ export default function AttendancePage({ params }: { params: Promise<{ id: strin
                 { label: '来場管理' }
             ]} />
             <div className="page-header" style={{ marginBottom: '2.5rem' }}>
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', fontWeight: 'bold' }}>
+                        <span>&larr;</span> ダッシュボードに戻る
+                    </Link>
+                </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
                         <h2 className="heading-lg" style={{ borderLeft: '4px solid var(--primary)', paddingLeft: '1rem', margin: 0 }}>

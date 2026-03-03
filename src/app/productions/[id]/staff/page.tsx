@@ -144,6 +144,11 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
                 { label: production.title, href: `/productions/${id}` },
                 { label: 'スタッフ管理' }
             ]} />
+            <div style={{ marginBottom: '1.25rem' }}>
+                <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
+                    <span>&larr;</span> ダッシュボードに戻る
+                </Link>
+            </div>
             <div className="page-header" style={{ marginBottom: '2rem' }}>
                 <h2 className="heading-lg" style={{ marginBottom: '0.5rem' }}>🔑 スタッフ招待・管理</h2>
                 <p className="text-muted">ログイン不要でアクセスできる「合鍵（スタッフ用URL）」を発行・管理します。</p>
