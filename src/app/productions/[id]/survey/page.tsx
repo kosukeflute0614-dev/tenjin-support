@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
+import Breadcrumb from '@/components/Breadcrumb';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, collection, addDoc, updateDoc, query, where, getDocs, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { serializeDoc } from '@/lib/firestore-utils';
@@ -252,7 +253,16 @@ export default function SurveyHubPage({ params }: { params: Promise<{ id: string
     if (templates.length === 0) {
         return (
             <div className="container" style={{ maxWidth: '800px' }}>
-                <BackLink />
+                <Breadcrumb items={[
+                    { label: 'ダッシュボード', href: '/dashboard' },
+                    { label: production.title, href: `/productions/${id}` },
+                    { label: 'アンケート' }
+                ]} />
+                <div style={{ marginBottom: '1.25rem' }}>
+                    <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
+                        <span>&larr;</span> ダッシュボードに戻る
+                    </Link>
+                </div>
                 <PageHeader title={production.title} />
                 <div className="card" style={{ padding: '3rem', textAlign: 'center', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
                     <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📝</div>
@@ -280,7 +290,16 @@ export default function SurveyHubPage({ params }: { params: Promise<{ id: string
     // ── 3タブ構成 メインUI ──
     return (
         <div className="container" style={{ maxWidth: '800px' }}>
-            <BackLink />
+            <Breadcrumb items={[
+                { label: 'ダッシュボード', href: '/dashboard' },
+                { label: production.title, href: `/productions/${id}` },
+                { label: 'アンケート' }
+            ]} />
+            <div style={{ marginBottom: '1.25rem' }}>
+                <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
+                    <span>&larr;</span> ダッシュボードに戻る
+                </Link>
+            </div>
             <PageHeader title={production.title} />
 
             {/* テンプレート情報バー */}

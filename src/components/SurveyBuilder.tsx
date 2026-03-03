@@ -338,7 +338,7 @@ export default function SurveyBuilder({ questions, onChange }: Props) {
                                 position: 'absolute', top: '100%', left: 0, right: 0,
                                 marginTop: '0.5rem', zIndex: 10,
                                 backgroundColor: 'var(--card-bg)', borderRadius: 'var(--border-radius)',
-                                border: '1px solid var(--card-border)', boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                                border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-xl)',
                                 overflow: 'hidden'
                             }}>
                             {QUESTION_TYPES.map(qt => (
@@ -398,7 +398,7 @@ function ToggleSwitch({ checked, onChange, label }: { checked: boolean; onChange
                     style={{
                         position: 'absolute', width: '16px', height: '16px', borderRadius: '50%',
                         backgroundColor: '#fff', top: '3px',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                        boxShadow: 'var(--shadow-sm)'
                     }} />
             </span>
         </label>

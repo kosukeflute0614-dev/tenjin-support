@@ -1,0 +1,40 @@
+.skeleton {
+  background: var(--slate-200, #e2e8f0);
+  border-radius: var(--border-radius);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.text {
+  height: 1rem;
+  width: 100%;
+  margin-bottom: 0.5rem;
+  border-radius: 4px;
+}
+
+.card {
+  height: 120px;
+  width: 100%;
+  border-radius: var(--border-radius);
+}
+
+.circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+
+.table-row {
+  height: 3rem;
+  width: 100%;
+  margin-bottom: 0.5rem;
+  border-radius: 4px;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    background-color: var(--slate-200, #e2e8f0);
+  }
+  50% {
+    background-color: var(--slate-100, #f1f5f9);
+  }
+}

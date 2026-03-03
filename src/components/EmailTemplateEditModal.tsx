@@ -214,6 +214,7 @@ export default function EmailTemplateEditModal({
     return (
         <div
             onClick={handleBackdropClick}
+            onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
             style={{
                 position: 'fixed',
                 top: 0,
@@ -228,7 +229,7 @@ export default function EmailTemplateEditModal({
                 padding: '1rem',
             }}
         >
-            <div style={{
+            <div role="dialog" aria-modal="true" aria-labelledby="modal-title-email-template" style={{
                 background: '#fff',
                 borderRadius: '12px',
                 width: '100%',
@@ -247,11 +248,12 @@ export default function EmailTemplateEditModal({
                     justifyContent: 'space-between',
                     alignItems: 'center',
                 }}>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 'bold' }}>
+                    <h3 id="modal-title-email-template" style={{ margin: 0, fontSize: '1.1rem', fontWeight: 'bold' }}>
                         {icon} {title} — テンプレート編集
                     </h3>
                     <button
                         onClick={onClose}
+                        aria-label="閉じる"
                         style={{
                             border: 'none',
                             background: 'none',

@@ -110,14 +110,17 @@ export default function SameDayTicketForm({
 
             <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem' }}>
                 <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                    <label className="label" style={{ fontWeight: 'bold' }}>お名前</label>
+                    <label className="label" htmlFor="sameDayCustomerName" style={{ fontWeight: 'bold' }}>お名前</label>
                     <input
                         type="text"
+                        id="sameDayCustomerName"
                         value={customerName}
                         onChange={e => setCustomerName(e.target.value)}
                         className="input"
                         placeholder="例: 当日 太郎"
                         required
+                        aria-required="true"
+                        autoComplete="name"
                     />
                 </div>
 
@@ -185,7 +188,7 @@ export default function SameDayTicketForm({
                                 ref={keypadRef}
                                 style={{
                                     position: 'absolute', right: '0', bottom: '100%', marginBottom: '10px', width: '280px', background: '#fff',
-                                    border: '1px solid #ddd', borderRadius: '12px', boxShadow: '0 -10px 25px rgba(0,0,0,0.2)',
+                                    border: '1px solid #ddd', borderRadius: '12px', boxShadow: 'var(--shadow-lg)',
                                     zIndex: 100, padding: '0.75rem 1rem'
                                 }}
                             >
@@ -194,6 +197,7 @@ export default function SameDayTicketForm({
                                     <button
                                         type="button"
                                         onClick={() => setShowKeypad(false)}
+                                        aria-label="電卓を閉じる"
                                         style={{
                                             background: '#f5f5f5',
                                             border: 'none',

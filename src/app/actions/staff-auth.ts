@@ -4,7 +4,7 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { cookies } from "next/headers";
 import crypto from 'crypto';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 
 const SALT_ROUNDS = 10;

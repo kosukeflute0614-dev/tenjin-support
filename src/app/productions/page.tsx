@@ -85,18 +85,17 @@ export default function ProductionsPage() {
                 <div>
                     <div style={{ marginBottom: '1.5rem' }}>
                         <Link href="/dashboard" className="btn btn-secondary" style={{
-                            padding: '0.75rem 1.5rem',
-                            fontSize: '1rem',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '0.5rem',
-                            fontWeight: 'bold',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                            padding: '0.6rem 1.2rem',
+                            borderRadius: '8px',
+                            fontSize: '0.9rem'
                         }}>
                             <span>&larr;</span> ダッシュボードに戻る
                         </Link>
                     </div>
-                    <h2 className="heading-lg" style={{ margin: 0, borderLeft: '4px solid var(--primary)', paddingLeft: '1rem' }}>公演一覧・管理</h2>
+                    <h2 className="heading-lg" style={{ margin: 0 }}>公演一覧・管理</h2>
                     <p className="text-muted" style={{ marginTop: '0.5rem' }}>操作する公演を選択するか、新しい公演を作成してください。</p>
                 </div>
                 <Link href="/productions/new" className="btn btn-primary" style={{ padding: '0.8rem 2rem', fontSize: '1.1rem', fontWeight: 'bold' }}>

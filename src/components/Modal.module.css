@@ -1,0 +1,66 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.dialog {
+  background: var(--background);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-xl);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.sm {
+  width: min(400px, calc(100vw - 2rem));
+}
+
+.md {
+  width: min(600px, calc(100vw - 2rem));
+}
+
+.lg {
+  width: min(800px, calc(100vw - 2rem));
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+}
+
+.close:hover {
+  color: var(--foreground);
+}
+
+.body {
+  padding: 1.5rem;
+}

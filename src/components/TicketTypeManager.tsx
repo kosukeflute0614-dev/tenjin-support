@@ -5,6 +5,7 @@ import { addTicketTypeClient, updateTicketTypeClient, deleteTicketTypeClient } f
 import { SmartNumberInput } from './SmartInputs';
 import { useAuth } from './AuthProvider';
 import { TicketType } from '@/types';
+import { Ticket } from 'lucide-react';
 
 type Props = {
     productionId: string;
@@ -58,18 +59,18 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                     alignItems: 'center',
                     zIndex: 2000,
                     padding: '1rem'
-                }}>
-                    <div className="card" style={{
+                }} onKeyDown={(e) => { if (e.key === 'Escape') setDeletingId(null); }}>
+                    <div className="card" role="dialog" aria-modal="true" aria-labelledby="modal-title-ticket-delete" style={{
                         width: '100%',
                         maxWidth: '400px',
                         padding: '2rem',
                         textAlign: 'center',
-                        boxShadow: '0 15px 35px rgba(0,0,0,0.1)',
+                        boxShadow: 'var(--shadow-xl)',
                         border: '2px solid var(--primary)',
                         backgroundColor: '#fff'
                     }}>
                         <div style={{ color: 'var(--primary)', fontSize: '3rem', marginBottom: '1rem' }}>❓</div>
-                        <h4 style={{ marginBottom: '1rem', color: 'var(--text)' }}>削除の確認</h4>
+                        <h4 id="modal-title-ticket-delete" style={{ marginBottom: '1rem', color: 'var(--text)' }}>削除の確認</h4>
                         <p style={{ marginBottom: '1.5rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>
                             この券種を削除してもよろしいですか？<br />
                             この操作は取り消せません。
@@ -110,18 +111,18 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                     alignItems: 'center',
                     zIndex: 2000,
                     padding: '1rem'
-                }}>
-                    <div className="card" style={{
+                }} onKeyDown={(e) => { if (e.key === 'Escape') setError(null); }}>
+                    <div className="card" role="dialog" aria-modal="true" aria-labelledby="modal-title-ticket-error" style={{
                         width: '100%',
                         maxWidth: '400px',
                         padding: '2rem',
                         textAlign: 'center',
-                        boxShadow: '0 15px 35px rgba(0,0,0,0.1)',
+                        boxShadow: 'var(--shadow-xl)',
                         border: '2px solid var(--primary)',
                         backgroundColor: '#fff'
                     }}>
                         <div style={{ color: 'var(--primary)', fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
-                        <h4 style={{ marginBottom: '1rem', color: 'var(--text)' }}>エラー</h4>
+                        <h4 id="modal-title-ticket-error" style={{ marginBottom: '1rem', color: 'var(--text)' }}>エラー</h4>
                         <p style={{ marginBottom: '1.5rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>{error}</p>
                         <button
                             onClick={() => setError(null)}
@@ -232,7 +233,7 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                     gap: '0.6rem',
                     fontWeight: 'bold'
                 }}>
-                    <span style={{ fontSize: '1.4rem' }}>🎟️</span> 券種を追加
+                    <Ticket size={22} color="#8b0000" /> 券種を追加
                 </h4>
                 <form onSubmit={async (e) => {
                     e.preventDefault();

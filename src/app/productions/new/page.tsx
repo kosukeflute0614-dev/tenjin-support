@@ -4,10 +4,12 @@ import { createProductionClient } from '@/lib/client-firestore';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/components/Toast';
 
 export default function NewProductionPage() {
     const { user, profile, loading } = useAuth();
     const router = useRouter();
+    const { showToast } = useToast();
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -28,7 +30,7 @@ export default function NewProductionPage() {
             router.push(`/productions/${newId}`);
         } catch (error) {
             console.error("Error creating production:", error);
-            alert("公演の作成に失敗しました。");
+            showToast('公演の作成に失敗しました。', 'error');
         }
     };
 
@@ -51,8 +53,8 @@ export default function NewProductionPage() {
     return (
         <div className="container" style={{ maxWidth: '600px' }}>
             <div style={{ marginBottom: '1rem' }}>
-                <Link href="/productions" className="text-primary">
-                    &larr; 公演一覧に戻る
+                <Link href="/productions" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
+                    <span>&larr;</span> 公演一覧に戻る
                 </Link>
             </div>
             <h2 className="heading-lg">新規公演作成</h2>
@@ -66,6 +68,7 @@ export default function NewProductionPage() {
                         id="title"
                         name="title"
                         required
+                        aria-required="true"
                         className="input"
                         placeholder="例: 第一回公演「初演」"
                     />

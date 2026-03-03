@@ -5,6 +5,7 @@ import { SmartMaskedDatePicker, SmartMaskedTimeInput, SmartNumberInput } from '.
 import { useAuth } from './AuthProvider';
 import { Performance } from '@/types';
 import { toDate } from '@/lib/firestore-utils';
+import { Calendar } from 'lucide-react';
 
 type Props = {
     productionId: string;
@@ -71,7 +72,7 @@ export default function PerformanceManager({ productionId, performances }: Props
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.5rem',
-                        boxShadow: '0 4px 10px rgba(139, 0, 0, 0.2)'
+                        boxShadow: 'var(--shadow-md)'
                     }}
                 >
                     <span style={{ fontSize: '1.2rem' }}>+</span> 公演を新規追加
@@ -80,9 +81,9 @@ export default function PerformanceManager({ productionId, performances }: Props
 
             {/* モーダル類 */}
             {deletingId && (
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000 }}>
-                    <div className="card" style={{ width: '90%', maxWidth: '400px', padding: '2rem', textAlign: 'center', background: '#fff' }}>
-                        <h4 style={{ marginBottom: '1rem' }}>削除の確認</h4>
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000 }} onKeyDown={(e) => { if (e.key === 'Escape') setDeletingId(null); }}>
+                    <div className="card" role="dialog" aria-modal="true" aria-labelledby="modal-title-perf-delete" style={{ width: '90%', maxWidth: '400px', padding: '2rem', textAlign: 'center', background: '#fff' }}>
+                        <h4 id="modal-title-perf-delete" style={{ marginBottom: '1rem' }}>削除の確認</h4>
                         <p style={{ marginBottom: '1.5rem', color: '#666' }}>この公演回を削除してもよろしいですか？</p>
                         <div style={{ display: 'flex', gap: '1rem' }}>
                             <button onClick={() => setDeletingId(null)} className="btn btn-secondary" style={{ flex: 1 }} disabled={isProcessing}>キャンセル</button>
@@ -93,9 +94,9 @@ export default function PerformanceManager({ productionId, performances }: Props
             )}
 
             {error && (
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000 }}>
-                    <div className="card" style={{ width: '90%', maxWidth: '400px', padding: '2rem', textAlign: 'center', background: '#fff' }}>
-                        <h4 style={{ marginBottom: '1rem', color: '#d32f2f' }}>エラー</h4>
+                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000 }} onKeyDown={(e) => { if (e.key === 'Escape') setError(null); }}>
+                    <div className="card" role="dialog" aria-modal="true" aria-labelledby="modal-title-perf-error" style={{ width: '90%', maxWidth: '400px', padding: '2rem', textAlign: 'center', background: '#fff' }}>
+                        <h4 id="modal-title-perf-error" style={{ marginBottom: '1rem', color: '#d32f2f' }}>エラー</h4>
                         <p style={{ marginBottom: '1.5rem' }}>{error}</p>
                         <button onClick={() => setError(null)} className="btn btn-primary" style={{ width: '100%' }}>閉じる</button>
                     </div>
@@ -116,17 +117,17 @@ export default function PerformanceManager({ productionId, performances }: Props
                     alignItems: 'center',
                     zIndex: 2500,
                     backdropFilter: 'blur(4px)'
-                }}>
-                    <div className="card" style={{
+                }} onKeyDown={(e) => { if (e.key === 'Escape') setIsAddModalOpen(false); }}>
+                    <div className="card" role="dialog" aria-modal="true" aria-labelledby="modal-title-perf-add" style={{
                         width: '95%',
                         maxWidth: '500px',
                         padding: '2.5rem',
                         background: '#fff',
                         borderRadius: '24px',
-                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+                        boxShadow: 'var(--shadow-xl)'
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                            <h4 style={{
+                            <h4 id="modal-title-perf-add" style={{
                                 fontSize: '1.4rem',
                                 color: '#8b0000',
                                 margin: 0,
@@ -135,10 +136,11 @@ export default function PerformanceManager({ productionId, performances }: Props
                                 alignItems: 'center',
                                 gap: '0.75rem'
                             }}>
-                                <span style={{ fontSize: '1.8rem' }}>📅</span> 公演回の新規登録
+                                <Calendar size={28} color="#8b0000" /> 公演回の新規登録
                             </h4>
                             <button
                                 onClick={() => setIsAddModalOpen(false)}
+                                aria-label="閉じる"
                                 style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#999' }}
                             >
                                 ×

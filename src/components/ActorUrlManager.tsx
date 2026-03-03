@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useAuth } from './AuthProvider';
+import { useToast } from '@/components/Toast';
 import { addActorClient, deleteActorClient } from '@/lib/client-firestore';
 import { Production, Actor } from '@/types';
 
@@ -13,6 +14,7 @@ type Props = {
 
 export default function ActorUrlManager({ production }: Props) {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [isOpen, setIsOpen] = useState(false);
     const [newActorName, setNewActorName] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
@@ -57,7 +59,7 @@ export default function ActorUrlManager({ production }: Props) {
             await addActorClient(production.id, newActorName.trim(), user.uid);
             setNewActorName('');
         } catch (err) {
-            alert('役者の追加に失敗しました。');
+            showToast('役者の追加に失敗しました。', 'error');
         } finally {
             setIsProcessing(false);
         }
@@ -70,7 +72,7 @@ export default function ActorUrlManager({ production }: Props) {
         try {
             await deleteActorClient(production.id, actorId, user.uid);
         } catch (err) {
-            alert('削除に失敗しました。');
+            showToast('削除に失敗しました。', 'error');
         } finally {
             setIsProcessing(false);
         }
@@ -78,7 +80,7 @@ export default function ActorUrlManager({ production }: Props) {
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
-        alert('URLをコピーしました！');
+        showToast('URLをコピーしました！', 'success');
     };
 
     const actors = production.actors || [];

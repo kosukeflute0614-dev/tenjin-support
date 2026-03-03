@@ -41,11 +41,11 @@ export default function NewReservationPage() {
     return (
         <div className="container" style={{ maxWidth: '600px' }}>
             <div style={{ marginBottom: '1.5rem' }}>
-                <Link href="/reservations" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}>
+                <Link href="/reservations" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
                     <span>&larr;</span> 予約一覧に戻る
                 </Link>
             </div>
-            <h2 className="heading-lg" style={{ marginBottom: '1.5rem', borderBottom: '2px solid var(--primary)', paddingBottom: '0.5rem' }}>新規予約登録</h2>
+            <h2 className="heading-lg" style={{ marginBottom: '1.5rem' }}>新規予約登録</h2>
 
             <ReservationForm productions={productions} />
         </div>

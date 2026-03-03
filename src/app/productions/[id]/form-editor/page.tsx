@@ -3,10 +3,12 @@
 import { useEffect, useState, useCallback, use } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
+import { useToast } from '@/components/Toast';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { serializeDoc } from '@/lib/firestore-utils';
 import { Production, FormFieldConfig } from '@/types';
+import Breadcrumb from '@/components/Breadcrumb';
 import { saveFormFieldsClient } from '@/lib/client-firestore';
 
 const LOCKED_FIELD_IDS = ['customer_name', 'customer_kana', 'customer_email', 'remarks'];
@@ -69,6 +71,7 @@ interface AddFieldForm {
 export default function FormEditorPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const { user, loading } = useAuth();
+    const { showToast } = useToast();
     const [production, setProduction] = useState<Production | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [fields, setFields] = useState<FormField[]>([...INITIAL_FIELDS]);
@@ -276,7 +279,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
             setTimeout(() => setSaveSuccess(false), 3000);
         } catch (err) {
             console.error('Failed to save form fields:', err);
-            alert('保存に失敗しました。');
+            showToast('保存に失敗しました。', 'error');
         } finally {
             setIsSaving(false);
         }
@@ -314,8 +317,6 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
         );
     }
 
-    const enabledFields = fields.filter(f => f.enabled);
-
     const fieldTypeLabel = (type: string) => {
         switch (type) {
             case 'text': return 'テキスト';
@@ -326,96 +327,11 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
         }
     };
 
-    const renderPreviewField = (field: FormField) => {
-        if (field.isSystem) {
-            if (field.id === 'performance_select') {
-                return (
-                    <div style={{ marginBottom: '1rem' }}>
-                        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.3rem' }}>
-                            観劇日時 <span style={{ color: 'var(--accent)', fontSize: '0.75rem' }}>*必須</span>
-                        </label>
-                        <select className="input" disabled style={{ width: '100%', fontSize: '0.85rem', background: '#fff' }}>
-                            <option>公演日時を選択してください</option>
-                        </select>
-                    </div>
-                );
-            }
-            if (field.id === 'ticket_select') {
-                return (
-                    <div style={{ marginBottom: '1rem' }}>
-                        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.3rem' }}>
-                            券種・枚数 <span style={{ color: 'var(--accent)', fontSize: '0.75rem' }}>*必須</span>
-                        </label>
-                        <div style={{
-                            border: '1px solid #ddd',
-                            borderRadius: '6px',
-                            padding: '0.5rem 0.75rem',
-                            fontSize: '0.8rem',
-                            color: '#999',
-                            background: '#fff',
-                        }}>
-                            券種 × 枚数
-                        </div>
-                    </div>
-                );
-            }
-        }
-
-        return (
-            <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.3rem' }}>
-                    {field.label}
-                    {field.required && <span style={{ color: 'var(--accent)', fontSize: '0.75rem', marginLeft: '0.25rem' }}>*必須</span>}
-                </label>
-                {field.type === 'text' && (
-                    <>
-                        <input
-                            type="text"
-                            className="input"
-                            disabled
-                            placeholder={field.placeholder}
-                            style={{ width: '100%', fontSize: '0.85rem', background: '#fff' }}
-                            inputMode={field.templateType === 'phone' ? 'numeric' : undefined}
-                            pattern={field.templateType === 'phone' ? '[0-9]*' : undefined}
-                        />
-                        {field.templateType === 'phone' && (
-                            <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.2rem' }}>※ 半角数字のみ・ハイフンなしで入力</div>
-                        )}
-                    </>
-                )}
-                {field.type === 'textarea' && (
-                    <textarea className="input" disabled rows={2} placeholder={field.placeholder} style={{ width: '100%', fontSize: '0.85rem', resize: 'none', background: '#fff' }} />
-                )}
-                {field.type === 'select' && (
-                    <select className="input" disabled style={{ width: '100%', fontSize: '0.85rem', background: '#fff' }}>
-                        <option>選択してください</option>
-                        {field.options?.map((opt, i) => <option key={i}>{opt}</option>)}
-                    </select>
-                )}
-                {field.type === 'checkbox' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                        {field.options && field.options.length > 0 ? field.options.map((opt, i) => (
-                            <label key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: '#666' }}>
-                                <input type="checkbox" disabled style={{ accentColor: 'var(--primary)' }} />
-                                {opt}
-                            </label>
-                        )) : (
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: '#666' }}>
-                                <input type="checkbox" disabled style={{ accentColor: 'var(--primary)' }} />
-                                {field.label}
-                            </label>
-                        )}
-                    </div>
-                )}
-            </div>
-        );
-    };
-
     const dragHandleStyle: React.CSSProperties = {
         cursor: 'grab',
-        padding: '0.25rem',
-        color: '#aaa',
-        fontSize: '1.1rem',
+        padding: 0,
+        color: '#bbb',
+        fontSize: '0.85rem',
         userSelect: 'none',
         display: 'flex',
         alignItems: 'center',
@@ -424,6 +340,11 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
 
     return (
         <div className="container" style={{ maxWidth: '1200px' }}>
+            <Breadcrumb items={[
+                { label: 'ダッシュボード', href: '/dashboard' },
+                { label: production.title, href: `/productions/${id}` },
+                { label: 'フォーム編集' }
+            ]} />
             <div style={{ marginBottom: '1.25rem' }}>
                 <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
                     <span>&larr;</span> ダッシュボードに戻る
@@ -437,7 +358,16 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '1.5rem', alignItems: 'start' }}>
                 {/* 左カラム: フィールド設定 */}
                 <div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                        marginBottom: '0.75rem', paddingBottom: '0.5rem',
+                        borderBottom: '1px solid #e5e7eb',
+                    }}>
+                        <span style={{ fontSize: '1rem' }}>🛠</span>
+                        <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#333', margin: 0 }}>フォーム項目の設定</h3>
+                        <span style={{ fontSize: '0.75rem', color: '#999', marginLeft: 'auto' }}>{fields.filter(f => f.enabled).length} 項目</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         {(() => {
                             // ブロック単位でレンダリング（フォロワーはスキップ）
                             const blocks: { leaderId: string; fields: FormField[] }[] = [];
@@ -463,6 +393,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                 const blockLabel = block.leaderId === 'customer_name' ? 'お名前・ふりがな'
                                     : block.leaderId === 'performance_select' ? '観劇日時・券種選択'
                                     : null;
+                                const singleField = !isMultiBlock ? block.fields[0] : null;
 
                                 return (
                                     <div
@@ -471,159 +402,95 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                         onDragStart={() => handleDragStart(block.leaderId)}
                                         onDragOver={(e) => handleDragOver(e, block.leaderId)}
                                         onDragEnd={handleDragEnd}
-                                        className="card"
                                         style={{
-                                            padding: isMultiBlock ? '0' : '0.85rem 1rem',
-                                            background: isDragging ? '#f0f4ff' : undefined,
-                                            border: isDragging ? '2px dashed var(--primary)' : undefined,
+                                            padding: 0,
+                                            background: isDragging ? '#f0f4ff' : '#fff',
+                                            border: isDragging ? '2px dashed var(--primary)' : '1px solid #e5e7eb',
+                                            borderRadius: '6px',
                                             opacity: isDragging ? 0.7 : 1,
                                             transition: 'background 0.15s, opacity 0.15s',
                                             overflow: 'hidden',
                                         }}
                                     >
-                                        {/* ブロックヘッダー（複数フィールドブロック） */}
-                                        {isMultiBlock && blockLabel && (
-                                            <div style={{
-                                                display: 'flex', alignItems: 'center', gap: '0.6rem',
-                                                padding: '0.6rem 1rem',
-                                                background: '#fafafa', borderBottom: '1px solid #eee',
-                                            }}>
-                                                <span style={dragHandleStyle} title="ドラッグで並び替え">⠿</span>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                                                    <button
-                                                        onClick={() => moveBlock(block.leaderId, -1)}
-                                                        disabled={isFirst}
-                                                        style={{
-                                                            border: 'none', background: 'none', cursor: isFirst ? 'default' : 'pointer',
-                                                            padding: '0', fontSize: '0.7rem', color: isFirst ? '#ddd' : '#888', lineHeight: 1,
-                                                        }}
-                                                        title="上に移動"
-                                                    >▲</button>
-                                                    <button
-                                                        onClick={() => moveBlock(block.leaderId, 1)}
-                                                        disabled={isLast}
-                                                        style={{
-                                                            border: 'none', background: 'none', cursor: isLast ? 'default' : 'pointer',
-                                                            padding: '0', fontSize: '0.7rem', color: isLast ? '#ddd' : '#888', lineHeight: 1,
-                                                        }}
-                                                        title="下に移動"
-                                                    >▼</button>
-                                                </div>
-                                                <span style={{ fontWeight: '600', fontSize: '0.85rem', color: '#666' }}>🔗 {blockLabel}</span>
-                                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: '#f0f0f0', padding: '1px 6px', borderRadius: '3px' }}>セット項目</span>
+                                        {/* 共通ヘッダー行 */}
+                                        <div style={{
+                                            display: 'flex', alignItems: 'center', gap: '0.35rem',
+                                            padding: '3px 0.6rem',
+                                            background: '#fafafa',
+                                        }}>
+                                            <span style={dragHandleStyle} title="ドラッグで並び替え">⠿</span>
+                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                <button
+                                                    onClick={() => moveBlock(block.leaderId, -1)}
+                                                    disabled={isFirst}
+                                                    style={{
+                                                        border: 'none', background: 'none', cursor: isFirst ? 'default' : 'pointer',
+                                                        padding: '0', fontSize: '0.55rem', color: isFirst ? '#ddd' : '#888', lineHeight: 1,
+                                                    }}
+                                                    title="上に移動"
+                                                >▲</button>
+                                                <button
+                                                    onClick={() => moveBlock(block.leaderId, 1)}
+                                                    disabled={isLast}
+                                                    style={{
+                                                        border: 'none', background: 'none', cursor: isLast ? 'default' : 'pointer',
+                                                        padding: '0', fontSize: '0.55rem', color: isLast ? '#ddd' : '#888', lineHeight: 1,
+                                                    }}
+                                                    title="下に移動"
+                                                >▼</button>
                                             </div>
-                                        )}
 
-                                        {/* 各フィールド */}
-                                        {block.fields.map((field, fieldIndexInBlock) => (
-                                            <div key={field.id} style={{
-                                                padding: '0.85rem 1rem',
-                                                ...(isMultiBlock && fieldIndexInBlock > 0 ? { borderTop: '1px dashed #e8e8e8' } : {}),
-                                            }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                                                    {/* 単独フィールドの場合のみドラッグハンドル・上下ボタン */}
-                                                    {!isMultiBlock && (
-                                                        <>
-                                                            <span style={dragHandleStyle} title="ドラッグで並び替え">⠿</span>
-                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                                                                <button
-                                                                    onClick={() => moveBlock(block.leaderId, -1)}
-                                                                    disabled={isFirst}
-                                                                    style={{
-                                                                        border: 'none', background: 'none', cursor: isFirst ? 'default' : 'pointer',
-                                                                        padding: '0', fontSize: '0.7rem', color: isFirst ? '#ddd' : '#888', lineHeight: 1,
-                                                                    }}
-                                                                    title="上に移動"
-                                                                >▲</button>
-                                                                <button
-                                                                    onClick={() => moveBlock(block.leaderId, 1)}
-                                                                    disabled={isLast}
-                                                                    style={{
-                                                                        border: 'none', background: 'none', cursor: isLast ? 'default' : 'pointer',
-                                                                        padding: '0', fontSize: '0.7rem', color: isLast ? '#ddd' : '#888', lineHeight: 1,
-                                                                    }}
-                                                                    title="下に移動"
-                                                                >▼</button>
-                                                            </div>
-                                                        </>
-                                                    )}
-                                                    {/* ブロック内のインデント */}
-                                                    {isMultiBlock && <div style={{ width: '0.5rem' }} />}
-
-                                                    {/* ラベル */}
-                                                    <div style={{ flex: 1 }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                            {field.isSystem && <span style={{ fontSize: '0.85rem' }}>🔒</span>}
-                                                            <span style={{ fontWeight: '600', fontSize: '0.95rem' }}>{field.label}</span>
-                                                            {field.locked && !isMultiBlock && (
-                                                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: '#f0f0f0', padding: '1px 6px', borderRadius: '3px' }}>必須・固定</span>
-                                                            )}
-                                                            {field.locked && isMultiBlock && (
-                                                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: '#f0f0f0', padding: '1px 6px', borderRadius: '3px' }}>固定</span>
-                                                            )}
-                                                            {field.isCustom && !field.templateType && (
-                                                                <span style={{ fontSize: '0.7rem', color: '#1565c0', background: '#e3f2fd', padding: '1px 6px', borderRadius: '3px' }}>カスタム</span>
-                                                            )}
-                                                            {field.templateType === 'phone' && (
-                                                                <span style={{ fontSize: '0.7rem', color: '#2e7d32', background: '#e8f5e9', padding: '1px 6px', borderRadius: '3px' }}>テンプレート</span>
-                                                            )}
-                                                            {field.templateType === 'newsletter' && (
-                                                                <span style={{ fontSize: '0.7rem', color: '#e65100', background: '#fff3e0', padding: '1px 6px', borderRadius: '3px' }}>テンプレート</span>
-                                                            )}
-                                                            {field.required && !field.locked && (
-                                                                <span style={{ fontSize: '0.7rem', color: '#fff', background: 'var(--primary)', padding: '1px 6px', borderRadius: '3px' }}>必須</span>
-                                                            )}
-                                                        </div>
-                                                        {field.isSystem && (
-                                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>常に表示（変更不可）</div>
+                                            {/* ブロックラベル or 単独フィールドラベル */}
+                                            {isMultiBlock && blockLabel ? (
+                                                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                                    <span style={{ fontWeight: '600', fontSize: '0.85rem', color: '#444' }}>{blockLabel}</span>
+                                                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', background: '#eee', padding: '1px 5px', borderRadius: '3px', lineHeight: '1.4' }}>セット</span>
+                                                    <span style={{ fontSize: '0.7rem', color: '#aaa', marginLeft: '0.1rem' }}>
+                                                        ({block.fields.map(f => f.label).join(' + ')})
+                                                    </span>
+                                                </div>
+                                            ) : singleField && (
+                                                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.35rem' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', flexWrap: 'wrap' }}>
+                                                        {singleField.isSystem && <span style={{ fontSize: '0.8rem' }}>🔒</span>}
+                                                        <span style={{ fontWeight: '600', fontSize: '0.85rem', color: '#444' }}>{singleField.label}</span>
+                                                        {singleField.locked && (
+                                                            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', background: '#eee', padding: '1px 5px', borderRadius: '3px', lineHeight: '1.4' }}>必須・固定</span>
                                                         )}
-                                                        {!field.isSystem && !field.templateType && (
-                                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                                                {fieldTypeLabel(field.type)}
-                                                                {field.placeholder && ` — ${field.placeholder}`}
-                                                            </div>
+                                                        {singleField.isCustom && !singleField.templateType && (
+                                                            <span style={{ fontSize: '0.65rem', color: '#1565c0', background: '#e3f2fd', padding: '1px 5px', borderRadius: '3px', lineHeight: '1.4' }}>カスタム</span>
                                                         )}
-                                                        {field.templateType === 'phone' && (
-                                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                                                テキスト — 半角数字のみ（ハイフンなし）
-                                                            </div>
+                                                        {singleField.templateType === 'phone' && (
+                                                            <span style={{ fontSize: '0.65rem', color: '#2e7d32', background: '#e8f5e9', padding: '1px 5px', borderRadius: '3px', lineHeight: '1.4' }}>テンプレート</span>
                                                         )}
-                                                        {field.templateType === 'newsletter' && (
-                                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                                                チェックボックス — 常に任意項目
-                                                            </div>
+                                                        {singleField.templateType === 'newsletter' && (
+                                                            <span style={{ fontSize: '0.65rem', color: '#e65100', background: '#fff3e0', padding: '1px 5px', borderRadius: '3px', lineHeight: '1.4' }}>テンプレート</span>
                                                         )}
+                                                        {singleField.required && !singleField.locked && (
+                                                            <span style={{ fontSize: '0.65rem', color: '#fff', background: 'var(--primary)', padding: '1px 5px', borderRadius: '3px', lineHeight: '1.4' }}>必須</span>
+                                                        )}
+                                                        <span style={{ fontSize: '0.75rem', color: '#aaa' }}>
+                                                            {fieldTypeLabel(singleField.type)}
+                                                        </span>
                                                     </div>
-
-                                                    {/* カスタムフィールド・テンプレートフィールドのボタン */}
-                                                    {field.isCustom && (
-                                                        <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
-                                                            {field.templateType !== 'newsletter' && (
+                                                    {singleField.isCustom && (
+                                                        <div style={{ display: 'flex', gap: '0.3rem', flexShrink: 0 }}>
+                                                            {singleField.templateType !== 'newsletter' && (
                                                                 <button
-                                                                    onClick={() => setEditingId(editingId === field.id ? null : field.id)}
+                                                                    onClick={() => setEditingId(editingId === singleField.id ? null : singleField.id)}
                                                                     style={{
-                                                                        border: '1px solid #ddd',
-                                                                        background: editingId === field.id ? '#f0f0f0' : '#fff',
-                                                                        borderRadius: '6px',
-                                                                        padding: '0.3rem 0.6rem',
-                                                                        cursor: 'pointer',
-                                                                        fontSize: '0.8rem',
-                                                                        color: '#555',
+                                                                        border: '1px solid #ddd', background: editingId === singleField.id ? '#f0f0f0' : '#fff',
+                                                                        borderRadius: '4px', padding: '0.2rem 0.5rem', cursor: 'pointer', fontSize: '0.75rem', color: '#555',
                                                                     }}
                                                                 >
-                                                                    {editingId === field.id ? '閉じる' : '設定'}
+                                                                    {editingId === singleField.id ? '閉じる' : '設定'}
                                                                 </button>
                                                             )}
                                                             <button
-                                                                onClick={() => removeField(field.id)}
+                                                                onClick={() => removeField(singleField.id)}
                                                                 style={{
-                                                                    border: '1px solid #f5c6c6',
-                                                                    background: '#fff',
-                                                                    borderRadius: '6px',
-                                                                    padding: '0.3rem 0.6rem',
-                                                                    cursor: 'pointer',
-                                                                    fontSize: '0.8rem',
-                                                                    color: 'var(--accent)',
+                                                                    border: '1px solid #f5c6c6', background: '#fff',
+                                                                    borderRadius: '4px', padding: '0.2rem 0.5rem', cursor: 'pointer', fontSize: '0.75rem', color: 'var(--accent)',
                                                                 }}
                                                             >
                                                                 削除
@@ -631,125 +498,122 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                                         </div>
                                                     )}
                                                 </div>
+                                            )}
+                                        </div>
 
-                                                {/* 電話番号テンプレートの編集パネル */}
-                                                {field.templateType === 'phone' && editingId === field.id && (
-                                                    <div style={{
-                                                        marginTop: '1rem',
-                                                        paddingTop: '1rem',
-                                                        borderTop: '1px solid #eee',
-                                                        display: 'flex',
-                                                        flexDirection: 'column',
-                                                        gap: '0.75rem',
-                                                    }}>
-                                                        <div style={{ fontSize: '0.85rem', color: '#555', background: '#f5f5f5', padding: '0.6rem 0.85rem', borderRadius: '6px' }}>
-                                                            <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>入力バリデーション</div>
-                                                            <div style={{ color: '#888' }}>半角数字のみ（ハイフンなし）で入力を受け付けます。</div>
-                                                        </div>
-                                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.85rem' }}>
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={field.required}
-                                                                onChange={() => toggleRequired(field.id)}
-                                                                style={{ accentColor: 'var(--primary)' }}
-                                                            />
-                                                            必須項目にする
-                                                        </label>
-                                                    </div>
-                                                )}
-
-                                                {/* カスタムフィールドの編集パネル（テンプレート以外） */}
-                                                {field.isCustom && !field.templateType && editingId === field.id && (
-                                                    <div style={{
-                                                        marginTop: '1rem',
-                                                        paddingTop: '1rem',
-                                                        borderTop: '1px solid #eee',
-                                                        display: 'flex',
-                                                        flexDirection: 'column',
-                                                        gap: '0.75rem',
-                                                    }}>
-                                                        <div>
-                                                            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '0.3rem' }}>ラベル</label>
-                                                            <input
-                                                                type="text"
-                                                                className="input"
-                                                                value={field.label}
-                                                                onChange={(e) => updateFieldLabel(field.id, e.target.value)}
-                                                                style={{ width: '100%', maxWidth: '300px' }}
-                                                            />
-                                                        </div>
-                                                        {(field.type === 'text' || field.type === 'textarea') && (
-                                                            <div>
-                                                                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '0.3rem' }}>プレースホルダー</label>
-                                                                <input
-                                                                    type="text"
-                                                                    className="input"
-                                                                    value={field.placeholder || ''}
-                                                                    onChange={(e) => updateFieldPlaceholder(field.id, e.target.value)}
-                                                                    style={{ width: '100%', maxWidth: '300px' }}
-                                                                />
-                                                            </div>
-                                                        )}
-                                                        {(field.type === 'select' || field.type === 'checkbox') && (
-                                                            <div>
-                                                                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '0.3rem' }}>選択肢</label>
-                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxWidth: '350px' }}>
-                                                                    {(field.options || []).map((opt, i) => (
-                                                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                                                            <span style={{ fontSize: '0.8rem', color: '#aaa', width: '1.5rem', textAlign: 'center', flexShrink: 0 }}>{i + 1}.</span>
-                                                                            <input
-                                                                                type="text"
-                                                                                className="input"
-                                                                                value={opt}
-                                                                                onChange={(e) => {
-                                                                                    const newOptions = [...(field.options || [])];
-                                                                                    newOptions[i] = e.target.value;
-                                                                                    updateFieldOptions(field.id, newOptions);
-                                                                                }}
-                                                                                style={{ flex: 1, fontSize: '0.85rem', padding: '0.35rem 0.6rem' }}
-                                                                                placeholder={`選択肢 ${i + 1}`}
-                                                                            />
-                                                                            <button
-                                                                                onClick={() => {
-                                                                                    const newOptions = (field.options || []).filter((_, idx) => idx !== i);
-                                                                                    updateFieldOptions(field.id, newOptions);
-                                                                                }}
-                                                                                disabled={(field.options || []).length <= 1}
-                                                                                style={{
-                                                                                    border: 'none', background: 'none', cursor: (field.options || []).length <= 1 ? 'default' : 'pointer',
-                                                                                    color: (field.options || []).length <= 1 ? '#ddd' : '#e53935', fontSize: '1rem', padding: '0 0.25rem',
-                                                                                    flexShrink: 0,
-                                                                                }}
-                                                                                title="削除"
-                                                                            >×</button>
-                                                                        </div>
-                                                                    ))}
-                                                                    <button
-                                                                        onClick={() => updateFieldOptions(field.id, [...(field.options || []), ''])}
-                                                                        style={{
-                                                                            border: '1px dashed #ccc', background: 'none', cursor: 'pointer',
-                                                                            borderRadius: '4px', padding: '0.3rem 0.6rem', fontSize: '0.8rem', color: '#888',
-                                                                            marginTop: '0.15rem',
-                                                                        }}
-                                                                    >
-                                                                        + 選択肢を追加
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.85rem' }}>
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={field.required}
-                                                                onChange={() => toggleRequired(field.id)}
-                                                                style={{ accentColor: 'var(--primary)' }}
-                                                            />
-                                                            必須項目にする
-                                                        </label>
-                                                    </div>
-                                                )}
+                                        {/* 単独フィールドの編集パネル */}
+                                        {singleField && singleField.templateType === 'phone' && editingId === singleField.id && (
+                                            <div style={{
+                                                padding: '0.75rem',
+                                                borderTop: '1px solid #eee',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '0.75rem',
+                                            }}>
+                                                <div style={{ fontSize: '0.85rem', color: '#555', background: '#f5f5f5', padding: '0.6rem 0.85rem', borderRadius: '6px' }}>
+                                                    <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>入力バリデーション</div>
+                                                    <div style={{ color: '#888' }}>半角数字のみ（ハイフンなし）で入力を受け付けます。</div>
+                                                </div>
+                                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={singleField.required}
+                                                        onChange={() => toggleRequired(singleField.id)}
+                                                        style={{ accentColor: 'var(--primary)' }}
+                                                    />
+                                                    必須項目にする
+                                                </label>
                                             </div>
-                                        ))}
+                                        )}
+
+                                        {singleField && singleField.isCustom && !singleField.templateType && editingId === singleField.id && (
+                                            <div style={{
+                                                padding: '0.75rem',
+                                                borderTop: '1px solid #eee',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '0.75rem',
+                                            }}>
+                                                <div>
+                                                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '0.3rem' }}>ラベル</label>
+                                                    <input
+                                                        type="text"
+                                                        className="input"
+                                                        value={singleField.label}
+                                                        onChange={(e) => updateFieldLabel(singleField.id, e.target.value)}
+                                                        style={{ width: '100%', maxWidth: '300px' }}
+                                                    />
+                                                </div>
+                                                {(singleField.type === 'text' || singleField.type === 'textarea') && (
+                                                    <div>
+                                                        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '0.3rem' }}>プレースホルダー</label>
+                                                        <input
+                                                            type="text"
+                                                            className="input"
+                                                            value={singleField.placeholder || ''}
+                                                            onChange={(e) => updateFieldPlaceholder(singleField.id, e.target.value)}
+                                                            style={{ width: '100%', maxWidth: '300px' }}
+                                                        />
+                                                    </div>
+                                                )}
+                                                {(singleField.type === 'select' || singleField.type === 'checkbox') && (
+                                                    <div>
+                                                        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '0.3rem' }}>選択肢</label>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxWidth: '350px' }}>
+                                                            {(singleField.options || []).map((opt, i) => (
+                                                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                                    <span style={{ fontSize: '0.8rem', color: '#aaa', width: '1.5rem', textAlign: 'center', flexShrink: 0 }}>{i + 1}.</span>
+                                                                    <input
+                                                                        type="text"
+                                                                        className="input"
+                                                                        value={opt}
+                                                                        onChange={(e) => {
+                                                                            const newOptions = [...(singleField.options || [])];
+                                                                            newOptions[i] = e.target.value;
+                                                                            updateFieldOptions(singleField.id, newOptions);
+                                                                        }}
+                                                                        style={{ flex: 1, fontSize: '0.85rem', padding: '0.35rem 0.6rem' }}
+                                                                        placeholder={`選択肢 ${i + 1}`}
+                                                                    />
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            const newOptions = (singleField.options || []).filter((_, idx) => idx !== i);
+                                                                            updateFieldOptions(singleField.id, newOptions);
+                                                                        }}
+                                                                        disabled={(singleField.options || []).length <= 1}
+                                                                        style={{
+                                                                            border: 'none', background: 'none', cursor: (singleField.options || []).length <= 1 ? 'default' : 'pointer',
+                                                                            color: (singleField.options || []).length <= 1 ? '#ddd' : '#e53935', fontSize: '1rem', padding: '0 0.25rem',
+                                                                            flexShrink: 0,
+                                                                        }}
+                                                                        title="削除"
+                                                                    >×</button>
+                                                                </div>
+                                                            ))}
+                                                            <button
+                                                                onClick={() => updateFieldOptions(singleField.id, [...(singleField.options || []), ''])}
+                                                                style={{
+                                                                    border: '1px dashed #ccc', background: 'none', cursor: 'pointer',
+                                                                    borderRadius: '4px', padding: '0.3rem 0.6rem', fontSize: '0.8rem', color: '#888',
+                                                                    marginTop: '0.15rem',
+                                                                }}
+                                                            >
+                                                                + 選択肢を追加
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={singleField.required}
+                                                        onChange={() => toggleRequired(singleField.id)}
+                                                        style={{ accentColor: 'var(--primary)' }}
+                                                    />
+                                                    必須項目にする
+                                                </label>
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             });
@@ -1010,53 +874,233 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                 borderRadius: '8px',
                             }}
                         >
-                            {isSaving ? '保存中...' : saveSuccess ? '✓ 保存しました' : '保存する'}
+                            {isSaving ? '確定中...' : saveSuccess ? '✓ 確定しました' : '確定する'}
                         </button>
                     </div>
                 </div>
 
-                {/* 右カラム: プレビュー */}
+                {/* 右カラム: プレビュー（実際の予約フォームと同じ表示） */}
                 <div style={{ position: 'sticky', top: '1rem' }}>
                     <div style={{
-                        background: '#f8f9fa',
-                        borderRadius: '12px',
-                        border: '1px solid #e0e0e0',
+                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                        marginBottom: '0.75rem', paddingBottom: '0.5rem',
+                        borderBottom: '1px solid #e5e7eb',
+                    }}>
+                        <span style={{ fontSize: '1rem' }}>👁</span>
+                        <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#333', margin: 0 }}>プレビュー</h3>
+                        <span style={{ fontSize: '0.75rem', color: '#999', marginLeft: 'auto' }}>実際の表示</span>
+                    </div>
+                    <div className="card" style={{
+                        padding: 0,
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
                         overflow: 'hidden',
                     }}>
                         <div style={{
-                            background: 'var(--primary)',
-                            color: '#fff',
-                            padding: '0.75rem 1rem',
-                            fontSize: '0.85rem',
-                            fontWeight: '600',
+                            padding: '1rem 1.25rem',
+                            borderBottom: '1px solid #eee',
+                            background: '#fafafa',
+                            textAlign: 'center',
                         }}>
-                            プレビュー
+                            <div style={{ fontSize: '0.65rem', color: '#999', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                                TICKET RESERVATION
+                            </div>
+                            <div style={{ fontWeight: 'bold', fontSize: '1rem', color: 'var(--foreground)' }}>
+                                {production.title}
+                            </div>
+                            <div style={{ width: '40px', height: '2px', background: 'var(--primary)', margin: '0.5rem auto 0' }} />
                         </div>
+
+                        {/* プレビュー本体 */}
                         <div style={{ padding: '1.25rem' }}>
-                            {enabledFields.map((field) => (
-                                <div key={field.id}>
-                                    {renderPreviewField(field)}
-                                </div>
-                            ))}
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--primary)', marginBottom: '1.25rem' }}>
+                                チケット予約フォーム
+                            </h3>
+
+                            {fields.filter(f => f.enabled).map((field) => {
+                                // お名前 + ふりがな（セット表示）
+                                if (field.id === 'customer_name') {
+                                    return (
+                                        <div key={field.id} className="form-group" style={{ marginBottom: '1.25rem' }}>
+                                            <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                                                お名前 <span style={{ color: 'var(--primary)', fontSize: '0.75rem' }}>（必須）</span>
+                                            </label>
+                                            <input type="text" className="input" disabled placeholder="例: 山田 太郎" style={{ width: '100%', fontSize: '0.85rem', background: '#fff', marginBottom: '0.4rem' }} />
+                                            <input type="text" className="input" disabled placeholder="ふりがな (例: やまだ たろう)" style={{ width: '100%', fontSize: '0.8rem', background: '#fff' }} />
+                                        </div>
+                                    );
+                                }
+                                // ふりがなはcustomer_nameで一緒に描画済み
+                                if (field.id === 'customer_kana') return null;
+
+                                // メールアドレス
+                                if (field.id === 'customer_email') {
+                                    return (
+                                        <div key={field.id} className="form-group" style={{ marginBottom: '1.25rem' }}>
+                                            <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                                                メールアドレス <span style={{ color: 'var(--primary)', fontSize: '0.75rem' }}>（必須）</span>
+                                            </label>
+                                            <input type="email" className="input" disabled placeholder="例: example@mail.com" style={{ width: '100%', fontSize: '0.85rem', background: '#fff' }} />
+                                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                                                ※予約完了メールが送信されますので、正確に入力してください。
+                                            </div>
+                                        </div>
+                                    );
+                                }
+
+                                // 観劇日時 + 券種選択（セットで表示）
+                                if (field.id === 'performance_select') {
+                                    return (
+                                        <div key={field.id}>
+                                            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                                                <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                                                    観劇日時 <span style={{ color: 'var(--primary)', fontSize: '0.75rem' }}>（必須）</span>
+                                                </label>
+                                                <select className="input" disabled style={{ width: '100%', fontSize: '0.85rem', background: '#fff' }}>
+                                                    <option>日時を選択してください</option>
+                                                </select>
+                                            </div>
+                                            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                                                <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                                                    券種・枚数 <span style={{ color: 'var(--primary)', fontSize: '0.75rem' }}>（必須: 合計1枚以上）</span>
+                                                </label>
+                                                <div style={{
+                                                    padding: '0.75rem',
+                                                    border: '1px solid var(--card-border, #dee2e6)',
+                                                    borderRadius: '8px',
+                                                    background: '#fcfcfc',
+                                                }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.3rem 0' }}>
+                                                        <div>
+                                                            <div style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>一般</div>
+                                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>¥3,000</div>
+                                                        </div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                                            <input type="number" className="input" disabled value="0" style={{ width: '55px', textAlign: 'right', fontSize: '0.85rem', marginBottom: 0, padding: '0.3rem 0.5rem' }} />
+                                                            <span style={{ fontSize: '0.8rem' }}>枚</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                                // ticket_selectはperformance_selectで一緒に描画済み
+                                if (field.id === 'ticket_select') return null;
+
+                                // 備考
+                                if (field.id === 'remarks') {
+                                    return (
+                                        <div key={field.id} className="form-group" style={{ marginBottom: '1.25rem' }}>
+                                            <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                                                備考 <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>（任意）</span>
+                                            </label>
+                                            <textarea className="input" disabled rows={2} placeholder="車椅子でのご来場など、伝えたいことがあればご記入ください。" style={{ width: '100%', fontSize: '0.85rem', resize: 'none', background: '#fff' }} />
+                                        </div>
+                                    );
+                                }
+
+                                // カスタムフィールド
+                                const reqLabel = field.required
+                                    ? <span style={{ color: 'var(--primary)', fontSize: '0.75rem' }}>（必須）</span>
+                                    : <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>（任意）</span>;
+
+                                if (field.templateType === 'phone') {
+                                    return (
+                                        <div key={field.id} className="form-group" style={{ marginBottom: '1.25rem' }}>
+                                            <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                                                {field.label} {reqLabel}
+                                            </label>
+                                            <input type="tel" className="input" disabled placeholder={field.placeholder || '09012345678'} style={{ width: '100%', fontSize: '0.85rem', background: '#fff' }} />
+                                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                                                ※半角数字のみ・ハイフンなしで入力してください
+                                            </div>
+                                        </div>
+                                    );
+                                }
+
+                                if (field.type === 'checkbox') {
+                                    if (field.options && field.options.length > 0) {
+                                        return (
+                                            <div key={field.id} className="form-group" style={{ marginBottom: '1.25rem' }}>
+                                                <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                                                    {field.label} {reqLabel}
+                                                </label>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                                                    {field.options.map((opt, i) => (
+                                                        <label key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+                                                            <input type="checkbox" disabled style={{ accentColor: 'var(--primary)', width: '16px', height: '16px' }} />
+                                                            {opt}
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                    return (
+                                        <div key={field.id} className="form-group" style={{ marginBottom: '1.25rem' }}>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '500' }}>
+                                                <input type="checkbox" disabled style={{ accentColor: 'var(--primary)', width: '16px', height: '16px' }} />
+                                                {field.label}
+                                            </label>
+                                        </div>
+                                    );
+                                }
+
+                                if (field.type === 'select') {
+                                    return (
+                                        <div key={field.id} className="form-group" style={{ marginBottom: '1.25rem' }}>
+                                            <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                                                {field.label} {reqLabel}
+                                            </label>
+                                            <select className="input" disabled style={{ width: '100%', fontSize: '0.85rem', background: '#fff' }}>
+                                                <option>選択してください</option>
+                                                {field.options?.map((opt, i) => <option key={i}>{opt}</option>)}
+                                            </select>
+                                        </div>
+                                    );
+                                }
+
+                                if (field.type === 'textarea') {
+                                    return (
+                                        <div key={field.id} className="form-group" style={{ marginBottom: '1.25rem' }}>
+                                            <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                                                {field.label} {reqLabel}
+                                            </label>
+                                            <textarea className="input" disabled rows={2} placeholder={field.placeholder || ''} style={{ width: '100%', fontSize: '0.85rem', resize: 'none', background: '#fff' }} />
+                                        </div>
+                                    );
+                                }
+
+                                // text (default)
+                                return (
+                                    <div key={field.id} className="form-group" style={{ marginBottom: '1.25rem' }}>
+                                        <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                                            {field.label} {reqLabel}
+                                        </label>
+                                        <input type="text" className="input" disabled placeholder={field.placeholder || ''} style={{ width: '100%', fontSize: '0.85rem', background: '#fff' }} />
+                                    </div>
+                                );
+                            })}
 
                             {/* 送信ボタン（プレビュー） */}
-                            <button
-                                disabled
-                                style={{
-                                    width: '100%',
-                                    padding: '0.6rem',
-                                    background: 'var(--primary)',
-                                    color: '#fff',
-                                    border: 'none',
-                                    borderRadius: '6px',
-                                    fontSize: '0.9rem',
-                                    fontWeight: '600',
-                                    opacity: 0.7,
-                                    marginTop: '0.5rem',
-                                }}
-                            >
-                                予約を確定する
-                            </button>
+                            <div style={{ marginTop: '0.5rem' }}>
+                                <button
+                                    disabled
+                                    className="btn btn-primary"
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.9rem',
+                                        fontWeight: 'bold',
+                                        fontSize: '1rem',
+                                        opacity: 0.7,
+                                    }}
+                                >
+                                    予約する
+                                </button>
+                                <p style={{ textAlign: 'center', fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.75rem' }}>
+                                    ※「予約する」を押すと確認画面へ進みます。
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>

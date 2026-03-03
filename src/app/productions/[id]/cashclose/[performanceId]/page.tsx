@@ -9,6 +9,7 @@ import { serializeDoc } from '@/lib/firestore-utils';
 import Link from 'next/link';
 import { Production, Performance } from "@/types";
 import { useAuth } from '@/components/AuthProvider';
+import Breadcrumb from '@/components/Breadcrumb';
 import CashCloseForm from '@/components/CashCloseForm';
 
 export default function CashClosePage({ params }: { params: any }) {
@@ -86,6 +87,11 @@ export default function CashClosePage({ params }: { params: any }) {
 
     return (
         <div className="container" style={{ paddingBottom: '4rem', maxWidth: '700px' }}>
+            <Breadcrumb items={[
+                { label: 'ダッシュボード', href: '/dashboard' },
+                { label: production?.title || '公演', href: `/productions/${production.id}` },
+                { label: 'レジ締め' }
+            ]} />
             <header style={{ marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: '1px solid #eee' }}>
                 <Link
                     href={`/productions/${production.id}/checkin/${performance.id}`}
@@ -97,9 +103,9 @@ export default function CashClosePage({ params }: { params: any }) {
                 <div style={{ marginBottom: '0.5rem' }}>
                     <span style={{ fontSize: '0.9rem', color: '#666' }}>公演：{production.title}</span>
                 </div>
-                <h1 style={{ fontSize: '1.5rem', fontWeight: '900', margin: 0, color: 'var(--primary)' }}>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: '900', margin: 0, color: 'var(--primary)' }}>
                     レジ締め - {perfDateStr} {perfTimeStr}
-                </h1>
+                </h2>
             </header>
 
             <CashCloseForm

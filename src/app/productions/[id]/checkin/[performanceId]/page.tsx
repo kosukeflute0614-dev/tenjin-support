@@ -21,6 +21,7 @@ import GlobalReservationSearch from '@/components/GlobalReservationSearch';
 import Link from 'next/link';
 import { Production, Performance, FirestoreReservation } from "@/types";
 import { useAuth } from '@/components/AuthProvider';
+import Breadcrumb from '@/components/Breadcrumb';
 import { serializeDoc, serializeDocs } from '@/lib/firestore-utils';
 
 export default function CheckinPage({ params }: { params: any }) {
@@ -217,6 +218,11 @@ export default function CheckinPage({ params }: { params: any }) {
 
     return (
         <div className="container" style={{ paddingBottom: '4rem', maxWidth: '1200px' }}>
+            <Breadcrumb items={[
+                { label: 'ダッシュボード', href: '/dashboard' },
+                { label: data.production.title, href: `/productions/${data.production.id}` },
+                { label: 'チェックイン' }
+            ]} />
             <header style={{
                 marginBottom: '2rem',
                 borderBottom: '1px solid #eee',
@@ -240,9 +246,9 @@ export default function CheckinPage({ params }: { params: any }) {
                         <div style={{ fontSize: '1rem', fontWeight: 'bold', color: '#666', marginBottom: '0.25rem' }}>
                             公演：{production.title}
                         </div>
-                        <h1 style={{ fontSize: '1.8rem', fontWeight: '900', margin: 0, color: 'var(--primary)', lineHeight: '1.2' }}>
+                        <h2 style={{ fontSize: '1.8rem', fontWeight: '900', margin: 0, color: 'var(--primary)', lineHeight: '1.2' }}>
                             {perfDateStr} {perfTimeStr}
-                        </h1>
+                        </h2>
                     </div>
 
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>

@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
+import Breadcrumb from '@/components/Breadcrumb';
 import SalesReportView from '@/components/SalesReportView';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -56,17 +57,22 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
 
     return (
         <div className="container" style={{ maxWidth: '1000px' }}>
+            <Breadcrumb items={[
+                { label: 'ダッシュボード', href: '/dashboard' },
+                { label: production.title, href: `/productions/${id}` },
+                { label: 'レポート' }
+            ]} />
             <div style={{ marginBottom: '1.25rem' }}>
                 <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
                     <span>&larr;</span> ダッシュボードに戻る
                 </Link>
             </div>
             <div style={{ marginBottom: '2rem' }}>
-                <h2 className="heading-lg" style={{ marginBottom: '0.5rem' }}>📊 {production.title} — レポート</h2>
+                <h2 className="heading-lg" style={{ marginBottom: '0.5rem' }}>{production.title} — レポート</h2>
                 <p className="text-muted" style={{ fontSize: '0.9rem' }}>売上・チケット種別・公演別の集計データを確認できます。</p>
             </div>
 
-            <div className="card" style={{ padding: '2rem', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+            <div className="card" style={{ padding: '2rem', border: 'none', boxShadow: 'var(--shadow-sm)' }}>
                 <SalesReportView productionId={production.id} />
             </div>
         </div>

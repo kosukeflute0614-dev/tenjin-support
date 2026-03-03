@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { SurveyQuestion } from '@/components/SurveyBuilder';
 import QRCode from 'qrcode';
 import { useAuth } from '@/components/AuthProvider';
+import { useToast } from '@/components/Toast';
 import { saveEditorDraft, loadEditorDraft, finalizeSurveyLayoutVersion } from '@/lib/client-firestore';
 
 /* =========================================
@@ -258,6 +259,7 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
     const [finalizedLayoutId, setFinalizedLayoutId] = useState<string | null>(null);
     const canvasAreaRef = useRef<HTMLDivElement>(null);
     const { user } = useAuth();
+    const { showToast } = useToast();
 
     // マウント時にドラフトを復元
     useEffect(() => {
@@ -621,6 +623,9 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
     return (
         <div
             id="print-canvas-root"
+            role="dialog"
+            aria-modal="true"
+            aria-label="印刷レイアウトエディタ"
             style={{
                 position: 'fixed', inset: 0, zIndex: 50,
                 backgroundColor: '#1e1e1e',
@@ -827,7 +832,7 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                                 //    async/await・setTimeout より前に必ず呼ぶ
                                 const printWin = window.open('', '_blank', 'width=850,height=1150');
                                 if (!printWin) {
-                                    alert('新しいウィンドウがブロックされました。ブラウザのポップアップブロックを解除してください。');
+                                    showToast('新しいウィンドウがブロックされました。ブラウザのポップアップブロックを解除してください。', 'warning');
                                     return;
                                 }
                                 // 待機中のプレースホルダーを表示

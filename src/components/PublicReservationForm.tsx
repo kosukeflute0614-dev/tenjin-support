@@ -153,11 +153,13 @@ export default function PublicReservationForm({ production, promoterId }: Props)
             </label>
             <input
                 type="text" id="customerName" name="customerName" required
+                aria-required="true" autoComplete="name"
                 defaultValue={customerInfo.name} className="input"
                 placeholder="例: 山田 太郎" style={{ marginBottom: '0.5rem' }}
             />
             <input
                 type="text" id="customerNameKana" name="customerNameKana" required
+                aria-required="true"
                 pattern="[ぁ-ん\u3000\s]+" title="ひらがなで入力してください"
                 defaultValue={customerInfo.kana} className="input"
                 placeholder="ふりがな (例: やまだ たろう)" style={{ fontSize: '0.85rem' }}
@@ -172,6 +174,7 @@ export default function PublicReservationForm({ production, promoterId }: Props)
             </label>
             <input
                 type="email" id="customerEmail" name="customerEmail" required
+                aria-required="true" autoComplete="email"
                 defaultValue={customerInfo.email} className="input"
                 placeholder="例: example@mail.com"
             />
@@ -191,6 +194,7 @@ export default function PublicReservationForm({ production, promoterId }: Props)
                 value={selectedPerformanceId}
                 onChange={(e) => { setSelectedPerformanceId(e.target.value); setTicketCounts({}); }}
                 required
+                aria-required="true"
             >
                 <option value="">日時を選択してください</option>
                 {performances.map((perf: Performance) => {
@@ -369,9 +373,35 @@ export default function PublicReservationForm({ production, promoterId }: Props)
 
     // --- ステップ表示 ---
 
+    const stepIndicator = (
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginBottom: '2rem' }}>
+            {[
+                { key: 'input', label: '入力', num: 1 },
+                { key: 'confirm', label: '確認', num: 2 },
+                { key: 'success', label: '完了', num: 3 },
+            ].map(s => (
+                <div key={s.key} style={{
+                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                    color: step === s.key ? 'var(--primary)' : '#ccc',
+                    fontWeight: step === s.key ? 'bold' : 'normal'
+                }}>
+                    <span style={{
+                        width: '28px', height: '28px', borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        backgroundColor: step === s.key ? 'var(--primary)' : '#eee',
+                        color: step === s.key ? 'white' : '#999',
+                        fontSize: '0.85rem', fontWeight: 'bold'
+                    }}>{s.num}</span>
+                    <span style={{ fontSize: '0.9rem' }}>{s.label}</span>
+                </div>
+            ))}
+        </div>
+    );
+
     if (step === 'success') {
         return (
             <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
+                {stepIndicator}
                 <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🎉</div>
                 <h2 className="heading-md" style={{ color: 'var(--success)', marginBottom: '1rem' }}>予約を承りました</h2>
                 <p style={{ marginBottom: '2rem', lineHeight: '1.8' }}>
@@ -397,6 +427,7 @@ export default function PublicReservationForm({ production, promoterId }: Props)
 
         return (
             <div className="card" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+                {stepIndicator}
                 <h2 className="heading-md" style={{ textAlign: 'center', marginBottom: '2rem', color: 'var(--primary)' }}>
                     予約内容の確認
                 </h2>
@@ -483,6 +514,7 @@ export default function PublicReservationForm({ production, promoterId }: Props)
         <form onSubmit={handleToConfirm} className="card" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
             <input type="hidden" name="productionId" value={production.id} />
 
+            {stepIndicator}
             <h2 className="heading-md" style={{ textAlign: 'center', marginBottom: '2rem', color: 'var(--primary)' }}>
                 チケット予約フォーム
             </h2>
