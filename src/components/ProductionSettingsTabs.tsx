@@ -160,7 +160,7 @@ export default function ProductionSettingsTabs({
                                         value={customId}
                                         onChange={(e) => setCustomId(e.target.value)}
                                         placeholder="例: winter-performance-2026"
-                                        style={{ flex: 1 }}
+                                        style={{ flex: 1, marginBottom: 0 }}
                                     />
                                     <button
                                         onClick={handleSaveCustomId}

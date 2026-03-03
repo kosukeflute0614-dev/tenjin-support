@@ -53,23 +53,22 @@ export default function HeaderNav() {
     const linkHref = hasProduction === false ? '/productions' : '/dashboard';
 
     return (
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-            <div style={{ display: 'flex', listStyle: 'none', gap: '1.5rem', margin: 0, padding: 0 }}>
-                <Link href={linkHref} className="nav-link" style={{
-                    fontWeight: isDashboard ? 'bold' : 'normal',
-                    color: isDashboard ? 'var(--primary)' : 'inherit',
-                    textDecoration: 'none',
-                    fontSize: '0.9rem',
-                    letterSpacing: '0.03em',
-                    maxWidth: '200px',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                }}>
-                    {productionName || '公演一覧'}
-                </Link>
-            </div>
-            <div style={{ height: '20px', width: '1px', background: '#e5e7eb' }}></div>
+        <nav style={{ display: 'flex', alignItems: 'baseline', gap: '1.5rem' }}>
+            <Link href={linkHref} className="nav-link" style={{
+                fontWeight: isDashboard ? '600' : 'normal',
+                color: isDashboard ? 'var(--primary)' : 'inherit',
+                textDecoration: 'none',
+                fontSize: '0.875rem',
+                letterSpacing: '0.03em',
+                maxWidth: '200px',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+            }}>
+                {productionName || '公演一覧'}
+            </Link>
+            <div style={{ height: '20px', width: '1px', background: '#e5e7eb', alignSelf: 'center' }}></div>
             <UserMenu />
         </nav>
     );

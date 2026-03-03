@@ -8,33 +8,44 @@ import { fetchDashboardStatsClient, fetchDuplicateReservationsClient, fetchProdu
 import { formatDate, formatTime, formatCurrency } from '@/lib/format';
 import DuplicateNotification from '@/components/DuplicateNotification';
 import { useAuth } from '@/components/AuthProvider';
-import { PerformanceStats, DuplicateGroup, SalesReport } from '@/types';
+import { PerformanceStats, DuplicateGroup, SalesReport, Production } from '@/types';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { toDate } from '@/lib/firestore-utils';
+import { doc, collection, query, where, onSnapshot } from 'firebase/firestore';
+import { serializeDoc, toDate } from '@/lib/firestore-utils';
 import { Settings, Ticket, Bell, Smartphone, Users, Key, ClipboardList, FileEdit, Wallet, Mail, BarChart3, Calendar } from 'lucide-react';
+
+type Badge = { label: string; bg: string; color: string; borderColor: string };
 
 export default function DashboardPage() {
     const { user, loading, profile } = useAuth();
     const router = useRouter();
     const [activeProductionId, setActiveProductionId] = useState<string | null>(null);
+    const [production, setProduction] = useState<Production | null>(null);
     const [stats, setStats] = useState<PerformanceStats[]>([]);
     const [duplicateGroups, setDuplicateGroups] = useState<DuplicateGroup[]>([]);
     const [isDataLoading, setIsDataLoading] = useState(true);
     const [salesReport, setSalesReport] = useState<SalesReport | null>(null);
 
     useEffect(() => {
-        let unsubscribe: () => void = () => { };
+        let unsubReservations: () => void = () => { };
+        let unsubProduction: () => void = () => { };
 
         const fetchData = async () => {
             if (!user) return;
             const activeId = await getActiveProductionId();
             if (!activeId) {
-                // 公演がまだ一つもない場合は公演一覧へ
                 router.push('/productions');
                 return;
             }
             setActiveProductionId(activeId);
+
+            // Production docをリアルタイム監視（バッジ用）
+            const prodRef = doc(db, "productions", activeId);
+            unsubProduction = onSnapshot(prodRef, (snap) => {
+                if (snap.exists()) {
+                    setProduction(serializeDoc<Production>(snap));
+                }
+            });
 
             try {
                 const [dashboardStats, duplicates, report] = await Promise.all([
@@ -43,10 +54,7 @@ export default function DashboardPage() {
                     fetchProductionSalesReportClient(activeId, user.uid).catch(() => null)
                 ]);
 
-                // IDは存在するが、DB初期化等でデータが空（無効なID）の場合
                 if (dashboardStats.length === 0) {
-                    // もし全公演を調べても見つからない場合はCookieを消して一覧へ
-                    // (ここでは簡易的に、統計が取れない場合は無効とみなす)
                     console.warn("[Dashboard] No stats found for active ID, it might be invalid.");
                 }
 
@@ -55,7 +63,6 @@ export default function DashboardPage() {
                 setSalesReport(report);
             } catch (error) {
                 console.error("Dashboard data fetch failed:", error);
-                // 権限エラーや存在しないエラーの場合はCookieが古い可能性が高い
                 if ((error as any).code === 'permission-denied' || (error as any).message?.includes('not found')) {
                     router.push('/productions');
                 }
@@ -67,25 +74,93 @@ export default function DashboardPage() {
         if (!loading && user) {
             fetchData();
 
-            // Listen for changes in reservations to trigger refresh
             const reservationsRef = collection(db, "reservations");
             const q = query(
                 reservationsRef,
                 where("userId", "==", user.uid)
             );
-            unsubscribe = onSnapshot(q, () => {
+            unsubReservations = onSnapshot(q, () => {
                 fetchData();
             });
         } else if (!loading && !user) {
             setIsDataLoading(false);
         }
 
-        return () => unsubscribe();
+        return () => {
+            unsubReservations();
+            unsubProduction();
+        };
     }, [user, loading, router]);
 
     if (loading || (user && isDataLoading)) {
         return <div className="flex-center" style={{ height: '50vh' }}>読み込み中...</div>;
     }
+
+    // ステータスバッジの計算
+    const receptionBadge: Badge | undefined = production?.receptionStatus === 'OPEN'
+        ? { label: '受付中', bg: '#dcfce7', color: '#166534', borderColor: '#bbf7d0' }
+        : production?.receptionStatus === 'CLOSED'
+            ? { label: '停止中', bg: '#f1f5f9', color: '#64748b', borderColor: '#e2e8f0' }
+            : undefined;
+
+    const reservationBadge: Badge | undefined = salesReport && salesReport.totalTickets > 0
+        ? { label: `${salesReport.totalTickets}件`, bg: '#dbeafe', color: '#1e40af', borderColor: '#bfdbfe' }
+        : undefined;
+
+    const staffTokenCount = production?.staffTokens ? Object.keys(production.staffTokens).length : 0;
+    const staffBadge: Badge | undefined = staffTokenCount > 0
+        ? { label: `${staffTokenCount}名`, bg: '#f3e8ff', color: '#7c3aed', borderColor: '#e9d5ff' }
+        : undefined;
+
+    // href helper
+    const prodHref = (path: string) => activeProductionId ? `/productions/${activeProductionId}${path}` : '/productions';
+
+    // セクション定義
+    const sections = [
+        {
+            id: 'settings',
+            label: '公演の基本設定',
+            description: '公演に必要な各種設定を行います',
+            borderColor: '#6366f1',
+            items: [
+                { href: prodHref(''), icon: <Settings size={32} color="var(--primary)" />, title: '公演設定', desc: '価格・回・詳細設定' },
+                { href: prodHref('/form-editor'), icon: <FileEdit size={32} color="var(--primary)" />, title: '予約フォーム編集', desc: '予約フォームの項目設定' },
+                { href: prodHref('/email'), icon: <Mail size={32} color="var(--primary)" />, title: 'メール管理', desc: '自動メール・一斉送信の設定' },
+            ]
+        },
+        {
+            id: 'reservation',
+            label: '予約・受付',
+            description: '予約の受付から当日対応まで',
+            borderColor: '#0891b2',
+            items: [
+                { href: prodHref('/reception'), icon: <Bell size={32} color="var(--primary)" />, title: '予約受付設定', desc: '受付の開始・停止・期間設定', badge: receptionBadge },
+                { href: '/reservations', icon: <Ticket size={32} color="var(--primary)" />, title: '予約管理', desc: '予約の確認・追加', badge: reservationBadge },
+                { href: '/reception', icon: <Smartphone size={32} color="var(--primary)" />, title: '当日受付', desc: '来場処理・当日券対応' },
+            ]
+        },
+        {
+            id: 'monitoring',
+            label: 'モニタリング・スタッフ',
+            description: '来場状況の確認とスタッフ管理',
+            borderColor: '#d97706',
+            items: [
+                { href: prodHref('/attendance'), icon: <Users size={32} color="var(--primary)" />, title: '来場状況', desc: 'リアルタイム着券状況の確認' },
+                { href: prodHref('/staff'), icon: <Key size={32} color="var(--primary)" />, title: 'スタッフ管理', desc: '合鍵（スタッフ用URL）の発行と管理', badge: staffBadge },
+            ]
+        },
+        {
+            id: 'analytics',
+            label: '集計・分析',
+            description: '売上やアンケートの集計・分析',
+            borderColor: '#64748b',
+            items: [
+                { href: prodHref('/report'), icon: <ClipboardList size={32} color="var(--primary)" />, title: 'レポート', desc: '売上・券種別の詳細集計' },
+                { href: prodHref('/cashclose-report'), icon: <Wallet size={32} color="var(--primary)" />, title: 'レジ締めレポート', desc: '各公演回の精算結果を確認' },
+                { href: prodHref('/survey'), icon: <FileEdit size={32} color="var(--primary)" />, title: 'アンケート管理', desc: 'アンケートの作成・集計・分析' },
+            ]
+        }
+    ];
 
     return (
         <div className="dashboard">
@@ -98,70 +173,12 @@ export default function DashboardPage() {
 
             <DuplicateNotification groups={duplicateGroups} />
 
-            <div className="menu-grid">
-                <Link href={activeProductionId ? `/productions/${activeProductionId}` : '/productions'} className="menu-card">
-                    <span className="icon"><Settings size={32} color="var(--primary)" /></span>
-                    <h3>公演設定</h3>
-                    <p>価格・回・詳細設定</p>
-                </Link>
-                <Link href="/reservations" className="menu-card">
-                    <span className="icon"><Ticket size={32} color="var(--primary)" /></span>
-                    <h3>予約管理</h3>
-                    <p>予約の確認・追加・メール送信</p>
-                </Link>
-                <Link href={activeProductionId ? `/productions/${activeProductionId}/reception` : '/productions'} className="menu-card">
-                    <span className="icon"><Bell size={32} color="var(--primary)" /></span>
-                    <h3>予約受付</h3>
-                    <p>受付の開始・停止・期間設定</p>
-                </Link>
-                <Link href="/reception" className="menu-card">
-                    <span className="icon"><Smartphone size={32} color="var(--primary)" /></span>
-                    <h3>当日受付</h3>
-                    <p>来場処理・当日券対応</p>
-                </Link>
-                <Link href={activeProductionId ? `/productions/${activeProductionId}/attendance` : '/productions'} className="menu-card">
-                    <span className="icon"><Users size={32} color="var(--primary)" /></span>
-                    <h3>来場状況</h3>
-                    <p>リアルタイム着券状況の確認</p>
-                </Link>
-                <Link href={activeProductionId ? `/productions/${activeProductionId}/staff` : '/productions'} className="menu-card">
-                    <span className="icon"><Key size={32} color="var(--primary)" /></span>
-                    <h3>スタッフ招待・管理</h3>
-                    <p>合鍵（スタッフ用URL）の発行と管理</p>
-                </Link>
-                <Link href={activeProductionId ? `/productions/${activeProductionId}/report` : '/productions'} className="menu-card">
-                    <span className="icon"><ClipboardList size={32} color="var(--primary)" /></span>
-                    <h3>レポート</h3>
-                    <p>売上・券種別の詳細集計</p>
-                </Link>
-                <Link href={activeProductionId ? `/productions/${activeProductionId}/survey` : '/productions'} className="menu-card">
-                    <span className="icon"><FileEdit size={32} color="var(--primary)" /></span>
-                    <h3>アンケート管理</h3>
-                    <p>アンケートの作成・集計・分析</p>
-                </Link>
-                <Link href={activeProductionId ? `/productions/${activeProductionId}/cashclose-report` : '/productions'} className="menu-card">
-                    <span className="icon"><Wallet size={32} color="var(--primary)" /></span>
-                    <h3>レジ締めレポート</h3>
-                    <p>各公演回の精算結果を確認</p>
-                </Link>
-                <Link href={activeProductionId ? `/productions/${activeProductionId}/email` : '/productions'} className="menu-card">
-                    <span className="icon"><Mail size={32} color="var(--primary)" /></span>
-                    <h3>メール管理</h3>
-                    <p>自動メール・一斉送信の設定</p>
-                </Link>
-                <Link href={activeProductionId ? `/productions/${activeProductionId}/form-editor` : '/productions'} className="menu-card">
-                    <span className="icon"><FileEdit size={32} color="var(--primary)" /></span>
-                    <h3>予約フォーム編集</h3>
-                    <p>予約フォームの項目設定</p>
-                </Link>
-            </div>
-
-            <div className="stats-section" style={{ marginTop: '3rem' }}>
+            {/* KPIサマリー + 予約状況テーブル */}
+            <div className="stats-section" style={{ marginBottom: '3rem' }}>
                 <h3 className="heading-md" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                     <BarChart3 size={22} color="var(--primary)" /> 予約状況
                 </h3>
 
-                {/* サマリーカード */}
                 {salesReport && (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                         <div style={{
@@ -285,6 +302,34 @@ export default function DashboardPage() {
                     </div>
                 )}
             </div>
+
+            {/* メニューセクション */}
+            {sections.map(section => (
+                <div key={section.id} className="dashboard-section" style={{ borderLeftColor: section.borderColor }}>
+                    <div className="section-header">
+                        <h3>{section.label}</h3>
+                        <p>{section.description}</p>
+                    </div>
+                    <div className="menu-grid">
+                        {section.items.map(item => (
+                            <Link href={item.href} className="menu-card" key={item.href}>
+                                {item.badge && (
+                                    <span className="card-badge" style={{
+                                        backgroundColor: item.badge.bg,
+                                        color: item.badge.color,
+                                        borderColor: item.badge.borderColor
+                                    }}>
+                                        {item.badge.label}
+                                    </span>
+                                )}
+                                <span className="icon">{item.icon}</span>
+                                <h3>{item.title}</h3>
+                                <p>{item.desc}</p>
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            ))}
         </div>
     );
 }
