@@ -22,6 +22,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className={`${inter.variable} ${playfair.variable}`}>
+        <a href="#main-content" className="skip-link">メインコンテンツへスキップ</a>
         <AuthProvider>
           <RouteGuard>
             <header className="global-header">
@@ -30,7 +31,7 @@ export default function RootLayout({
                 <HeaderNav />
               </div>
             </header>
-            <main className="main-content">
+            <main id="main-content" className="main-content">
               <div className="container">
                 {children}
               </div>

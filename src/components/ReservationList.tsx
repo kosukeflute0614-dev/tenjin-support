@@ -331,8 +331,8 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
                         alignItems: 'center',
                         zIndex: 1000,
                         padding: '1rem'
-                    }}>
-                        <div className="card" style={{
+                    }} onKeyDown={(e) => { if (e.key === 'Escape') handleCloseModal(); }}>
+                        <div className="card" role="dialog" aria-modal="true" aria-labelledby="modal-title-edit-reservation" style={{
                             width: '100%',
                             maxWidth: '600px',
                             maxHeight: '90vh',
@@ -341,6 +341,7 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
                         }}>
                             <button
                                 onClick={handleCloseModal}
+                                aria-label="閉じる"
                                 style={{
                                     position: 'absolute',
                                     top: '1rem',
@@ -355,7 +356,7 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
                                 &times;
                             </button>
 
-                            <h3 className="heading-md" style={{ marginBottom: '1.5rem' }}>予約内容の変更</h3>
+                            <h3 id="modal-title-edit-reservation" className="heading-md" style={{ marginBottom: '1.5rem' }}>予約内容の変更</h3>
 
                             <form onSubmit={async (e) => {
                                 e.preventDefault();
@@ -490,14 +491,14 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
                         alignItems: 'center',
                         zIndex: 1101,
                         padding: '1rem'
-                    }}>
-                        <div className="card" style={{
+                    }} onKeyDown={(e) => { if (e.key === 'Escape') handleCloseModal(); }}>
+                        <div className="card" role="dialog" aria-modal="true" aria-labelledby="modal-title-cancel-reservation" style={{
                             width: '100%',
                             maxWidth: '450px',
                             padding: '2rem',
                             textAlign: 'center'
                         }}>
-                            <h3 className="heading-md" style={{ color: 'var(--accent)', marginBottom: '1.5rem' }}>予約のキャンセル</h3>
+                            <h3 id="modal-title-cancel-reservation" className="heading-md" style={{ color: 'var(--accent)', marginBottom: '1.5rem' }}>予約のキャンセル</h3>
 
                             <p style={{ marginBottom: '1.5rem' }}>以下の予約をキャンセルしてもよろしいですか？</p>
 

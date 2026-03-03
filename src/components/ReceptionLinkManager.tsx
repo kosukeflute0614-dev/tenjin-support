@@ -322,12 +322,12 @@ export default function ReceptionLinkManager({
                     position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
                     backgroundColor: 'rgba(0, 0, 0, 0.3)', display: 'flex', justifyContent: 'center',
                     alignItems: 'center', zIndex: 2000, backdropFilter: 'blur(2px)'
-                }}>
-                    <div className="card" style={{
+                }} onKeyDown={(e) => { if (e.key === 'Escape') setModalType(null); }}>
+                    <div className="card" role="dialog" aria-modal="true" aria-labelledby="modal-title-reception-confirm" style={{
                         width: '90%', maxWidth: '400px', padding: '2rem', textAlign: 'center',
                         boxShadow: '0 10px 25px rgba(0,0,0,0.1)', border: '1px solid var(--card-border)'
                     }}>
-                        <h3 className="heading-md" style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>
+                        <h3 id="modal-title-reception-confirm" className="heading-md" style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>
                             {modalType === 'TOGGLE_STATUS' ? (isCurrentlyOpen ? '予約受付の停止' : '予約受付の即時開始') :
                                 modalType === 'SAVE_START' ? '開始時刻の確定' :
                                     modalType === 'SAVE_END' ? '終了条件の確定' : 'スケジュールの解除'}

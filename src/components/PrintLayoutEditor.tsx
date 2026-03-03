@@ -621,6 +621,9 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
     return (
         <div
             id="print-canvas-root"
+            role="dialog"
+            aria-modal="true"
+            aria-label="印刷レイアウトエディタ"
             style={{
                 position: 'fixed', inset: 0, zIndex: 50,
                 backgroundColor: '#1e1e1e',

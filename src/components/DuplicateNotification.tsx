@@ -96,8 +96,8 @@ export default function DuplicateNotification({ groups }: Props) {
                     alignItems: 'center',
                     zIndex: 3000,
                     backdropFilter: 'blur(4px)'
-                }}>
-                    <div style={{
+                }} onKeyDown={(e) => { if (e.key === 'Escape') setIsOpen(false); }}>
+                    <div role="dialog" aria-modal="true" aria-labelledby="modal-title-duplicate" style={{
                         background: '#fff',
                         borderRadius: '24px',
                         width: '95%',
@@ -110,8 +110,8 @@ export default function DuplicateNotification({ groups }: Props) {
                         position: 'relative'
                     }}>
                         <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#333' }}>重複予約の比較確認</h3>
-                            <button onClick={() => setIsOpen(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#999' }}>×</button>
+                            <h3 id="modal-title-duplicate" style={{ margin: 0, fontSize: '1.25rem', color: '#333' }}>重複予約の比較確認</h3>
+                            <button onClick={() => setIsOpen(false)} aria-label="閉じる" style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#999' }}>×</button>
                         </div>
 
                         <div style={{ padding: '2rem', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
@@ -212,9 +212,9 @@ export default function DuplicateNotification({ groups }: Props) {
                                 alignItems: 'center',
                                 zIndex: 3100,
                                 animation: 'fadeIn 0.2s'
-                            }}>
-                                <div style={{ textAlign: 'center', padding: '2rem', maxWidth: '400px' }}>
-                                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem' }}>予約をキャンセルしますか？</h4>
+                            }} onKeyDown={(e) => { if (e.key === 'Escape') setConfirmReservationId(null); }}>
+                                <div role="dialog" aria-modal="true" aria-labelledby="modal-title-dup-confirm" style={{ textAlign: 'center', padding: '2rem', maxWidth: '400px' }}>
+                                    <h4 id="modal-title-dup-confirm" style={{ margin: '0 0 1rem 0', fontSize: '1.25rem' }}>予約をキャンセルしますか？</h4>
                                     <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '2rem' }}>この操作は取り消せません。本当によろしいですか？</p>
                                     <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
                                         <button

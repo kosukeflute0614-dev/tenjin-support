@@ -19,10 +19,37 @@
   --card-border: #dee2e6;
 
   --text-muted: #6c757d;
+  --text-muted-color: #6c757d;
   --border-radius: 6px;
 
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-serif: 'Playfair Display', serif;
+
+  /* Shadow tokens */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.15);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
+
+  /* Slate color palette */
+  --slate-50: #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+
+  /* Spacing tokens */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
 }
 
 * {
@@ -147,8 +174,9 @@ a {
 }
 
 .input:focus {
-  outline: none;
   border-color: var(--primary);
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 
@@ -257,4 +285,109 @@ a {
   text-align: center;
   color: #888;
   font-size: 0.85rem;
+}
+
+/* Focus visible */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Skip link */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: 9999;
+  padding: 1rem 1.5rem;
+  background-color: var(--primary);
+  color: white;
+  font-weight: bold;
+  text-decoration: none;
+  transition: top 0.2s;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Touch target minimum size */
+button, a, [role="button"] {
+  min-height: 44px;
+}
+
+/* Exception for inline text links */
+p a, li a, span a, td a {
+  min-height: auto;
+}
+
+/* Modal overlay utilities */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  padding: 1rem;
+}
+
+.modal-content {
+  width: 100%;
+  max-width: min(400px, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  background: var(--card-bg, white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-xl);
+}
+
+.modal-content-lg {
+  max-width: min(600px, calc(100vw - 2rem));
+}
+
+.modal-content-xl {
+  max-width: min(800px, calc(100vw - 2rem));
+}
+
+/* Responsive utilities */
+@media (max-width: 480px) {
+  .container { padding: 0 0.75rem; }
+  .heading-lg { font-size: 1.5rem; }
+  .heading-md { font-size: 1.2rem; }
+  .btn { padding: 0.6rem 1rem; font-size: 0.9rem; }
+}
+
+@media (max-width: 768px) {
+  .menu-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+  .menu-card { min-height: 150px; }
+}
+
+@media (min-width: 1280px) {
+  .container { max-width: 1400px; }
 }

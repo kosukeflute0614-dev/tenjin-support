@@ -146,6 +146,7 @@ export default function GuidePage() {
             {/* モバイル用メニューボタン */}
             <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                aria-label={isSidebarOpen ? 'メニューを閉じる' : 'メニューを開く'}
                 style={{
                     position: 'fixed',
                     bottom: '2rem',

@@ -64,16 +64,18 @@ export default function OnboardingPage() {
             <div className="card" style={{ padding: '2.5rem', boxShadow: '0 10px 40px rgba(0,0,0,0.05)', border: 'none' }}>
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label className="label" style={{ fontSize: '0.85rem', color: '#999', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                        <label htmlFor="troupeName" className="label" style={{ fontSize: '0.85rem', color: '#999', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                             劇団名 / Troupe Name
                         </label>
                         <input
                             type="text"
+                            id="troupeName"
                             className="input"
                             value={troupeName}
                             onChange={(e) => setTroupeName(e.target.value)}
                             placeholder="例：劇団てんじん"
                             required
+                            aria-required="true"
                             autoFocus
                             style={{
                                 fontSize: '1.2rem',

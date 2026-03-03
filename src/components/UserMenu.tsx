@@ -60,6 +60,9 @@ export default function UserMenu() {
             <div style={{ position: 'relative' }} ref={menuRef}>
                 <button
                     onClick={() => setIsOpen(!isOpen)}
+                    aria-expanded={isOpen}
+                    aria-haspopup="true"
+                    aria-label="ユーザーメニュー"
                     style={{
                         background: 'none',
                         border: 'none',

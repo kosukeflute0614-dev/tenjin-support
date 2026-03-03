@@ -153,11 +153,13 @@ export default function PublicReservationForm({ production, promoterId }: Props)
             </label>
             <input
                 type="text" id="customerName" name="customerName" required
+                aria-required="true" autoComplete="name"
                 defaultValue={customerInfo.name} className="input"
                 placeholder="例: 山田 太郎" style={{ marginBottom: '0.5rem' }}
             />
             <input
                 type="text" id="customerNameKana" name="customerNameKana" required
+                aria-required="true"
                 pattern="[ぁ-ん\u3000\s]+" title="ひらがなで入力してください"
                 defaultValue={customerInfo.kana} className="input"
                 placeholder="ふりがな (例: やまだ たろう)" style={{ fontSize: '0.85rem' }}
@@ -172,6 +174,7 @@ export default function PublicReservationForm({ production, promoterId }: Props)
             </label>
             <input
                 type="email" id="customerEmail" name="customerEmail" required
+                aria-required="true" autoComplete="email"
                 defaultValue={customerInfo.email} className="input"
                 placeholder="例: example@mail.com"
             />
@@ -191,6 +194,7 @@ export default function PublicReservationForm({ production, promoterId }: Props)
                 value={selectedPerformanceId}
                 onChange={(e) => { setSelectedPerformanceId(e.target.value); setTicketCounts({}); }}
                 required
+                aria-required="true"
             >
                 <option value="">日時を選択してください</option>
                 {performances.map((perf: Performance) => {

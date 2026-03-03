@@ -61,13 +61,15 @@ export default function TroupeSettingsPage() {
             <div className="card" style={{ padding: '2rem' }}>
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label className="label">劇団名 / 団体名</label>
+                        <label htmlFor="troupeNameSetting" className="label">劇団名 / 団体名</label>
                         <input
                             type="text"
+                            id="troupeNameSetting"
                             className="input"
                             value={troupeName}
                             onChange={(e) => setTroupeName(e.target.value)}
                             required
+                            aria-required="true"
                         />
                         <p className="text-muted" style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>
                             この名前は管理画面のヘッダーや、予約フォーム等に表示されます。

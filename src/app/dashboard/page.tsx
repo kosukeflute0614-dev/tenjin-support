@@ -242,7 +242,14 @@ export default function DashboardPage() {
                                                                     <span style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{perf.bookedCount}</span>
                                                                     <span style={{ fontSize: '0.8rem', color: '#888' }}>/ {perf.capacity} 席</span>
                                                                 </div>
-                                                                <div style={{ width: '100%', height: '6px', backgroundColor: '#eeeff1', borderRadius: '3px', maxWidth: '140px', overflow: 'hidden' }}>
+                                                                <div
+                                                                    role="progressbar"
+                                                                    aria-valuenow={Math.round(perf.occupancyRate)}
+                                                                    aria-valuemin={0}
+                                                                    aria-valuemax={100}
+                                                                    aria-label={`予約率 ${Math.round(perf.occupancyRate)}%`}
+                                                                    style={{ width: '100%', height: '6px', backgroundColor: '#eeeff1', borderRadius: '3px', maxWidth: '140px', overflow: 'hidden' }}
+                                                                >
                                                                     <div style={{
                                                                         height: '100%',
                                                                         width: `${Math.min(perf.occupancyRate, 100)}%`,

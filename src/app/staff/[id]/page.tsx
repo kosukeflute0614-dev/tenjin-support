@@ -440,7 +440,14 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                                     <span>来場進捗</span>
                                     <span>{stats.checkedIn}/{stats.total}人</span>
                                 </div>
-                                <div style={{ width: '100%', height: '8px', backgroundColor: '#edf2f7', borderRadius: '4px', overflow: 'hidden' }}>
+                                <div
+                                    role="progressbar"
+                                    aria-valuenow={stats.checkedIn}
+                                    aria-valuemin={0}
+                                    aria-valuemax={stats.total || 1}
+                                    aria-label={`来場進捗 ${stats.checkedIn}/${stats.total}人`}
+                                    style={{ width: '100%', height: '8px', backgroundColor: '#edf2f7', borderRadius: '4px', overflow: 'hidden' }}
+                                >
                                     <div style={{
                                         width: `${Math.min(100, (stats.checkedIn / (stats.total || 1)) * 100)}%`,
                                         height: '100%',
@@ -611,7 +618,14 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                                 <span>入場済み</span>
                                 <span>{stats.checkedIn}/{stats.total}人</span>
                             </div>
-                            <div style={{ width: '100%', height: '8px', backgroundColor: '#edf2f7', borderRadius: '4px', overflow: 'hidden', marginBottom: '1rem' }}>
+                            <div
+                                role="progressbar"
+                                aria-valuenow={stats.checkedIn}
+                                aria-valuemin={0}
+                                aria-valuemax={stats.total || 1}
+                                aria-label={`入場済み ${stats.checkedIn}/${stats.total}人`}
+                                style={{ width: '100%', height: '8px', backgroundColor: '#edf2f7', borderRadius: '4px', overflow: 'hidden', marginBottom: '1rem' }}
+                            >
                                 <div style={{
                                     width: `${Math.min(100, (stats.checkedIn / (stats.total || 1)) * 100)}%`,
                                     height: '100%',

@@ -294,9 +294,9 @@ function DetailModal({
 
     if (view === 'CONFIRM_PARTIAL') {
         return (
-            <ModalOverlay onClose={() => setView('DETAIL')} maxWidth="400px">
+            <ModalOverlay onClose={() => setView('DETAIL')} maxWidth="400px" ariaLabelledBy="modal-title-confirm-partial">
                 <div style={{ textAlign: 'center', padding: '1rem' }}>
-                    <h3 className="heading-md" style={{ marginBottom: '1.5rem', fontSize: '1.25rem' }}>一部入場させますか？</h3>
+                    <h3 id="modal-title-confirm-partial" className="heading-md" style={{ marginBottom: '1.5rem', fontSize: '1.25rem' }}>一部入場させますか？</h3>
                     <div style={{ display: 'flex', gap: '1rem' }}>
                         <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setView('DETAIL')}>いいえ</button>
                         <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => setView('PARTIAL_EDIT')}>はい</button>
@@ -308,12 +308,12 @@ function DetailModal({
 
     if (view === 'PARTIAL_EDIT') {
         return (
-            <ModalOverlay onClose={() => setView('DETAIL')}>
+            <ModalOverlay onClose={() => setView('DETAIL')} ariaLabelledBy="modal-title-partial-edit">
                 <div style={{ position: 'relative', height: '80vh', display: 'flex', flexDirection: 'column' }}>
                     {/* ヘッダー */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #eee', paddingBottom: '1rem', flexShrink: 0 }}>
-                        <h2 className="heading-md" style={{ margin: 0 }}>一部入場・会計</h2>
-                        <button onClick={() => setView('DETAIL')} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
+                        <h2 id="modal-title-partial-edit" className="heading-md" style={{ margin: 0 }}>一部入場・会計</h2>
+                        <button onClick={() => setView('DETAIL')} aria-label="閉じる" style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
                     </div>
 
                     {/* メインスクロールエリア */}
@@ -505,10 +505,10 @@ function DetailModal({
     if (view === 'PARTIAL_RESET') {
         if (confirmStep === 1) {
             return (
-                <ModalOverlay onClose={() => { setView('DETAIL'); setConfirmStep(0); }} maxWidth="450px">
+                <ModalOverlay onClose={() => { setView('DETAIL'); setConfirmStep(0); }} maxWidth="450px" ariaLabelledBy="modal-title-reset-confirm1">
                     <div style={{ position: 'relative', height: 'auto', display: 'flex', flexDirection: 'column' }}>
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '1rem' }}>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>この内容で取り消しますか？</h3>
+                            <h3 id="modal-title-reset-confirm1" style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>この内容で取り消しますか？</h3>
                             <div style={{ background: '#f8f9fa', padding: '1.5rem', borderRadius: '12px', marginBottom: '1.5rem', textAlign: 'left', width: '100%', maxWidth: '400px', border: '1px solid #eee' }}>
                                 <div style={{ marginBottom: '0.75rem', fontWeight: 'bold', color: '#666', fontSize: '0.9rem' }}>取消内容:</div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -541,11 +541,11 @@ function DetailModal({
 
         if (confirmStep === 2) {
             return (
-                <ModalOverlay onClose={() => { setView('DETAIL'); setConfirmStep(0); }} maxWidth="450px">
+                <ModalOverlay onClose={() => { setView('DETAIL'); setConfirmStep(0); }} maxWidth="450px" ariaLabelledBy="modal-title-reset-confirm2">
                     <div style={{ position: 'relative', height: 'auto', display: 'flex', flexDirection: 'column' }}>
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '1rem' }}>
                             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
-                            <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem', color: '#c53030' }}>本当に取り消しますか？</h3>
+                            <h3 id="modal-title-reset-confirm2" style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem', color: '#c53030' }}>本当に取り消しますか？</h3>
                             <p style={{ fontSize: '1rem', marginBottom: '1.5rem', color: '#666', textAlign: 'center' }}>
                                 入場記録と支払い記録が削除されます。<br />
                                 この操作は元に戻せません。
@@ -575,12 +575,12 @@ function DetailModal({
         }
 
         return (
-            <ModalOverlay onClose={() => setView('DETAIL')}>
+            <ModalOverlay onClose={() => setView('DETAIL')} ariaLabelledBy="modal-title-partial-reset">
                 <div style={{ position: 'relative', height: '80vh', display: 'flex', flexDirection: 'column' }}>
                     {/* ヘッダー */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #eee', paddingBottom: '1rem', flexShrink: 0 }}>
-                        <h2 className="heading-md" style={{ margin: 0 }}>入場/支払いの取消</h2>
-                        <button onClick={() => setView('DETAIL')} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
+                        <h2 id="modal-title-partial-reset" className="heading-md" style={{ margin: 0 }}>入場/支払いの取消</h2>
+                        <button onClick={() => setView('DETAIL')} aria-label="閉じる" style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
                     </div>
 
                     {/* メインスクロールエリア */}
@@ -662,15 +662,15 @@ function DetailModal({
     }
 
     return (
-        <ModalOverlay onClose={onClose}>
+        <ModalOverlay onClose={onClose} ariaLabelledBy="modal-title-checkin-detail">
             <div style={{ position: 'relative', height: '80vh', display: 'flex', flexDirection: 'column' }}>
                 {/* ヘッダー */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', borderBottom: '1px solid #eee', paddingBottom: '1rem', flexShrink: 0 }}>
                     <div>
-                        <h2 className="heading-md" style={{ marginBottom: '0.2rem' }}>{res.customerName} 様</h2>
+                        <h2 id="modal-title-checkin-detail" className="heading-md" style={{ marginBottom: '0.2rem' }}>{res.customerName} 様</h2>
                         <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{res.customerNameKana}</p>
                     </div>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1 }}>&times;</button>
+                    <button onClick={onClose} aria-label="閉じる" style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1 }}>&times;</button>
                 </div>
 
                 {/* メインスクロールエリア */}
@@ -916,15 +916,15 @@ function DetailModal({
     )
 }
 
-function ModalOverlay({ children, onClose, maxWidth = '900px' }: { children: React.ReactNode, onClose: () => void, maxWidth?: string }) {
+function ModalOverlay({ children, onClose, maxWidth = '900px', ariaLabelledBy }: { children: React.ReactNode, onClose: () => void, maxWidth?: string, ariaLabelledBy?: string }) {
     return (
         <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
             background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
             padding: '1rem'
-        }} onClick={(e) => e.target === e.currentTarget && onClose()}>
-            <div className="card" style={{
+        }} onClick={(e) => e.target === e.currentTarget && onClose()} onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
+            <div className="card" role="dialog" aria-modal="true" aria-labelledby={ariaLabelledBy} style={{
                 width: '100%', maxWidth: maxWidth, maxHeight: '90vh',
                 position: 'relative', boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
                 border: 'none', overflow: 'hidden', padding: '1.5rem'

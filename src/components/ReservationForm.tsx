@@ -100,6 +100,8 @@ export default function ReservationForm({ productions }: Props) {
                     id="customerName"
                     name="customerName"
                     required
+                    aria-required="true"
+                    autoComplete="name"
                     className="input"
                     placeholder="例: 演劇 太郎"
                     style={{ marginBottom: '0.5rem' }}
@@ -109,6 +111,7 @@ export default function ReservationForm({ productions }: Props) {
                     id="customerNameKana"
                     name="customerNameKana"
                     required
+                    aria-required="true"
                     pattern="[ぁ-ん\u3000\s]+"
                     title="ひらがなで入力してください"
                     className="input"
@@ -125,6 +128,7 @@ export default function ReservationForm({ productions }: Props) {
                     type="email"
                     id="customerEmail"
                     name="customerEmail"
+                    autoComplete="email"
                     className="input"
                     placeholder="例: taro@example.com"
                 />
@@ -145,6 +149,7 @@ export default function ReservationForm({ productions }: Props) {
                         setTicketCounts({}); // Reset tickets on performance change
                     }}
                     required
+                    aria-required="true"
                 >
                     <option value="">選択してください</option>
                     {allPerformances.map(perf => (

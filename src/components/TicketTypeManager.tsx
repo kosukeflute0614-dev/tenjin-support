@@ -58,8 +58,8 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                     alignItems: 'center',
                     zIndex: 2000,
                     padding: '1rem'
-                }}>
-                    <div className="card" style={{
+                }} onKeyDown={(e) => { if (e.key === 'Escape') setDeletingId(null); }}>
+                    <div className="card" role="dialog" aria-modal="true" aria-labelledby="modal-title-ticket-delete" style={{
                         width: '100%',
                         maxWidth: '400px',
                         padding: '2rem',
@@ -69,7 +69,7 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                         backgroundColor: '#fff'
                     }}>
                         <div style={{ color: 'var(--primary)', fontSize: '3rem', marginBottom: '1rem' }}>❓</div>
-                        <h4 style={{ marginBottom: '1rem', color: 'var(--text)' }}>削除の確認</h4>
+                        <h4 id="modal-title-ticket-delete" style={{ marginBottom: '1rem', color: 'var(--text)' }}>削除の確認</h4>
                         <p style={{ marginBottom: '1.5rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>
                             この券種を削除してもよろしいですか？<br />
                             この操作は取り消せません。
@@ -110,8 +110,8 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                     alignItems: 'center',
                     zIndex: 2000,
                     padding: '1rem'
-                }}>
-                    <div className="card" style={{
+                }} onKeyDown={(e) => { if (e.key === 'Escape') setError(null); }}>
+                    <div className="card" role="dialog" aria-modal="true" aria-labelledby="modal-title-ticket-error" style={{
                         width: '100%',
                         maxWidth: '400px',
                         padding: '2rem',
@@ -121,7 +121,7 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                         backgroundColor: '#fff'
                     }}>
                         <div style={{ color: 'var(--primary)', fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
-                        <h4 style={{ marginBottom: '1rem', color: 'var(--text)' }}>エラー</h4>
+                        <h4 id="modal-title-ticket-error" style={{ marginBottom: '1rem', color: 'var(--text)' }}>エラー</h4>
                         <p style={{ marginBottom: '1.5rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>{error}</p>
                         <button
                             onClick={() => setError(null)}

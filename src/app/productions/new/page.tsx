@@ -66,6 +66,7 @@ export default function NewProductionPage() {
                         id="title"
                         name="title"
                         required
+                        aria-required="true"
                         className="input"
                         placeholder="例: 第一回公演「初演」"
                     />
