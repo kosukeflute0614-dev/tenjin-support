@@ -60,13 +60,15 @@ export default function ReceptionSelectionPage() {
 
     return (
         <div className="container" style={{ maxWidth: '800px' }}>
-            <header style={{ marginBottom: '2rem' }}>
-                <Link href="/dashboard" className="btn btn-secondary" style={{ marginBottom: '1rem' }}>
-                    &larr; ダッシュボードに戻る
+            <div style={{ marginBottom: '1.25rem' }}>
+                <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
+                    <span>&larr;</span> ダッシュボードに戻る
                 </Link>
-                <h1 className="heading-lg">当日受付：公演回を選択</h1>
+            </div>
+            <div className="page-header" style={{ marginBottom: '2rem' }}>
+                <h2 className="heading-lg" style={{ marginBottom: '0.5rem' }}>当日受付：公演回を選択</h2>
                 <p className="text-muted">受付を行う公演回を選択してください。</p>
-            </header>
+            </div>
 
             <div className="card" style={{ padding: 0 }}>
                 <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--card-border)', background: 'var(--secondary)' }}>

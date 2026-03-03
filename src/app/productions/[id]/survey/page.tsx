@@ -295,6 +295,11 @@ export default function SurveyHubPage({ params }: { params: Promise<{ id: string
                 { label: production.title, href: `/productions/${id}` },
                 { label: 'アンケート' }
             ]} />
+            <div style={{ marginBottom: '1.25rem' }}>
+                <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
+                    <span>&larr;</span> ダッシュボードに戻る
+                </Link>
+            </div>
             <PageHeader title={production.title} />
 
             {/* テンプレート情報バー */}

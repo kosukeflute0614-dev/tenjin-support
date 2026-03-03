@@ -68,11 +68,11 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
                 </Link>
             </div>
             <div style={{ marginBottom: '2rem' }}>
-                <h2 className="heading-lg" style={{ marginBottom: '0.5rem' }}>📊 {production.title} — レポート</h2>
+                <h2 className="heading-lg" style={{ marginBottom: '0.5rem' }}>{production.title} — レポート</h2>
                 <p className="text-muted" style={{ fontSize: '0.9rem' }}>売上・チケット種別・公演別の集計データを確認できます。</p>
             </div>
 
-            <div className="card" style={{ padding: '2rem', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+            <div className="card" style={{ padding: '2rem', border: 'none', boxShadow: 'var(--shadow-sm)' }}>
                 <SalesReportView productionId={production.id} />
             </div>
         </div>

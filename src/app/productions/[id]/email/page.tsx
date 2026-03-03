@@ -7,6 +7,7 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { serializeDoc } from '@/lib/firestore-utils';
 import { Production } from '@/types';
+import Breadcrumb from '@/components/Breadcrumb';
 import EmailTemplateEditModal, { EmailTemplateData } from '@/components/EmailTemplateEditModal';
 
 type Tab = 'AUTO' | 'BROADCAST' | 'HISTORY';
@@ -162,6 +163,11 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
 
     return (
         <div className="container" style={{ maxWidth: '1000px' }}>
+            <Breadcrumb items={[
+                { label: 'ダッシュボード', href: '/dashboard' },
+                { label: production.title, href: `/productions/${id}` },
+                { label: 'メール設定' }
+            ]} />
             <div style={{ marginBottom: '1.25rem' }}>
                 <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
                     <span>&larr;</span> ダッシュボードに戻る

@@ -53,8 +53,8 @@ export default function NewProductionPage() {
     return (
         <div className="container" style={{ maxWidth: '600px' }}>
             <div style={{ marginBottom: '1rem' }}>
-                <Link href="/productions" className="text-primary">
-                    &larr; 公演一覧に戻る
+                <Link href="/productions" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
+                    <span>&larr;</span> 公演一覧に戻る
                 </Link>
             </div>
             <h2 className="heading-lg">新規公演作成</h2>

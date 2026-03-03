@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -51,11 +52,13 @@ export default function TroupeSettingsPage() {
 
     return (
         <div className="container" style={{ maxWidth: '600px', paddingTop: '2rem' }}>
-            <div style={{ marginBottom: '2rem' }}>
-                <Link href="/dashboard" style={{ color: 'var(--primary)', textDecoration: 'none', fontSize: '0.9rem' }}>
-                    &larr; ダッシュボードに戻る
+            <div style={{ marginBottom: '1.25rem' }}>
+                <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
+                    <span>&larr;</span> ダッシュボードに戻る
                 </Link>
-                <h1 className="heading-lg" style={{ marginTop: '1rem' }}>団体設定</h1>
+            </div>
+            <div className="page-header" style={{ marginBottom: '2rem' }}>
+                <h2 className="heading-lg" style={{ marginBottom: '0.5rem' }}>団体設定</h2>
             </div>
 
             <div className="card" style={{ padding: '2rem' }}>
@@ -114,5 +117,3 @@ export default function TroupeSettingsPage() {
     );
 }
 
-// 簡易的な Link コンポーネントがこのファイルで使われているため import が必要
-import Link from 'next/link';

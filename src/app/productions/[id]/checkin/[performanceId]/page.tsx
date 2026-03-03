@@ -246,9 +246,9 @@ export default function CheckinPage({ params }: { params: any }) {
                         <div style={{ fontSize: '1rem', fontWeight: 'bold', color: '#666', marginBottom: '0.25rem' }}>
                             公演：{production.title}
                         </div>
-                        <h1 style={{ fontSize: '1.8rem', fontWeight: '900', margin: 0, color: 'var(--primary)', lineHeight: '1.2' }}>
+                        <h2 style={{ fontSize: '1.8rem', fontWeight: '900', margin: 0, color: 'var(--primary)', lineHeight: '1.2' }}>
                             {perfDateStr} {perfTimeStr}
-                        </h1>
+                        </h2>
                     </div>
 
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>

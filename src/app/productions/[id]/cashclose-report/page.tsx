@@ -8,6 +8,7 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { serializeDoc, serializeDocs } from '@/lib/firestore-utils';
 import { getCashClosingsByProductionClient } from '@/lib/client-firestore/cash-close';
+import Breadcrumb from '@/components/Breadcrumb';
 import { Production, Performance, CashClosing } from '@/types';
 
 export default function CashCloseReportPage({ params }: { params: Promise<{ id: string }> }) {
@@ -80,6 +81,11 @@ export default function CashCloseReportPage({ params }: { params: Promise<{ id: 
 
     return (
         <div className="container" style={{ maxWidth: '1000px' }}>
+            <Breadcrumb items={[
+                { label: 'ダッシュボード', href: '/dashboard' },
+                { label: production.title, href: `/productions/${id}` },
+                { label: 'レジ締めレポート' }
+            ]} />
             <div style={{ marginBottom: '1.25rem' }}>
                 <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
                     <span>&larr;</span> ダッシュボードに戻る

@@ -150,7 +150,7 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
                 </Link>
             </div>
             <div className="page-header" style={{ marginBottom: '2rem' }}>
-                <h2 className="heading-lg" style={{ marginBottom: '0.5rem' }}>🔑 スタッフ招待・管理</h2>
+                <h2 className="heading-lg" style={{ marginBottom: '0.5rem' }}>スタッフ招待・管理</h2>
                 <p className="text-muted">ログイン不要でアクセスできる「合鍵（スタッフ用URL）」を発行・管理します。</p>
             </div>
 

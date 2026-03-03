@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
 import { Mail, Send, User, MessageSquare } from 'lucide-react';
 
 export default function ContactPage() {
@@ -29,11 +28,6 @@ export default function ContactPage() {
 
     return (
         <div className="container" style={{ padding: '4rem 2rem', maxWidth: '800px', margin: '0 auto' }}>
-            <div style={{ marginBottom: '1.5rem' }}>
-                <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
-                    <span>&larr;</span> ダッシュボードに戻る
-                </Link>
-            </div>
             <header style={{ textAlign: 'center', marginBottom: '4rem' }}>
                 <h1 className="heading-lg" style={{ fontSize: '2.5rem', marginBottom: '1rem', fontWeight: '200' }}>
                     お問い合わせ
