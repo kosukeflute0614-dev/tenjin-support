@@ -16,6 +16,19 @@ export interface Actor {
     name: string;
 }
 
+export interface FormFieldConfig {
+    id: string;
+    label: string;
+    type: 'text' | 'textarea' | 'select' | 'checkbox';
+    enabled: boolean;
+    required: boolean;
+    placeholder?: string;
+    isCustom?: boolean;
+    options?: string[];
+    templateType?: 'phone' | 'newsletter';
+    validation?: string;
+}
+
 export interface ReservationTicket {
     ticketTypeId: string;
     ticketType?: TicketType;
@@ -44,6 +57,7 @@ export interface FirestoreReservation {
     promoterId?: string | null; // Introduction by (Actor ID)
     staffToken?: string; // Access token for this reservation (copied from production)
     checkedInAt?: FirestoreTimestamp | null;
+    customFieldValues?: Record<string, string | boolean>;
     performance?: Performance; // Joined data
     createdAt?: FirestoreTimestamp;
     updatedAt?: FirestoreTimestamp;
@@ -93,6 +107,7 @@ export interface Production {
         } | string; // string is for legacy support during migration
     };
     staffPasscodeHashed?: string; // Legacy: Common passcode
+    formFields?: FormFieldConfig[];
     createdAt?: FirestoreTimestamp;
     updatedAt?: FirestoreTimestamp;
 }
@@ -135,6 +150,29 @@ export interface AppUser {
     createdAt: FirestoreTimestamp;
     updatedAt: FirestoreTimestamp;
 }
+export interface CashDenomination {
+    denomination: number;  // 10000, 5000, 1000, 500, 100, 50, 10, 5, 1
+    count: number;
+}
+
+export interface CashClosing {
+    id: string;
+    productionId: string;
+    performanceId: string;
+    userId: string;
+    closedBy: string;
+    closedByType: 'ORGANIZER' | 'STAFF';
+    changeFloat: number;
+    denominations: CashDenomination[];
+    cashTotal: number;
+    expectedSales: number;
+    actualSales: number;
+    discrepancy: number;
+    remarks?: string | null;
+    createdAt?: FirestoreTimestamp;
+    updatedAt?: FirestoreTimestamp;
+}
+
 export interface SalesReport {
     totalRevenue: number;
     totalTickets: number;

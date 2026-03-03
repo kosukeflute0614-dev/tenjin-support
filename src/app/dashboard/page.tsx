@@ -138,6 +138,21 @@ export default function DashboardPage() {
                     <h3>アンケート管理</h3>
                     <p>アンケートの作成・集計・分析</p>
                 </Link>
+                <Link href={activeProductionId ? `/productions/${activeProductionId}/cashclose-report` : '/productions'} className="menu-card">
+                    <span className="icon">💰</span>
+                    <h3>レジ締めレポート</h3>
+                    <p>各公演回の精算結果を確認</p>
+                </Link>
+                <Link href={activeProductionId ? `/productions/${activeProductionId}/email` : '/productions'} className="menu-card">
+                    <span className="icon">✉️</span>
+                    <h3>メール管理</h3>
+                    <p>自動メール・一斉送信の設定</p>
+                </Link>
+                <Link href={activeProductionId ? `/productions/${activeProductionId}/form-editor` : '/productions'} className="menu-card">
+                    <span className="icon">📝</span>
+                    <h3>予約フォーム編集</h3>
+                    <p>予約フォームの項目設定</p>
+                </Link>
             </div>
 
             <div className="stats-section" style={{ marginTop: '3rem' }}>

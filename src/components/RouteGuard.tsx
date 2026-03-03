@@ -38,7 +38,7 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
                 router.push('/onboarding');
             } else if (user && isOrganizer && !isNewUser && isOnboardingPage) {
                 // 完了済みの主催者がオンボーディングにいた場合
-                router.push('/dashboard');
+                router.push('/productions');
             }
         }
     }, [user, profile, loading, isNewUser, isOrganizer, pathname, router]);

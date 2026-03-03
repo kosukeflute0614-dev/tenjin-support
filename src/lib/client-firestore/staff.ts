@@ -1,17 +1,9 @@
 import { db } from '@/lib/firebase';
 import { collection, doc, getDoc, getDocs, query, where, updateDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
 import { Production, Performance, FirestoreReservation } from '@/types';
+import { hashPasscodeSecure } from '@/app/actions/staff-auth';
 
-/**
- * パスコードをハッシュ化する（クライアント側：Web Crypto APIを使用）
- */
-async function hashPasscodeClient(passcode: string): Promise<string> {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(passcode);
-    const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
+// SEC-05: パスコードハッシュはサーバーサイド (bcrypt) で実行
 
 /**
  * スタッフ用トークンを発行する（クライアント側）
@@ -22,7 +14,7 @@ export async function generateStaffTokenClient(productionId: string, role: strin
     const prodRef = doc(db, "productions", productionId);
 
     const autoPasscode = Math.floor(1000 + Math.random() * 9000).toString();
-    const hashed = await hashPasscodeClient(autoPasscode);
+    const hashed = await hashPasscodeSecure(autoPasscode);
 
     await updateDoc(prodRef, {
         [`staffTokens.${newToken}`]: {
@@ -49,7 +41,7 @@ export async function updateStaffTokenPasscodeClient(
     }
 
     const prodRef = doc(db, "productions", productionId);
-    const hashed = await hashPasscodeClient(newPasscode);
+    const hashed = await hashPasscodeSecure(newPasscode);
 
     // 既存のドキュメントからロールを取得する必要がある（ネストしたフィールドの特定部分のみ更新）
     const prodSnap = await getDoc(prodRef);
@@ -161,7 +153,7 @@ export async function createSameDayTicketStaffClient(
             paymentStatus: "PAID",
             paidAmount: totalAmount,
             tickets: ticketDatas,
-            staffToken, // スタッフ用クエリ・更新判別用
+            staffVerified: true, // スタッフ用クエリ・更新判別用
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         });
@@ -236,7 +228,7 @@ export async function processCheckinWithPaymentStaffClient(
             type: 'CHECKIN',
             count: checkinCount,
             paymentInfo: JSON.stringify(paymentBreakdown),
-            staffToken, // スタッフ操作の記録用
+            staffVerified: true, // スタッフ操作の記録用
             createdAt: serverTimestamp()
         });
     });
@@ -282,7 +274,7 @@ export async function resetCheckInStaffClient(
             performanceId,
             type: 'RESET',
             count: reservation.checkedInTickets || 0,
-            staffToken,
+            staffVerified: true,
             createdAt: serverTimestamp()
         });
     });
@@ -357,7 +349,7 @@ export async function processPartialResetStaffClient(
             paymentInfo: JSON.stringify(Object.fromEntries(
                 Object.entries(refundBreakdown).map(([k, v]) => [k, -v])
             )),
-            staffToken,
+            staffVerified: true,
             createdAt: serverTimestamp()
         });
     });

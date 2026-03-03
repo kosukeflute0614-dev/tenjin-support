@@ -16,6 +16,7 @@ import {
 import { revalidatePath } from "next/cache";
 import { FirestoreReservation, Production } from "@/types";
 import { serializeDoc, serializeDocs, toDate } from "@/lib/firestore-utils";
+import { sendReservationConfirmation } from "@/lib/email";
 
 export async function getBookingOptions(activeProductionId?: string, userId?: string): Promise<Production[]> {
     let prods: Production[] = [];
@@ -26,7 +27,11 @@ export async function getBookingOptions(activeProductionId?: string, userId?: st
                 const docRef = doc(db, "productions", activeProductionId);
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
-                    prods = [serializeDoc<Production>(docSnap)];
+                    const prod = serializeDoc<Production>(docSnap);
+                    if (prod.receptionStatus !== 'OPEN') {
+                        return []; // SEC-07: Block access to closed productions
+                    }
+                    prods = [prod];
                 }
             }
         } else {
@@ -94,6 +99,31 @@ export async function createReservation(data: FirestoreReservation) {
         // 管理画面のリスト等を更新するために必要
         revalidatePath('/reservations');
         revalidatePath('/');
+
+        // 予約完了メール送信（メール失敗で予約を失敗させない）
+        if (data.customerEmail) {
+            try {
+                const [productionSnap, performanceSnap] = await Promise.all([
+                    getDoc(doc(db, "productions", data.productionId)),
+                    getDoc(doc(db, "performances", data.performanceId)),
+                ]);
+
+                const production = productionSnap.exists() ? productionSnap.data() as Production : null;
+                const performanceData = performanceSnap.exists() ? performanceSnap.data() : null;
+
+                if (production && performanceData) {
+                    await sendReservationConfirmation({
+                        reservation: data,
+                        reservationId: newDoc.id,
+                        productionTitle: production.title,
+                        performanceStartTime: performanceData.startTime,
+                        ticketTypes: production.ticketTypes || [],
+                    });
+                }
+            } catch (emailError) {
+                console.error("メール送信エラー（予約自体は成功）:", emailError);
+            }
+        }
 
         return { success: true, id: newDoc.id };
     } catch (error) {

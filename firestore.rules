@@ -138,6 +138,16 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // レジ締め (CashClosings)
+    match /cashClosings/{docId} {
+      allow read, list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && (
+        request.resource.data.userId == request.auth.uid ||
+        isAuthorizedStaff(request.resource.data.productionId)
+      );
+      allow update, delete: if false;
+    }
+
     // ── アンケート関連 ──
 
     // 将来の「限定共有URL」対応を見据えた閲覧権限判定

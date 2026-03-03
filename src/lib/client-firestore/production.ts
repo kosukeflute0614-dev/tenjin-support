@@ -1,6 +1,6 @@
 import { db } from '@/lib/firebase';
 import { collection, doc, getDoc, getDocs, query, where, addDoc, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
-import { Production, Performance } from '@/types';
+import { Production, Performance, FormFieldConfig } from '@/types';
 import { serializeDocs, toDate } from '@/lib/firestore-utils';
 import { timestampToDate } from './_utils';
 
@@ -61,8 +61,10 @@ export async function fetchProductionDetailsClient(
                 isPublic: tt.isPublic
             })),
             actors: rawData.actors || [],
-            staffTokens: rawData.staffTokens || {},
+            // Only include staffTokens for authenticated admin users
+            ...(userId ? { staffTokens: rawData.staffTokens || {} } : {}),
             userId: rawData.userId || '',
+            formFields: rawData.formFields || undefined,
         } as Production;
 
         // 公演回の取得
@@ -208,6 +210,26 @@ export async function fetchBookingOptionsClient(
     }
 
     return prods;
+}
+
+/**
+ * 予約フォームのフィールド設定を保存する（クライアント側）
+ */
+export async function saveFormFieldsClient(
+    productionId: string,
+    formFields: FormFieldConfig[],
+    userId: string
+): Promise<void> {
+    if (!userId) throw new Error('Unauthorized');
+    const ref = doc(db, "productions", productionId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) throw new Error('NotFound');
+    if (snap.data().userId !== userId) throw new Error('Unauthorized');
+
+    await updateDoc(ref, {
+        formFields,
+        updatedAt: serverTimestamp()
+    });
 }
 
 /**

@@ -16,6 +16,7 @@ import { toDate } from '@/lib/firestore-utils';
 import { formatDateTime } from '@/lib/format';
 import CheckinList from '@/components/CheckinList';
 import SameDayTicketForm from '@/components/SameDayTicketForm';
+import CashCloseForm from '@/components/CashCloseForm';
 import GlobalReservationSearch from '@/components/GlobalReservationSearch';
 import Link from 'next/link';
 import { Production, Performance, FirestoreReservation } from "@/types";
@@ -34,6 +35,7 @@ export default function CheckinPage({ params }: { params: any }) {
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [showCheckedIn, setShowCheckedIn] = useState(false);
+    const [activeTab, setActiveTab] = useState<'LIST' | 'SAME_DAY' | 'CASH_CLOSE'>('LIST');
 
     useEffect(() => {
         let unsubscribeReservations: () => void;
@@ -279,9 +281,46 @@ export default function CheckinPage({ params }: { params: any }) {
                 </div>
             </header>
 
+            {/* タブナビゲーション */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                {(['LIST', 'SAME_DAY', 'CASH_CLOSE'] as const).map((tab) => {
+                    const labels = { LIST: '予約リスト', SAME_DAY: '当日券発行', CASH_CLOSE: 'レジ締め' };
+                    return (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            style={{
+                                padding: '0.6rem 1.2rem',
+                                borderRadius: '8px',
+                                border: 'none',
+                                fontSize: '0.9rem',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                background: activeTab === tab ? 'var(--primary)' : '#e2e8f0',
+                                color: activeTab === tab ? '#fff' : '#4a5568',
+                            }}
+                        >
+                            {labels[tab]}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {activeTab === 'CASH_CLOSE' ? (
+                /* レジ締めタブ */
+                <CashCloseForm
+                    productionId={production.id}
+                    performanceId={performance.id}
+                    userId={user.uid}
+                    closedByType="ORGANIZER"
+                    closedBy={user.uid}
+                />
+            ) : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '2rem', alignItems: 'start' }}>
-                {/* 左カラム: 予約リスト */}
+                {/* 左カラム: メインコンテンツ */}
                 <div className="card" style={{ padding: '1.5rem', borderRadius: '16px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                    {activeTab === 'LIST' && (
+                    <>
                     <div style={{ marginBottom: '1.5rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                             <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>予約リスト ({filteredReservations.length}件)</h2>
@@ -325,13 +364,12 @@ export default function CheckinPage({ params }: { params: any }) {
                         performanceId={performance.id}
                         productionId={production.id}
                     />
-                </div>
-
-                {/* 右カラム: 当日券販売 */}
-                <aside style={{ position: 'sticky', top: '7.5rem' }}>
-                    <div className="card" style={{ padding: '1.5rem', borderRadius: '16px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                    </>
+                    )}
+                    {activeTab === 'SAME_DAY' && (
+                    <>
                         <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid #f0f0f0', paddingBottom: '0.75rem' }}>
-                            <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>🎫 当日券を発行</h2>
+                            <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>当日券を発行</h2>
                         </div>
                         <SameDayTicketForm
                             productionId={production.id}
@@ -340,14 +378,65 @@ export default function CheckinPage({ params }: { params: any }) {
                             remainingCount={remainingCount}
                             nextNumber={reservations.filter(r => r.source === 'SAME_DAY').length + 1}
                         />
+                    </>
+                    )}
+                </div>
+
+                {/* 右カラム: サイドバー */}
+                <aside style={{ position: 'sticky', top: '7.5rem' }}>
+                    <div className="card" style={{ padding: '1.5rem', borderRadius: '16px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                        <div style={{ marginBottom: '0.75rem' }}>
+                            <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', margin: 0, color: '#666' }}>来場状況</h3>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.4rem' }}>
+                            <span>入場済み</span>
+                            <span>{stats.checkedIn}/{stats.total}人</span>
+                        </div>
+                        <div style={{ width: '100%', height: '8px', backgroundColor: '#edf2f7', borderRadius: '4px', overflow: 'hidden', marginBottom: '1rem' }}>
+                            <div style={{
+                                width: `${Math.min(100, (stats.checkedIn / (stats.total || 1)) * 100)}%`,
+                                height: '100%',
+                                backgroundColor: 'var(--primary)',
+                                transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                            }} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#555' }}>
+                            <span>当日券残数</span>
+                            <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{remainingCount}枚</span>
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: '1rem' }}>
+                        <Link
+                            href={`/productions/${production.id}/cashclose-report`}
+                            className="btn btn-secondary"
+                            style={{
+                                width: '100%',
+                                padding: '0.75rem',
+                                fontSize: '0.85rem',
+                                borderRadius: '12px',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                            }}
+                        >
+                            レジ締めレポート
+                        </Link>
                     </div>
 
                     <div style={{ marginTop: '1rem', padding: '1rem', background: '#eef2f1', borderRadius: '12px', fontSize: '0.8rem', color: '#4a5568' }}>
-                        <p style={{ margin: 0, fontWeight: 'bold' }}>💡 ヒント</p>
-                        <p style={{ margin: '0.25rem 0 0 0' }}>当日券の売上は即座に集計へ反映されます。</p>
+                        <p style={{ margin: 0, fontWeight: 'bold' }}>ヒント</p>
+                        <p style={{ margin: '0.25rem 0 0 0' }}>
+                            {activeTab === 'LIST'
+                                ? '予約リストからお客様を検索し、チェックインを行ってください。'
+                                : '当日の飛び込みのお客様はこちらから情報を入力してチケットを発行してください。'
+                            }
+                        </p>
                     </div>
                 </aside>
             </div>
+            )}
         </div>
     );
 }

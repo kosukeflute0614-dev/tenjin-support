@@ -20,15 +20,24 @@ import { revalidatePath } from 'next/cache'
 import { Production, Performance, TicketType, Actor, FirestoreReservation } from "@/types";
 import { serializeDoc, serializeDocs, toDate } from "@/lib/firestore-utils";
 
+function parsePositiveInt(value: string | null, fieldName: string, max: number = 999999): number {
+    if (value === null || value === '') throw new Error(`${fieldName}は必須です`);
+    const num = parseInt(value, 10);
+    if (isNaN(num) || num < 0 || num > max) {
+        throw new Error(`${fieldName}は0〜${max}の数値で入力してください`);
+    }
+    return num;
+}
+
 export async function addPerformance(formData: FormData, userId: string) {
     if (!userId) throw new Error('Unauthorized');
     const productionId = formData.get('productionId') as string
     const date = formData.get('date') as string
     const time = formData.get('time') as string
     const startTimeStr = formData.get('startTime') as string
-    const capacity = parseInt(formData.get('capacity') as string)
+    const capacity = parsePositiveInt(formData.get('capacity') as string, '定員', 9999)
 
-    if (!productionId || isNaN(capacity) || capacity < 1) {
+    if (!productionId || capacity < 1) {
         throw new Error('Invalid input')
     }
 
@@ -60,10 +69,10 @@ export async function addTicketType(formData: FormData, userId: string) {
     if (!userId) throw new Error('Unauthorized');
     const productionId = formData.get('productionId') as string
     const name = formData.get('name') as string
-    const advancePrice = parseInt(formData.get('advancePrice') as string)
-    const doorPrice = parseInt(formData.get('doorPrice') as string)
+    const advancePrice = parsePositiveInt(formData.get('advancePrice') as string, '前売り価格')
+    const doorPrice = parsePositiveInt(formData.get('doorPrice') as string, '当日価格')
 
-    if (!productionId || !name || isNaN(advancePrice) || isNaN(doorPrice)) {
+    if (!productionId || !name) {
         throw new Error('Invalid input')
     }
 
@@ -181,7 +190,7 @@ export async function updatePerformance(id: string, formData: FormData, userId: 
     if (!userId) throw new Error('Unauthorized');
     const date = formData.get('date') as string
     const time = formData.get('time') as string
-    const capacity = parseInt(formData.get('capacity') as string)
+    const capacity = parsePositiveInt(formData.get('capacity') as string, '定員', 9999)
     const productionId = formData.get('productionId') as string
 
     const startTime = new Date(`${date}T${time}`)
@@ -239,11 +248,11 @@ export async function deletePerformance(id: string, productionId: string, userId
 export async function updateTicketType(id: string, formData: FormData, userId: string) {
     if (!userId) throw new Error('Unauthorized');
     const name = formData.get('name') as string
-    const advancePrice = parseInt(formData.get('advancePrice') as string)
-    const doorPrice = parseInt(formData.get('doorPrice') as string)
+    const advancePrice = parsePositiveInt(formData.get('advancePrice') as string, '前売り価格')
+    const doorPrice = parsePositiveInt(formData.get('doorPrice') as string, '当日価格')
     const productionId = formData.get('productionId') as string
 
-    if (!id || !name || isNaN(advancePrice) || isNaN(doorPrice)) {
+    if (!id || !name) {
         throw new Error('Invalid input')
     }
 

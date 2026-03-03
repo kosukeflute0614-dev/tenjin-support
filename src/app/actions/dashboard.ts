@@ -17,14 +17,21 @@ export async function getDashboardStats(productionId: string, userId: string): P
     if (!productionId || !userId) return [];
 
     try {
+        // SEC-04: Verify production ownership to prevent IDOR
+        const productionRef = doc(db, "productions", productionId);
+        const productionSnap = await getDoc(productionRef);
+        if (!productionSnap.exists() || productionSnap.data().userId !== userId) {
+            return [];
+        }
+
         const performancesRef = collection(db, "performances");
         const qPerf = query(
             performancesRef,
-            where("productionId", "==", productionId)
+            where("productionId", "==", productionId),
+            where("userId", "==", userId)
         );
         const perfSnapshot = await getDocs(qPerf);
         const performances = serializeDocs<Performance>(perfSnapshot.docs)
-            .filter(p => p.userId === userId) // Filter userId in memory
             .sort((a, b) => {
                 const timeA = a.startTime ? toDate(a.startTime).getTime() : 0;
                 const timeB = b.startTime ? toDate(b.startTime).getTime() : 0;

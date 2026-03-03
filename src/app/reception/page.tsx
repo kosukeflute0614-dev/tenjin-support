@@ -108,15 +108,14 @@ export default function ReceptionSelectionPage() {
                 </div>
             </div>
 
-            <style dangerouslySetInnerHTML={{
-                __html: `
+            <style>{`
                 .performance-link:hover {
                     background-color: #f8f9fa;
                 }
                 .performance-link:last-child {
                     border-bottom: none;
                 }
-            `}} />
+            `}</style>
         </div>
     );
 }

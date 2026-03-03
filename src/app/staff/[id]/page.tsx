@@ -6,12 +6,13 @@ import { collection, query, where, onSnapshot, doc, getDoc, getDocs, setDoc, ser
 import { signInAnonymously } from 'firebase/auth';
 import { Production, FirestoreReservation } from '@/types';
 import { serializeDoc, serializeDocs, toDate } from '@/lib/firestore-utils';
-import { verifyStaffPasscode, checkStaffSession } from '@/app/actions/staff-auth';
+import { verifyStaffPasscode, checkStaffSession, validateStaffToken } from '@/app/actions/staff-auth';
 import { updateReservationByStaffToken, createSameDayTicketStaffClient, fetchProductionDetailsClient } from '@/lib/client-firestore';
 import { useSearchParams } from 'next/navigation';
 import CheckinList from '@/components/CheckinList';
 import SameDayTicketForm from '@/components/SameDayTicketForm';
 import AttendanceStatus from '@/components/AttendanceStatus';
+import CashCloseForm from '@/components/CashCloseForm';
 
 export default function StaffPortalPage({ params }: { params: Promise<{ id: string }> }) {
     const { id: productionId } = use(params);
@@ -30,7 +31,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
     const [showCheckedIn, setShowCheckedIn] = useState(false);
     const [role, setRole] = useState<string | null>(null);
     const [selectedPerformanceId, setSelectedPerformanceId] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'LIST' | 'SAME_DAY'>('LIST');
+    const [activeTab, setActiveTab] = useState<'LIST' | 'SAME_DAY' | 'CASH_CLOSE'>('LIST');
 
     // Firestore 側のセッション同期用
     const syncStaffSessionToFirestore = async (uid: string, passcodeHashed: string) => {
@@ -88,16 +89,14 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                 setProduction({ ...prodData, performances: perfsData } as any);
                 setResolvedProductionId(realId);
 
-                // ロールの特定
-                const staffTokens: any = prodData.staffTokens || {};
-                const tokenInfo = staffTokens[token];
-                if (!tokenInfo) {
+                // ロールの特定（サーバーサイドで検証、staffTokensをクライアントに露出しない）
+                const tokenValidation = await validateStaffToken(realId, token);
+                if (!tokenValidation.valid) {
                     setError('このトークンは無効化されているか、存在しません。');
                     setIsLoading(false);
                     return;
                 }
-                const currentRole = typeof tokenInfo === 'string' ? tokenInfo : tokenInfo.role;
-                setRole(currentRole);
+                setRole(tokenValidation.role || 'reception');
 
                 // セッションチェック (UID を渡す)
                 // productionId ではなく解決された realId を保存する
@@ -472,9 +471,72 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
             </header>
 
             <main className="container" style={{ maxWidth: '1200px', marginTop: '2rem' }}>
+                {/* タブナビゲーション */}
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                    <button
+                        onClick={() => setActiveTab('LIST')}
+                        style={{
+                            padding: '0.6rem 1.2rem',
+                            borderRadius: '8px',
+                            border: 'none',
+                            fontSize: '0.9rem',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            background: activeTab === 'LIST' ? 'var(--primary)' : '#e2e8f0',
+                            color: activeTab === 'LIST' ? '#fff' : '#4a5568',
+                        }}
+                    >
+                        予約リスト
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('SAME_DAY')}
+                        style={{
+                            padding: '0.6rem 1.2rem',
+                            borderRadius: '8px',
+                            border: 'none',
+                            fontSize: '0.9rem',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            background: activeTab === 'SAME_DAY' ? 'var(--primary)' : '#e2e8f0',
+                            color: activeTab === 'SAME_DAY' ? '#fff' : '#4a5568',
+                        }}
+                    >
+                        当日券発行
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('CASH_CLOSE')}
+                        style={{
+                            padding: '0.6rem 1.2rem',
+                            borderRadius: '8px',
+                            border: 'none',
+                            fontSize: '0.9rem',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            background: activeTab === 'CASH_CLOSE' ? 'var(--primary)' : '#e2e8f0',
+                            color: activeTab === 'CASH_CLOSE' ? '#fff' : '#4a5568',
+                        }}
+                    >
+                        レジ締め
+                    </button>
+                </div>
+
+                {activeTab === 'CASH_CLOSE' ? (
+                    /* レジ締めタブ */
+                    <CashCloseForm
+                        productionId={resolvedProductionId || productionId}
+                        performanceId={selectedPerformanceId}
+                        userId={production?.userId || ''}
+                        closedByType="STAFF"
+                        closedBy={auth.currentUser?.uid || ''}
+                        hideHistory
+                        expectedSalesOverride={reservations.reduce((sum, r) => sum + (r.paidAmount || 0), 0)}
+                    />
+                ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '2rem', alignItems: 'start' }}>
                     {/* 左カラム: 予約リスト */}
                     <div className="card" style={{ padding: '1.5rem', borderRadius: '16px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                        {activeTab === 'LIST' && (
+                        <>
                         <div style={{ marginBottom: '1.5rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                 <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>予約リスト ({filteredReservations.length}件)</h2>
@@ -520,13 +582,12 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                             staffToken={token || undefined}
                             staffRole={role || undefined}
                         />
-                    </div>
-
-                    {/* 右カラム: 当日券販売 */}
-                    <aside style={{ position: 'sticky', top: '7.5rem' }}>
-                        <div className="card" style={{ padding: '1.5rem', borderRadius: '16px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                        </>
+                        )}
+                        {activeTab === 'SAME_DAY' && (
+                        <>
                             <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid #f0f0f0', paddingBottom: '0.75rem' }}>
-                                <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>🎫 当日券を発行</h2>
+                                <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>当日券を発行</h2>
                             </div>
                             <SameDayTicketForm
                                 productionId={resolvedProductionId || productionId}
@@ -536,14 +597,46 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                                 nextNumber={sameDayResCount + 1}
                                 staffToken={token || undefined}
                             />
+                        </>
+                        )}
+                    </div>
+
+                    {/* 右カラム: 当日券残数・ヒント */}
+                    <aside style={{ position: 'sticky', top: '7.5rem' }}>
+                        <div className="card" style={{ padding: '1.5rem', borderRadius: '16px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                            <div style={{ marginBottom: '0.75rem' }}>
+                                <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', margin: 0, color: '#666' }}>来場状況</h3>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.4rem' }}>
+                                <span>入場済み</span>
+                                <span>{stats.checkedIn}/{stats.total}人</span>
+                            </div>
+                            <div style={{ width: '100%', height: '8px', backgroundColor: '#edf2f7', borderRadius: '4px', overflow: 'hidden', marginBottom: '1rem' }}>
+                                <div style={{
+                                    width: `${Math.min(100, (stats.checkedIn / (stats.total || 1)) * 100)}%`,
+                                    height: '100%',
+                                    backgroundColor: 'var(--primary)',
+                                    transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                                }} />
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#555' }}>
+                                <span>当日券残数</span>
+                                <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{remainingCount}枚</span>
+                            </div>
                         </div>
 
                         <div style={{ marginTop: '1rem', padding: '1rem', background: '#eef2f1', borderRadius: '12px', fontSize: '0.8rem', color: '#4a5568' }}>
-                            <p style={{ margin: 0, fontWeight: 'bold' }}>💡 ヒント</p>
-                            <p style={{ margin: '0.25rem 0 0 0' }}>当日の飛び込みのお客様はこちらから情報を入力してチケットを発行してください。</p>
+                            <p style={{ margin: 0, fontWeight: 'bold' }}>ヒント</p>
+                            <p style={{ margin: '0.25rem 0 0 0' }}>
+                                {activeTab === 'LIST'
+                                    ? '予約リストからお客様を検索し、チェックインを行ってください。'
+                                    : '当日の飛び込みのお客様はこちらから情報を入力してチケットを発行してください。'
+                                }
+                            </p>
                         </div>
                     </aside>
                 </div>
+                )}
             </main>
 
             <footer style={{ marginTop: '4rem', textAlign: 'center', color: '#a0aec0', fontSize: '0.8rem', paddingBottom: '2rem' }}>
