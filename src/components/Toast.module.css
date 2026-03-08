@@ -99,3 +99,30 @@
     opacity: 0;
   }
 }
+
+/* Dark mode toast colors */
+@media (prefers-color-scheme: dark) {
+  .success {
+    background: #1e3323;
+    border-left-color: #5cb85c;
+    color: #a8d5a8;
+  }
+
+  .error {
+    background: #331a1a;
+    border-left-color: #e05555;
+    color: #e8a8a8;
+  }
+
+  .warning {
+    background: #332b14;
+    border-left-color: #d4a017;
+    color: #e0c878;
+  }
+
+  .info {
+    background: #1a2833;
+    border-left-color: #4a9bb5;
+    color: #a8d0de;
+  }
+}

@@ -78,7 +78,7 @@ export default function DuplicateNotification({ groups }: Props) {
                     <span style={{ fontSize: '1.5rem' }}>⚠️</span>
                     <div>
                         <div style={{ fontWeight: 'bold', color: '#e65100' }}>重複の可能性がある予約が {groups.length} 件見つかりました</div>
-                        <div style={{ fontSize: '0.85rem', color: '#666' }}>クリックして詳細を確認し、必要に応じてキャンセルしてください。</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>クリックして詳細を確認し、必要に応じてキャンセルしてください。</div>
                     </div>
                 </div>
                 <span style={{ fontSize: '1.2rem', color: '#ffb74d' }}>❯</span>
@@ -100,7 +100,7 @@ export default function DuplicateNotification({ groups }: Props) {
                     backdropFilter: 'blur(4px)'
                 }} onKeyDown={(e) => { if (e.key === 'Escape') setIsOpen(false); }}>
                     <div role="dialog" aria-modal="true" aria-labelledby="modal-title-duplicate" style={{
-                        background: '#fff',
+                        background: 'var(--card-bg)',
                         borderRadius: '24px',
                         width: '95%',
                         maxWidth: '800px',
@@ -111,42 +111,42 @@ export default function DuplicateNotification({ groups }: Props) {
                         boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
                         position: 'relative'
                     }}>
-                        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h3 id="modal-title-duplicate" style={{ margin: 0, fontSize: '1.25rem', color: '#333' }}>重複予約の比較確認</h3>
-                            <button onClick={() => setIsOpen(false)} aria-label="閉じる" style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#999' }}>×</button>
+                        <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h3 id="modal-title-duplicate" style={{ margin: 0, fontSize: '1.25rem', color: 'var(--foreground)' }}>重複予約の比較確認</h3>
+                            <button onClick={() => setIsOpen(false)} aria-label="閉じる" style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--slate-500)' }}>×</button>
                         </div>
 
                         <div style={{ padding: '2rem', overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
                             {selectedGroup.reservations.map((res) => (
                                 <div key={res.id} style={{
-                                    border: '1px solid #eee',
+                                    border: '1px solid var(--card-border)',
                                     borderRadius: '16px',
                                     padding: '1.5rem',
-                                    background: '#fcfcfc',
+                                    background: 'var(--card-bg)',
                                     display: 'flex',
                                     flexDirection: 'column',
                                     gap: '1rem'
                                 }}>
                                     <div>
-                                        <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: '0.2rem' }}>予約ID</div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>予約ID</div>
                                         <div style={{ fontSize: '0.9rem', fontWeight: 'mono' }}>{res.id.slice(0, 8)}...</div>
                                     </div>
 
                                     <div>
-                                        <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: '0.2rem' }}>顧客情報</div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>顧客情報</div>
                                         <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{res.customerName} 様</div>
-                                        <div style={{ fontSize: '0.9rem', color: '#666' }}>{res.customerEmail || 'メール登録なし'}</div>
+                                        <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{res.customerEmail || 'メール登録なし'}</div>
                                     </div>
 
                                     <div>
-                                        <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: '0.2rem' }}>公演回</div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>公演回</div>
                                         <div style={{ fontSize: '0.95rem' }}>
                                             {res.performance ? `${formatDate(res.performance.startTime)} ${formatTime(res.performance.startTime)}` : '不明な公演回'}
                                         </div>
                                     </div>
 
                                     <div>
-                                        <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: '0.2rem' }}>予約内容</div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>予約内容</div>
                                         {res.tickets.map((t: any, idx: number) => (
                                             <div key={t.id || idx} style={{ fontSize: '0.9rem' }}>
                                                 {t.ticketType?.name || '不明な券種'}: {t.count} 枚
@@ -155,8 +155,8 @@ export default function DuplicateNotification({ groups }: Props) {
                                     </div>
 
                                     <div style={{ flex: 1 }}>
-                                        <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: '0.2rem' }}>備考</div>
-                                        <div style={{ fontSize: '0.85rem', color: '#444', fontStyle: res.remarks ? 'normal' : 'italic' }}>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>備考</div>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--foreground)', fontStyle: res.remarks ? 'normal' : 'italic' }}>
                                             {res.remarks || '備考なし'}
                                         </div>
                                     </div>
@@ -169,7 +169,7 @@ export default function DuplicateNotification({ groups }: Props) {
                                             padding: '0.8rem',
                                             borderRadius: '10px',
                                             border: '1px solid #ffcdd2',
-                                            background: '#fff',
+                                            background: 'var(--card-bg)',
                                             color: '#d32f2f',
                                             fontWeight: 'bold',
                                             cursor: 'pointer',
@@ -183,7 +183,7 @@ export default function DuplicateNotification({ groups }: Props) {
                                         }}
                                         onMouseOut={(e) => {
                                             if (!isProcessing) {
-                                                e.currentTarget.style.background = '#fff';
+                                                e.currentTarget.style.background = 'var(--card-bg)';
                                                 e.currentTarget.style.borderColor = '#ffcdd2';
                                             }
                                         }}
@@ -194,7 +194,7 @@ export default function DuplicateNotification({ groups }: Props) {
                             ))}
                         </div>
 
-                        <div style={{ padding: '1.5rem 2rem', borderTop: '1px solid #eee', background: '#f9f9f9', textAlign: 'center' }}>
+                        <div style={{ padding: '1.5rem 2rem', borderTop: '1px solid var(--card-border)', background: '#f9f9f9', textAlign: 'center' }}>
                             <button onClick={() => setIsOpen(false)} className="btn btn-secondary" style={{ padding: '0.8rem 2.5rem', borderRadius: '12px' }}>
                                 閉じる
                             </button>
@@ -217,11 +217,11 @@ export default function DuplicateNotification({ groups }: Props) {
                             }} onKeyDown={(e) => { if (e.key === 'Escape') setConfirmReservationId(null); }}>
                                 <div role="dialog" aria-modal="true" aria-labelledby="modal-title-dup-confirm" style={{ textAlign: 'center', padding: '2rem', maxWidth: '400px' }}>
                                     <h4 id="modal-title-dup-confirm" style={{ margin: '0 0 1rem 0', fontSize: '1.25rem' }}>予約をキャンセルしますか？</h4>
-                                    <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '2rem' }}>この操作は取り消せません。本当によろしいですか？</p>
+                                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '2rem' }}>この操作は取り消せません。本当によろしいですか？</p>
                                     <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
                                         <button
                                             onClick={() => setConfirmReservationId(null)}
-                                            style={{ padding: '0.8rem 1.5rem', borderRadius: '12px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer' }}
+                                            style={{ padding: '0.8rem 1.5rem', borderRadius: '12px', border: '1px solid #ddd', background: 'var(--card-bg)', cursor: 'pointer' }}
                                         >
                                             戻る
                                         </button>

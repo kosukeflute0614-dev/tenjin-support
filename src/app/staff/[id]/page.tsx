@@ -9,6 +9,7 @@ import { serializeDoc, serializeDocs, toDate } from '@/lib/firestore-utils';
 import { verifyStaffPasscode, checkStaffSession, validateStaffToken } from '@/app/actions/staff-auth';
 import { updateReservationByStaffToken, createSameDayTicketStaffClient, fetchProductionDetailsClient } from '@/lib/client-firestore';
 import { useSearchParams } from 'next/navigation';
+import { useToast } from '@/components/Toast';
 import CheckinList from '@/components/CheckinList';
 import SameDayTicketForm from '@/components/SameDayTicketForm';
 import AttendanceStatus from '@/components/AttendanceStatus';
@@ -24,8 +25,9 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
     const [reservations, setReservations] = useState<FirestoreReservation[]>([]);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [passcode, setPasscode] = useState('');
+    const { showToast } = useToast();
     const [isVerifying, setIsVerifying] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [initError, setInitError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [showCheckedIn, setShowCheckedIn] = useState(false);
@@ -51,7 +53,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
     useEffect(() => {
         async function init() {
             if (!token) {
-                setError('無効なアクセスです。トークンが不足しています。');
+                setInitError('無効なアクセスです。トークンが不足しています。');
                 setIsLoading(false);
                 return;
             }
@@ -65,7 +67,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                         uid = authRes.user.uid;
                     } catch (authErr: any) {
                         if (authErr.code === 'auth/admin-restricted-operation') {
-                            setError('Firebase の匿名認証が有効になっていません。Firebase Console の Authentication > Sign-in method で「匿名」を有効にしてください。');
+                            setInitError('Firebase の匿名認証が有効になっていません。Firebase Console の Authentication > Sign-in method で「匿名」を有効にしてください。');
                             setIsLoading(false);
                             return;
                         }
@@ -78,7 +80,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                 // 公演情報の取得
                 const prod = await fetchProductionDetailsClient(productionId);
                 if (!prod) {
-                    setError('公演が見つかりません。');
+                    setInitError('公演が見つかりません。');
                     setIsLoading(false);
                     return;
                 }
@@ -92,7 +94,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                 // ロールの特定（サーバーサイドで検証、staffTokensをクライアントに露出しない）
                 const tokenValidation = await validateStaffToken(realId, token);
                 if (!tokenValidation.valid) {
-                    setError('このトークンは無効化されているか、存在しません。');
+                    setInitError('このトークンは無効化されているか、存在しません。');
                     setIsLoading(false);
                     return;
                 }
@@ -118,7 +120,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                 }
             } catch (err: any) {
                 console.error("Init error:", err);
-                setError('情報の読み込みに失敗しました。');
+                setInitError('情報の読み込みに失敗しました。');
             } finally {
                 setIsLoading(false);
             }
@@ -155,7 +157,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
             setReservations(mappedReservations as any);
         }, (err) => {
             console.error("Snapshot error:", err);
-            setError('予約リストの同期に失敗しました。');
+            showToast('予約リストの同期に失敗しました。', 'error');
         });
 
         return () => unsubscribe();
@@ -175,7 +177,6 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
         e.preventDefault();
         if (!token) return;
         setIsVerifying(true);
-        setError(null);
 
         try {
             const uid = auth.currentUser?.uid;
@@ -187,11 +188,11 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                 await syncStaffSessionToFirestore(uid, res.passcodeHashed);
                 setIsAuthenticated(true);
             } else {
-                setError(res.error || '認証に失敗しました。');
+                showToast(res.error || '認証に失敗しました。', 'error');
             }
         } catch (err) {
             console.error("Auth error:", err);
-            setError('通信エラーが発生しました。');
+            showToast('通信エラーが発生しました。', 'error');
         } finally {
             setIsVerifying(false);
         }
@@ -228,12 +229,12 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
 
     if (isLoading) return <div className="flex-center" style={{ height: '100vh' }}>読み込み中...</div>;
 
-    if (error && !isAuthenticated) {
+    if (initError && !isAuthenticated) {
         return (
             <div className="container" style={{ textAlign: 'center', padding: '4rem' }}>
                 <div className="card" style={{ padding: '2rem', borderTop: '4px solid #ff4d4f' }}>
                     <h2 className="heading-md" style={{ color: '#ff4d4f' }}>エラー</h2>
-                    <p style={{ marginTop: '1rem' }}>{error}</p>
+                    <p style={{ marginTop: '1rem' }}>{initError}</p>
                 </div>
             </div>
         );
@@ -264,7 +265,6 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                                 required
                             />
                         </div>
-                        {error && <p style={{ color: '#ff4d4f', fontSize: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>{error}</p>}
                         <button
                             type="submit"
                             className="btn btn-primary"
@@ -290,11 +290,11 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
 
         return (
             <div style={{ backgroundColor: '#f4f7f6', minHeight: '100vh', paddingBottom: '2rem' }}>
-                <header style={{ backgroundColor: '#fff', padding: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', position: 'sticky', top: 0, zIndex: 100 }}>
+                <header style={{ backgroundColor: 'var(--card-bg)', padding: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', position: 'sticky', top: 0, zIndex: 100 }}>
                     <div className="container" style={{ maxWidth: '600px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
                             <h1 style={{ fontSize: '1rem', fontWeight: 'bold', margin: 0 }}>{production?.title}</h1>
-                            <p style={{ fontSize: '0.75rem', color: '#666', margin: 0 }}>
+                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
                                 スタッフ用ポータル ({role === 'monitor' ? 'モニター' : '受付'})
                             </p>
                         </div>
@@ -317,9 +317,9 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                                             display: 'flex',
                                             flexDirection: 'column',
                                             gap: '0.5rem',
-                                            border: '1px solid #eee',
+                                            border: '1px solid var(--card-border)',
                                             borderRadius: '12px',
-                                            background: '#fff'
+                                            background: 'var(--card-bg)'
                                         }}
                                         onClick={() => setSelectedPerformanceId(perf.id)}
                                     >
@@ -356,7 +356,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
     if (role === 'monitor') {
         return (
             <div style={{ backgroundColor: '#f4f7f6', minHeight: '100vh', paddingBottom: '4rem' }}>
-                <header style={{ backgroundColor: '#fff', padding: '1rem 0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', position: 'sticky', top: 0, zIndex: 100, borderBottom: '1px solid #eee' }}>
+                <header style={{ backgroundColor: 'var(--card-bg)', padding: '1rem 0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', position: 'sticky', top: 0, zIndex: 100, borderBottom: '1px solid var(--card-border)' }}>
                     <div className="container" style={{ maxWidth: '1000px' }}>
                         <div style={{ marginBottom: '1rem' }}>
                             <button
@@ -370,11 +370,11 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
                             <div>
                                 <div style={{ marginBottom: '0.5rem' }}>
-                                    <span style={{ background: '#f3e8ff', color: '#7c3aed', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                    <span style={{ background: '#f3e8ff', color: 'var(--primary)', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
                                         📺 モニター（読み取り専用）
                                     </span>
                                 </div>
-                                <div style={{ fontSize: '1rem', fontWeight: 'bold', color: '#666', marginBottom: '0.25rem' }}>
+                                <div style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
                                     公演：{production?.title}
                                 </div>
                                 <h1 style={{ fontSize: '1.8rem', fontWeight: '900', margin: 0, color: 'var(--primary)', lineHeight: '1.2' }}>
@@ -406,7 +406,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
     // 受付ロール: 既存の受付UI
     return (
         <div style={{ backgroundColor: '#f4f7f6', minHeight: '100vh', paddingBottom: '4rem' }}>
-            <header style={{ backgroundColor: '#fff', padding: '1rem 0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', position: 'sticky', top: 0, zIndex: 100, borderBottom: '1px solid #eee' }}>
+            <header style={{ backgroundColor: 'var(--card-bg)', padding: '1rem 0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', position: 'sticky', top: 0, zIndex: 100, borderBottom: '1px solid var(--card-border)' }}>
                 <div className="container" style={{ maxWidth: '1200px' }}>
                     <div style={{ marginBottom: '1rem' }}>
                         <button
@@ -421,11 +421,11 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1.5rem' }}>
                         <div style={{ flex: '1', minWidth: '300px' }}>
                             <div style={{ marginBottom: '0.5rem' }}>
-                                <span style={{ background: '#eef2f1', color: '#4a5568', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                <span style={{ background: '#eef2f1', color: 'var(--slate-600)', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
                                     受付スタッフ
                                 </span>
                             </div>
-                            <div style={{ fontSize: '1rem', fontWeight: 'bold', color: '#666', marginBottom: '0.25rem' }}>
+                            <div style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
                                 公演：{production?.title}
                             </div>
                             <h1 style={{ fontSize: '1.8rem', fontWeight: '900', margin: 0, color: 'var(--primary)', lineHeight: '1.2' }}>
@@ -435,7 +435,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
 
                         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                             {/* 進捗バー */}
-                            <div style={{ width: '180px', backgroundColor: '#fff', padding: '0.75rem', borderRadius: '12px', border: '1px solid #eee', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                            <div style={{ width: '180px', backgroundColor: 'var(--card-bg)', padding: '0.75rem', borderRadius: '12px', border: '1px solid var(--card-border)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.4rem' }}>
                                     <span>来場進捗</span>
                                     <span>{stats.checkedIn}/{stats.total}人</span>
@@ -467,7 +467,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                                 minWidth: '120px',
                                 boxShadow: '0 4px 12px rgba(var(--primary-rgb), 0.1)'
                             }}>
-                                <div style={{ fontSize: '0.65rem', color: '#666', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>当日券 残数</div>
+                                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>当日券 残数</div>
                                 <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--primary)', lineHeight: '1' }}>
                                     {remainingCount} <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>枚</span>
                                 </div>
@@ -547,7 +547,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                         <div style={{ marginBottom: '1.5rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                 <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>予約リスト ({filteredReservations.length}件)</h2>
-                                <span style={{ fontSize: '0.8rem', color: '#666' }}>未入場の方を優先表示しています</span>
+                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>未入場の方を優先表示しています</span>
                             </div>
                             <div style={{ position: 'relative' }}>
                                 <input
@@ -570,7 +570,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                                 <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', marginTop: '-0.5rem', fontSize: '1.2rem', color: '#94a3b8' }}>🔍</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0' }}>
-                                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '0.9rem', color: '#4a5568', fontWeight: '500' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--slate-600)', fontWeight: '500' }}>
                                     <input
                                         type="checkbox"
                                         checked={showCheckedIn}
@@ -593,7 +593,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                         )}
                         {activeTab === 'SAME_DAY' && (
                         <>
-                            <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid #f0f0f0', paddingBottom: '0.75rem' }}>
+                            <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.75rem' }}>
                                 <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>当日券を発行</h2>
                             </div>
                             <SameDayTicketForm
@@ -612,7 +612,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                     <aside style={{ position: 'sticky', top: '7.5rem' }}>
                         <div className="card" style={{ padding: '1.5rem', borderRadius: '16px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
                             <div style={{ marginBottom: '0.75rem' }}>
-                                <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', margin: 0, color: '#666' }}>来場状況</h3>
+                                <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', margin: 0, color: 'var(--text-muted)' }}>来場状況</h3>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.4rem' }}>
                                 <span>入場済み</span>
@@ -633,13 +633,13 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                                     transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
                                 }} />
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#555' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--slate-600)' }}>
                                 <span>当日券残数</span>
                                 <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{remainingCount}枚</span>
                             </div>
                         </div>
 
-                        <div style={{ marginTop: '1rem', padding: '1rem', background: '#eef2f1', borderRadius: '12px', fontSize: '0.8rem', color: '#4a5568' }}>
+                        <div style={{ marginTop: '1rem', padding: '1rem', background: '#eef2f1', borderRadius: '12px', fontSize: '0.8rem', color: 'var(--slate-600)' }}>
                             <p style={{ margin: 0, fontWeight: 'bold' }}>ヒント</p>
                             <p style={{ margin: '0.25rem 0 0 0' }}>
                                 {activeTab === 'LIST'

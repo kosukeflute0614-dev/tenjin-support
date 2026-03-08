@@ -8,6 +8,7 @@ import { updateProductionCustomIdClient, checkCustomIdDuplicateClient, updatePro
 import { Production, Performance, TicketType } from '@/types';
 import { Calendar, Ticket, Settings } from 'lucide-react';
 import { useToast } from '@/components/Toast';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 
 type TabType = 'schedule' | 'tickets' | 'basic';
 
@@ -26,8 +27,6 @@ export default function ProductionSettingsTabs({
     const [activeTab, setActiveTab] = useState<TabType>('schedule');
     const [customId, setCustomId] = useState(production.customId || '');
     const [isSaving, setIsSaving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [success, setSuccess] = useState<string | null>(null);
     const [baseUrl, setBaseUrl] = useState('');
 
     // 基本情報フォーム
@@ -44,29 +43,27 @@ export default function ProductionSettingsTabs({
 
     const handleSaveCustomId = async () => {
         if (!/^[a-zA-Z0-9-]*$/.test(customId)) {
-            setError('カスタムIDは半角英数字とハイフンのみ使用できます。');
+            showToast('カスタムIDは半角英数字とハイフンのみ使用できます。', 'error');
             return;
         }
 
         setIsSaving(true);
-        setError(null);
-        setSuccess(null);
 
         try {
             if (customId) {
                 const isDuplicate = await checkCustomIdDuplicateClient(customId, production.id);
                 if (isDuplicate) {
-                    setError('このカスタムIDは既に他の公演で使用されています。');
+                    showToast('このカスタムIDは既に他の公演で使用されています。', 'error');
                     setIsSaving(false);
                     return;
                 }
             }
 
             await updateProductionCustomIdClient(production.id, customId);
-            setSuccess('カスタムIDを更新しました。');
+            showToast('カスタムIDを更新しました。', 'success');
         } catch (err) {
             console.error('Failed to update customId:', err);
-            setError('更新に失敗しました。');
+            showToast('更新に失敗しました。', 'error');
         } finally {
             setIsSaving(false);
         }
@@ -77,10 +74,13 @@ export default function ProductionSettingsTabs({
         showToast('URLをクリップボードにコピーしました。', 'success');
     };
 
+    const hasCustomIdChanges = customId !== (production.customId || '');
     const hasBasicChanges =
         title !== production.title ||
         venue !== (production.venue || '') ||
         organizerEmail !== (production.organizerEmail || userEmail);
+
+    useUnsavedChanges(hasBasicChanges || hasCustomIdChanges);
 
     const handleSaveBasicInfo = async () => {
         if (!title.trim()) {
@@ -180,7 +180,7 @@ export default function ProductionSettingsTabs({
                                     placeholder="公演タイトルを入力"
                                     style={{ marginBottom: 0 }}
                                 />
-                                <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.5rem' }}>
+                                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
                                     メールテンプレートの「公演名」変数に使用されます。
                                 </p>
                             </div>
@@ -194,7 +194,7 @@ export default function ProductionSettingsTabs({
                                     placeholder="例: 新宿シアターモリエール"
                                     style={{ marginBottom: 0 }}
                                 />
-                                <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.5rem' }}>
+                                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
                                     メールテンプレートの「会場名」変数に使用されます。
                                 </p>
                             </div>
@@ -208,7 +208,7 @@ export default function ProductionSettingsTabs({
                                     placeholder="example@gmail.com"
                                     style={{ marginBottom: 0 }}
                                 />
-                                <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.5rem' }}>
+                                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
                                     メールテンプレートの「主催者メールアドレス」変数に使用されます。お客様からの問い合わせ先として表示されます。
                                 </p>
                             </div>
@@ -223,11 +223,11 @@ export default function ProductionSettingsTabs({
                                 </button>
                             </div>
 
-                            <div className="form-group" style={{ borderTop: '1px solid #eee', paddingTop: '1.5rem', marginTop: '0.5rem' }}>
+                            <div className="form-group" style={{ borderTop: '1px solid var(--card-border)', paddingTop: '1.5rem', marginTop: '0.5rem' }}>
                                 <label className="label">公演ID (システム管理用)</label>
-                                <code style={{ fontSize: '0.9rem', color: '#666' }}>{production.id}</code>
+                                <code style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{production.id}</code>
                             </div>
-                            <div className="form-group" style={{ borderTop: '1px solid #eee', paddingTop: '1.5rem', marginTop: '0.5rem' }}>
+                            <div className="form-group" style={{ borderTop: '1px solid var(--card-border)', paddingTop: '1.5rem', marginTop: '0.5rem' }}>
                                 <label className="label">予約フォームのカスタムID (URLスラッグ)</label>
                                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                     <input
@@ -247,11 +247,9 @@ export default function ProductionSettingsTabs({
                                         {isSaving ? '保存中...' : '保存'}
                                     </button>
                                 </div>
-                                <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.5rem' }}>
+                                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
                                     半角英数字とハイフンが使用できます。設定すると、分かりやすいURLで予約フォームを共有できます。
                                 </p>
-                                {error && <p style={{ color: 'var(--accent)', fontSize: '0.85rem', marginTop: '0.5rem' }}>⚠️ {error}</p>}
-                                {success && <p style={{ color: 'green', fontSize: '0.85rem', marginTop: '0.5rem' }}>✅ {success}</p>}
                             </div>
                         </div>
                     </div>

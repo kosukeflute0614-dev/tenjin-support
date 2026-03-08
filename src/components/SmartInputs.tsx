@@ -139,12 +139,12 @@ export function SmartMaskedDatePicker({
                     top: '100%',
                     left: 0,
                     zIndex: 1000,
-                    backgroundColor: '#fff',
+                    backgroundColor: 'var(--card-bg)',
                     boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
                     borderRadius: '12px',
                     marginTop: '8px',
                     padding: '12px',
-                    border: '1px solid #eee'
+                    border: '1px solid var(--card-border)'
                 }}>
                     <DayPicker
                         mode="single"

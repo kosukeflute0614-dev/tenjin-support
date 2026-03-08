@@ -130,7 +130,7 @@ export default function TemplateInlineEditor({
                         outline: 'none',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
-                        background: '#fff',
+                        background: 'var(--card-bg)',
                         minHeight: '2.4rem',
                     }}
                 />
@@ -139,7 +139,7 @@ export default function TemplateInlineEditor({
             {/* 変数挿入パレット */}
             <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#555' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--slate-600)' }}>
                         変数を挿入
                     </span>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -155,7 +155,7 @@ export default function TemplateInlineEditor({
                             style={{
                                 display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
                                 padding: '0.35rem 0.65rem', border: '1px solid #ddd', borderRadius: '6px',
-                                background: '#fafafa', cursor: 'pointer', fontSize: '0.8rem', color: '#444',
+                                background: 'var(--secondary)', cursor: 'pointer', fontSize: '0.8rem', color: 'var(--foreground)',
                                 transition: 'all 0.15s', whiteSpace: 'nowrap',
                             }}
                             onMouseEnter={(e) => {
@@ -205,7 +205,7 @@ export default function TemplateInlineEditor({
                         overflowY: 'auto',
                         whiteSpace: 'pre-wrap',
                         wordBreak: 'break-word',
-                        background: '#fff',
+                        background: 'var(--card-bg)',
                     }}
                 />
             </div>

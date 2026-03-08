@@ -164,7 +164,7 @@ export default function AttendanceStatus({ productionId, performances, readOnly 
                         </div>
 
                         {/* 未着（右・最重要） */}
-                        <div className="card" style={{ padding: '2rem', textAlign: 'center', borderTop: '6px solid var(--primary)', background: '#fffcfc' }}>
+                        <div className="card" style={{ padding: '2rem', textAlign: 'center', borderTop: '6px solid var(--primary)', background: 'var(--card-bg)' }}>
                             <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>未着 (あと何人)</div>
                             <div style={{ fontSize: '4.5rem', fontWeight: '900', color: 'var(--primary)', lineHeight: 1 }}>
                                 {stats.notAttended}
@@ -198,7 +198,7 @@ export default function AttendanceStatus({ productionId, performances, readOnly 
                             <button
                                 onClick={() => setListTab('not_attended')}
                                 style={{
-                                    flex: 1, padding: '1rem', border: 'none', background: listTab === 'not_attended' ? '#fff' : 'transparent',
+                                    flex: 1, padding: '1rem', border: 'none', background: listTab === 'not_attended' ? 'var(--card-bg)' : 'transparent',
                                     fontWeight: 'bold', color: listTab === 'not_attended' ? 'var(--primary)' : 'var(--text-muted)',
                                     borderBottom: listTab === 'not_attended' ? '3px solid var(--primary)' : 'none', cursor: 'pointer'
                                 }}
@@ -208,7 +208,7 @@ export default function AttendanceStatus({ productionId, performances, readOnly 
                             <button
                                 onClick={() => setListTab('attended')}
                                 style={{
-                                    flex: 1, padding: '1rem', border: 'none', background: listTab === 'attended' ? '#fff' : 'transparent',
+                                    flex: 1, padding: '1rem', border: 'none', background: listTab === 'attended' ? 'var(--card-bg)' : 'transparent',
                                     fontWeight: 'bold', color: listTab === 'attended' ? 'var(--success)' : 'var(--text-muted)',
                                     borderBottom: listTab === 'attended' ? '3px solid var(--success)' : 'none', cursor: 'pointer'
                                 }}
@@ -232,7 +232,7 @@ export default function AttendanceStatus({ productionId, performances, readOnly 
                                             const total = r.tickets?.reduce((s, t) => s + (t.count || 0), 0) || 0;
                                             const arrived = r.checkedInTickets || 0;
                                             return (
-                                                <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.8rem 1.2rem', background: '#fff', border: '1px solid #edf2f7', borderRadius: '8px' }}>
+                                                <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.8rem 1.2rem', background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: '8px' }}>
                                                     <div>
                                                         <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{r.customerName}</span>
                                                         <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>様</span>

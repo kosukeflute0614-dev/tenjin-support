@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
+import { useToast } from '@/components/Toast';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { initializeTroupeAndMembership } from '@/lib/platform';
 import { createProductionClient, addPerformanceClient } from '@/lib/client-firestore';
 import { SmartMaskedDatePicker, SmartMaskedTimeInput } from '@/components/SmartInputs';
@@ -22,10 +24,10 @@ interface PerformanceEntry {
 export default function OnboardingPage() {
     const { user, profile, loading, isNewUser, refreshProfile } = useAuth();
     const router = useRouter();
+    const { showToast } = useToast();
 
     const [step, setStep] = useState(1);
     const [isSaving, setIsSaving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
     // Step 1: 劇団名
     const [troupeName, setTroupeName] = useState('');
@@ -67,6 +69,11 @@ export default function OnboardingPage() {
         setPerformances(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
     };
 
+    const isDirty = troupeName.trim().length > 0 ||
+        title.trim().length > 0 ||
+        performances.some(p => p.date || p.time);
+    useUnsavedChanges(isDirty);
+
     // --- Validation ---
     const isStep1Valid = troupeName.trim().length > 0;
     const isStep2Valid = title.trim().length > 0;
@@ -95,7 +102,6 @@ export default function OnboardingPage() {
     const handleComplete = async () => {
         if (!user) return;
         setIsSaving(true);
-        setError(null);
 
         try {
             // 1. 劇団・所属・ユーザーを作成（既に存在する場合はスキップされる）
@@ -128,7 +134,7 @@ export default function OnboardingPage() {
         } catch (err: any) {
             console.error('Onboarding failed:', err);
             const detail = err.code ? ` (${err.code}: ${err.message})` : '';
-            setError(`セットアップに失敗しました。${detail}`);
+            showToast(`セットアップに失敗しました。${detail}`, 'error');
             setIsSaving(false);
         }
     };
@@ -142,7 +148,7 @@ export default function OnboardingPage() {
 
     return (
         <div className="container" style={{
-            maxWidth: '640px',
+            maxWidth: '1000px',
             paddingTop: '8vh',
             paddingBottom: '3rem',
             animation: 'fadeIn 0.8s ease-out',
@@ -215,7 +221,7 @@ export default function OnboardingPage() {
                         <h3 style={{ fontSize: '1.15rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
                             劇団の名前を教えてください
                         </h3>
-                        <p style={{ fontSize: '0.85rem', color: '#888', marginBottom: '1.5rem' }}>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
                             あなたの劇団の名前です。後から変更できます。
                         </p>
                         <input
@@ -238,7 +244,7 @@ export default function OnboardingPage() {
                         <h3 style={{ fontSize: '1.15rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
                             最初の公演を作成しましょう
                         </h3>
-                        <p style={{ fontSize: '0.85rem', color: '#888', marginBottom: '1.5rem' }}>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
                             チケットやメールに表示される公演名です。
                         </p>
                         <input
@@ -259,15 +265,15 @@ export default function OnboardingPage() {
                         <h3 style={{ fontSize: '1.15rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
                             公演日時を登録してください
                         </h3>
-                        <p style={{ fontSize: '0.85rem', color: '#888', marginBottom: '1.5rem' }}>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
                             最低1つの公演回が必要です。後から追加・変更もできます。
                         </p>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             {performances.map((perf, idx) => (
                                 <div key={perf.id} style={{
-                                    padding: '1.25rem', background: '#f8f9fa', borderRadius: '10px',
-                                    border: '1px solid #eee', position: 'relative',
+                                    padding: '1.25rem', background: 'var(--secondary)', borderRadius: '10px',
+                                    border: '1px solid var(--card-border)', position: 'relative',
                                 }}>
                                     <div style={{
                                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -309,7 +315,7 @@ export default function OnboardingPage() {
                                             />
                                         </div>
                                         <div style={{ flex: '0 1 120px' }}>
-                                            <label style={{ fontSize: '0.85rem', fontWeight: '600', color: '#444', display: 'block', marginBottom: '6px', marginLeft: '4px' }}>
+                                            <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--foreground)', display: 'block', marginBottom: '6px', marginLeft: '4px' }}>
                                                 定員
                                             </label>
                                             <input
@@ -331,7 +337,7 @@ export default function OnboardingPage() {
                             style={{
                                 marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem',
                                 padding: '0.6rem 1.25rem', border: '1px dashed #ccc', borderRadius: '8px',
-                                background: 'transparent', cursor: 'pointer', fontSize: '0.9rem', color: '#666',
+                                background: 'transparent', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-muted)',
                                 width: '100%', justifyContent: 'center',
                                 transition: 'all 0.15s',
                             }}
@@ -343,13 +349,6 @@ export default function OnboardingPage() {
                     </div>
                 )}
             </div>
-
-            {/* エラー表示 */}
-            {error && (
-                <div style={{ color: 'var(--error)', fontSize: '0.9rem', marginTop: '1rem', textAlign: 'center' }}>
-                    {error}
-                </div>
-            )}
 
             {/* ナビゲーションボタン */}
             <div style={{

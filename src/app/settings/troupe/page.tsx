@@ -4,15 +4,20 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
+import { useToast } from '@/components/Toast';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function TroupeSettingsPage() {
     const { user, profile, loading, refreshProfile } = useAuth();
     const router = useRouter();
+    const { showToast } = useToast();
     const [troupeName, setTroupeName] = useState('');
     const [isSaving, setIsSaving] = useState(false);
-    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+    const isDirty = !!profile && troupeName !== profile.troupeName;
+    useUnsavedChanges(isDirty);
 
     useEffect(() => {
         if (profile) {
@@ -25,7 +30,6 @@ export default function TroupeSettingsPage() {
         if (!user || !troupeName.trim()) return;
 
         setIsSaving(true);
-        setMessage(null);
 
         try {
             await updateDoc(doc(db, 'users', user.uid), {
@@ -34,13 +38,10 @@ export default function TroupeSettingsPage() {
             });
 
             await refreshProfile();
-            setMessage({ type: 'success', text: '団体情報を更新しました。' });
-
-            // 3秒後にメッセージを消す
-            setTimeout(() => setMessage(null), 3000);
+            showToast('団体情報を更新しました。', 'success');
         } catch (err: any) {
             console.error('Failed to update troupe name:', err);
-            setMessage({ type: 'error', text: '更新に失敗しました。' });
+            showToast('更新に失敗しました。', 'error');
         } finally {
             setIsSaving(false);
         }
@@ -51,7 +52,7 @@ export default function TroupeSettingsPage() {
     }
 
     return (
-        <div className="container" style={{ maxWidth: '600px', paddingTop: '2rem' }}>
+        <div className="container" style={{ maxWidth: '1000px', paddingTop: '2rem' }}>
             <div style={{ marginBottom: '1.25rem' }}>
                 <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
                     <span>&larr;</span> ダッシュボードに戻る
@@ -79,19 +80,6 @@ export default function TroupeSettingsPage() {
                         </p>
                     </div>
 
-                    {message && (
-                        <div style={{
-                            padding: '1rem',
-                            borderRadius: '8px',
-                            marginBottom: '1rem',
-                            backgroundColor: message.type === 'success' ? 'rgba(46, 125, 50, 0.1)' : 'rgba(139, 0, 0, 0.1)',
-                            color: message.type === 'success' ? '#2e7d32' : '#8b0000',
-                            fontSize: '0.9rem'
-                        }}>
-                            {message.text}
-                        </div>
-                    )}
-
                     <div style={{ marginTop: '2rem' }}>
                         <button
                             type="submit"
@@ -104,11 +92,11 @@ export default function TroupeSettingsPage() {
                 </form>
             </div>
 
-            <div className="card" style={{ marginTop: '2rem', padding: '2rem', border: '1px solid #eee', backgroundColor: '#fdfdfd' }}>
-                <h3 style={{ fontSize: '1rem', marginBottom: '1rem', color: '#666' }}>ログイン情報</h3>
-                <div style={{ fontSize: '0.9rem', color: '#444' }}>
+            <div className="card" style={{ marginTop: '2rem', padding: '2rem', border: '1px solid var(--card-border)', backgroundColor: '#fdfdfd' }}>
+                <h3 style={{ fontSize: '1rem', marginBottom: '1rem', color: 'var(--text-muted)' }}>ログイン情報</h3>
+                <div style={{ fontSize: '0.9rem', color: 'var(--foreground)' }}>
                     <p><strong>Googleアカウント:</strong> {user?.email}</p>
-                    <p style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#999' }}>
+                    <p style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--slate-500)' }}>
                         ※ログイン用のアカウント変更は現在サポートされていません。
                     </p>
                 </div>

@@ -232,8 +232,6 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
                             <th style={{ padding: '1rem' }}>公演回</th>
                             <th style={{ padding: '1rem' }}>内訳</th>
                             <th style={{ padding: '1rem', textAlign: 'center' }}>合計枚数</th>
-                            <th style={{ padding: '1rem' }}>ステータス</th>
-                            <th style={{ padding: '1rem' }}>支払い</th>
                             <th style={{ padding: '1rem' }}>操作</th>
                         </tr>
                     </thead>
@@ -282,12 +280,6 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
                                         {totalCount}
                                     </td>
                                     <td style={{ padding: '1rem' }}>
-                                        <StatusBadge status={res.status} />
-                                    </td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <PaymentBadge status={res.paymentStatus} />
-                                    </td>
-                                    <td style={{ padding: '1rem' }}>
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                                             {!isCanceled ? (
                                                 <button
@@ -320,7 +312,7 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
                         })}
                         {filteredReservations.length === 0 && (
                             <tr>
-                                <td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                <td colSpan={5} style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
                                     表示可能な予約データがありません。
                                 </td>
                             </tr>
@@ -563,9 +555,9 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
 
 function StatusBadge({ status }: { status: string }) {
     const config: Record<string, { bg: string; color: string; label: string; icon: React.ReactNode }> = {
-        CONFIRMED: { bg: '#d4edda', color: '#155724', label: '予約確定', icon: <CheckCircle size={14} /> },
-        PENDING: { bg: '#fff3cd', color: '#856404', label: '未確定', icon: <Clock size={14} /> },
-        CANCELED: { bg: '#f8d7da', color: '#721c24', label: 'キャンセル', icon: <XCircle size={14} /> },
+        CONFIRMED: { bg: '#d4edda', color: 'var(--success)', label: '予約確定', icon: <CheckCircle size={14} /> },
+        PENDING: { bg: '#fff3cd', color: 'var(--text-muted)', label: '未確定', icon: <Clock size={14} /> },
+        CANCELED: { bg: '#f8d7da', color: 'var(--accent)', label: 'キャンセル', icon: <XCircle size={14} /> },
     };
     const c = config[status] || config.PENDING;
     return (
@@ -577,9 +569,9 @@ function StatusBadge({ status }: { status: string }) {
 
 function PaymentBadge({ status }: { status: string }) {
     const config: Record<string, { bg: string; color: string; label: string; icon: React.ReactNode }> = {
-        PAID: { bg: '#d4edda', color: '#155724', label: '支払い済み', icon: <CheckCircle size={14} /> },
-        UNPAID: { bg: '#f8d7da', color: '#721c24', label: '未払い', icon: <AlertCircle size={14} /> },
-        PARTIAL: { bg: '#fff3cd', color: '#856404', label: '一部支払い', icon: <MinusCircle size={14} /> },
+        PAID: { bg: '#d4edda', color: 'var(--success)', label: '支払い済み', icon: <CheckCircle size={14} /> },
+        UNPAID: { bg: '#f8d7da', color: 'var(--accent)', label: '未払い', icon: <AlertCircle size={14} /> },
+        PARTIAL: { bg: '#fff3cd', color: 'var(--text-muted)', label: '一部支払い', icon: <MinusCircle size={14} /> },
     };
     const c = config[status] || config.UNPAID;
     return (

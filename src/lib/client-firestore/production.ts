@@ -61,6 +61,8 @@ export async function fetchProductionDetailsClient(
                 isPublic: tt.isPublic
             })),
             actors: rawData.actors || [],
+            venue: rawData.venue || undefined,
+            emailTemplates: rawData.emailTemplates || undefined,
             // Only include staffTokens for authenticated admin users
             ...(userId ? { staffTokens: rawData.staffTokens || {} } : {}),
             userId: rawData.userId || '',

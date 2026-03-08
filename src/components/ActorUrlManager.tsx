@@ -97,7 +97,7 @@ export default function ActorUrlManager({ production }: Props) {
                     justifyContent: 'space-between',
                     width: '100%',
                     padding: '1rem 1.25rem',
-                    background: isOpen ? '#faf5f5' : '#f8f9fa',
+                    background: isOpen ? 'rgba(139, 0, 0, 0.03)' : 'var(--secondary)',
                     border: '1px solid',
                     borderColor: isOpen ? 'var(--primary)' : '#e2e8f0',
                     borderRadius: isOpen ? '12px 12px 0 0' : '12px',
@@ -108,17 +108,17 @@ export default function ActorUrlManager({ production }: Props) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <Link2 size={18} style={{ color: 'var(--primary)' }} />
                     <div style={{ textAlign: 'left' }}>
-                        <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#2d3748' }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--foreground)' }}>
                             役者・窓口別URL
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: '#718096', marginTop: '2px' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                             出演者ごとの専用予約URLを発行・管理
                         </div>
                     </div>
                 </div>
                 {isOpen
-                    ? <ChevronUp size={18} style={{ color: '#718096' }} />
-                    : <ChevronDown size={18} style={{ color: '#718096' }} />
+                    ? <ChevronUp size={18} style={{ color: 'var(--text-muted)' }} />
+                    : <ChevronDown size={18} style={{ color: 'var(--text-muted)' }} />
                 }
             </button>
 
@@ -130,7 +130,7 @@ export default function ActorUrlManager({ production }: Props) {
                 opacity: isOpen ? 1 : 0,
             }}>
                 <div style={{
-                    backgroundColor: '#fff',
+                    backgroundColor: 'var(--card-bg)',
                     padding: '1.5rem',
                     borderRadius: '0 0 12px 12px',
                     border: '1px solid var(--primary)',
@@ -142,7 +142,7 @@ export default function ActorUrlManager({ production }: Props) {
                             display: 'block',
                             fontSize: '0.8rem',
                             fontWeight: 600,
-                            color: '#4a5568',
+                            color: 'var(--slate-600)',
                             marginBottom: '0.5rem',
                         }}>
                             <UserPlus size={14} style={{ verticalAlign: 'middle', marginRight: '0.35rem' }} />
@@ -178,7 +178,7 @@ export default function ActorUrlManager({ production }: Props) {
                                 color: '#a0aec0',
                             }}>
                                 <Users size={40} style={{ color: '#cbd5e0', marginBottom: '0.75rem' }} />
-                                <p style={{ fontSize: '0.9rem', color: '#718096', marginBottom: '0.25rem' }}>
+                                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
                                     役者・窓口がまだ登録されていません
                                 </p>
                                 <p style={{ fontSize: '0.8rem', color: '#a0aec0' }}>
@@ -195,7 +195,7 @@ export default function ActorUrlManager({ production }: Props) {
                                         key={actor.id}
                                         style={{
                                             padding: '1rem 1.25rem',
-                                            backgroundColor: '#fff',
+                                            backgroundColor: 'var(--card-bg)',
                                             borderRadius: '10px',
                                             border: '1px solid #e2e8f0',
                                             boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
@@ -211,7 +211,7 @@ export default function ActorUrlManager({ production }: Props) {
                                             <div style={{
                                                 fontWeight: 600,
                                                 fontSize: '0.95rem',
-                                                color: '#2d3748',
+                                                color: 'var(--foreground)',
                                             }}>
                                                 {actor.name}
                                             </div>
@@ -233,11 +233,11 @@ export default function ActorUrlManager({ production }: Props) {
                                         <div style={{
                                             fontSize: '0.75rem',
                                             fontFamily: 'monospace',
-                                            color: '#718096',
+                                            color: 'var(--text-muted)',
                                             backgroundColor: '#f7fafc',
                                             padding: '0.5rem 0.75rem',
                                             borderRadius: '6px',
-                                            border: '1px solid #edf2f7',
+                                            border: '1px solid var(--card-border)',
                                             overflow: 'hidden',
                                             textOverflow: 'ellipsis',
                                             whiteSpace: 'nowrap',
@@ -271,7 +271,7 @@ export default function ActorUrlManager({ production }: Props) {
                                                     alignItems: 'center',
                                                     gap: '0.3rem',
                                                     padding: '0.4rem 0.7rem',
-                                                    color: '#e53e3e',
+                                                    color: 'var(--accent)',
                                                     fontSize: '0.8rem',
                                                     background: 'transparent',
                                                     border: '1px solid #fed7d7',

@@ -15,7 +15,7 @@ import {
 } from "firebase/firestore";
 import { revalidatePath } from "next/cache";
 import { FirestoreReservation, Production } from "@/types";
-import { validateTicketInput } from '@/lib/capacity-utils';
+import { validateTicketInput, calculateBookedCount, validateCapacity } from '@/lib/capacity-utils';
 import { serializeDoc, serializeDocs, toDate } from "@/lib/firestore-utils";
 import { sendReservationConfirmation } from "@/lib/email";
 
@@ -90,13 +90,39 @@ export async function getBookingOptions(activeProductionId?: string, userId?: st
 
 export async function createReservation(data: FirestoreReservation) {
     // 入力バリデーション
-    const { error: inputError } = validateTicketInput(data.tickets || []);
+    const { totalCount, error: inputError } = validateTicketInput(data.tickets || []);
     if (inputError) throw new Error(inputError);
 
-    const newResRef = await addDoc(collection(db, "reservations"), {
-        ...data,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+    if (!data.performanceId) throw new Error('公演回が指定されていません。');
+
+    // トランザクション内で残席チェック + 予約作成（アトミック）
+    const newResRef = doc(collection(db, "reservations"));
+    await runTransaction(db, async (transaction) => {
+        // performanceドキュメントを読み取り（楽観的ロック）
+        const performanceRef = doc(db, "performances", data.performanceId);
+        const performanceSnap = await transaction.get(performanceRef);
+        if (!performanceSnap.exists()) throw new Error('公演回が見つかりません。');
+        const performance = performanceSnap.data();
+
+        // 予約数を集計
+        const qRes = query(
+            collection(db, "reservations"),
+            where("performanceId", "==", data.performanceId),
+            where("productionId", "==", data.productionId)
+        );
+        const resSnapshot = await getDocs(qRes);
+        const bookedCount = calculateBookedCount(
+            resSnapshot.docs.map(d => d.data() as any),
+            data.performanceId
+        );
+        const check = validateCapacity(performance.capacity, bookedCount, totalCount);
+        if (!check.ok) throw new Error(check.error!);
+
+        transaction.set(newResRef, {
+            ...data,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        });
     });
     const newId = newResRef.id;
 
@@ -350,12 +376,36 @@ export async function restoreReservation(reservationId: string, userId: string) 
     try {
         const reservationRef = doc(db, "reservations", reservationId);
 
-        // トランザクション内で最新データ確認 + 書き込み
+        // トランザクション内で最新データ確認 + 残席チェック + 書き込み
         await runTransaction(db, async (transaction) => {
             const resSnap = await transaction.get(reservationRef);
             if (!resSnap.exists()) throw new Error('Reservation not found');
             const resData = resSnap.data();
             if (resData.userId !== userId) throw new Error('Unauthorized');
+
+            // 復元時に残席チェック
+            const ticketCount = (resData.tickets || []).reduce(
+                (sum: number, t: any) => sum + (t.count || 0), 0
+            );
+            if (ticketCount > 0 && resData.performanceId) {
+                const performanceRef = doc(db, "performances", resData.performanceId);
+                const performanceSnap = await transaction.get(performanceRef);
+                if (performanceSnap.exists()) {
+                    const performance = performanceSnap.data();
+                    const qRes = query(
+                        collection(db, "reservations"),
+                        where("performanceId", "==", resData.performanceId),
+                        where("productionId", "==", resData.productionId)
+                    );
+                    const resSnapshot = await getDocs(qRes);
+                    const bookedCount = calculateBookedCount(
+                        resSnapshot.docs.map(d => d.data() as any),
+                        resData.performanceId
+                    );
+                    const check = validateCapacity(performance.capacity, bookedCount, ticketCount);
+                    if (!check.ok) throw new Error(check.error!);
+                }
+            }
 
             transaction.update(reservationRef, {
                 status: 'CONFIRMED',

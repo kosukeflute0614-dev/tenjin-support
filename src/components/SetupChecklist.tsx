@@ -36,8 +36,11 @@ export default function SetupChecklist({ production, productionId }: SetupCheckl
             setMode('expanded');
         } else if (saved === 'collapsed') {
             setMode('collapsed');
-        } else {
+        } else if (saved === 'minimized') {
             setMode('minimized');
+        } else {
+            // 初回訪問時はカード表示（expanded）をデフォルトにする
+            setMode('expanded');
         }
         setInitialized(true);
     }, [storageKey]);
@@ -117,12 +120,12 @@ export default function SetupChecklist({ production, productionId }: SetupCheckl
                         alignItems: 'center',
                         gap: '0.5rem',
                         padding: '0.5rem 1rem',
-                        background: '#fff',
-                        border: '1px solid #e5e7eb',
+                        background: 'var(--card-bg)',
+                        border: '1px solid var(--card-border)',
                         borderRadius: '20px',
                         cursor: 'pointer',
                         fontSize: '0.85rem',
-                        color: '#555',
+                        color: 'var(--slate-600)',
                         boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
                         transition: 'all 0.2s',
                     }}
@@ -161,9 +164,9 @@ export default function SetupChecklist({ production, productionId }: SetupCheckl
     return (
         <div style={{
             marginBottom: '2rem',
-            background: '#fff',
+            background: 'var(--card-bg)',
             borderRadius: '12px',
-            border: '1px solid #e5e7eb',
+            border: '1px solid var(--card-border)',
             boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
             overflow: 'hidden',
         }}>
@@ -191,7 +194,7 @@ export default function SetupChecklist({ production, productionId }: SetupCheckl
                         <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 'bold' }}>
                             セットアップを完了しましょう
                         </h4>
-                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#888' }}>
+                        <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                             あと {remainingCount} 項目で準備完了です
                         </p>
                     </div>
@@ -205,7 +208,7 @@ export default function SetupChecklist({ production, productionId }: SetupCheckl
                         title="小さく表示する"
                         style={{
                             border: 'none', background: 'none', cursor: 'pointer',
-                            color: '#bbb', padding: '0.25rem',
+                            color: 'var(--slate-400)', padding: '0.25rem',
                             display: 'flex', alignItems: 'center',
                         }}
                     >
@@ -216,7 +219,7 @@ export default function SetupChecklist({ production, productionId }: SetupCheckl
             </div>
 
             {/* プログレスバー */}
-            <div style={{ height: '3px', background: '#f0f0f0' }}>
+            <div style={{ height: '3px', background: 'var(--secondary)' }}>
                 <div style={{
                     height: '100%',
                     width: `${progressPercent}%`,
@@ -271,7 +274,7 @@ export default function SetupChecklist({ production, productionId }: SetupCheckl
                                             <span style={{
                                                 fontSize: '0.65rem',
                                                 fontWeight: '700',
-                                                color: '#dc2626',
+                                                color: 'var(--accent)',
                                                 background: '#fef2f2',
                                                 border: '1px solid #fecaca',
                                                 borderRadius: '4px',
@@ -283,7 +286,7 @@ export default function SetupChecklist({ production, productionId }: SetupCheckl
                                     </div>
                                     <div style={{
                                         fontSize: '0.78rem',
-                                        color: '#aaa',
+                                        color: 'var(--slate-500)',
                                         marginTop: '0.1rem',
                                     }}>
                                         {item.description}

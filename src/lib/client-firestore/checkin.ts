@@ -14,30 +14,9 @@ export async function createSameDayTicketClient(
 ) {
     if (!userId) throw new Error('Unauthorized');
 
-    // 1. 公演の残数チェック（トランザクション外）
-    const performanceRef = doc(db, "performances", performanceId);
-    const performanceSnap = await getDoc(performanceRef);
-    if (!performanceSnap.exists()) throw new Error('公演が見つかりません');
-    const performance = performanceSnap.data() as Performance;
-
-    const reservationsRef = collection(db, "reservations");
-    const qRes = query(reservationsRef, where("userId", "==", userId));
-    const resSnapshot = await getDocs(qRes);
-
-    const bookedCount = resSnapshot.docs.reduce((sum, d) => {
-        const res = d.data() as FirestoreReservation;
-        if (res.performanceId !== performanceId || res.status === 'CANCELED') return sum;
-        return sum + (res.tickets?.reduce((tSum: number, t: any) => tSum + (t.count || 0), 0) || 0);
-    }, 0);
-
     const totalQuantity = Object.values(breakdown).reduce((sum, count) => sum + count, 0);
-    const remaining = performance.capacity - bookedCount;
 
-    if (totalQuantity > remaining) {
-        throw new Error(`枚数が販売可能数（${remaining}枚）を超えています`);
-    }
-
-    // 2. プロダクション情報の取得（トランザクション外）
+    // プロダクション情報の取得（券種情報はトランザクション外で取得可能）
     const productionRef = doc(db, "productions", productionId);
     const productionSnap = await getDoc(productionRef);
     if (!productionSnap.exists()) throw new Error('プロダクションが見つかりません');
@@ -57,9 +36,35 @@ export async function createSameDayTicketClient(
             };
         });
 
-    // 3. 予約の作成（トランザクション内は書き込みのみ）
+    // トランザクション内で残席チェック + 予約作成（アトミック）
     const newResRef = doc(collection(db, "reservations"));
     await runTransaction(db, async (transaction) => {
+        // トランザクション内でperformanceを読み取り（楽観的ロック）
+        const performanceRef = doc(db, "performances", performanceId);
+        const performanceSnap = await transaction.get(performanceRef);
+        if (!performanceSnap.exists()) throw new Error('公演が見つかりません');
+        const performance = performanceSnap.data() as Performance;
+
+        // 予約数を集計
+        const reservationsRef = collection(db, "reservations");
+        const qRes = query(
+            reservationsRef,
+            where("productionId", "==", productionId),
+            where("performanceId", "==", performanceId)
+        );
+        const resSnapshot = await getDocs(qRes);
+
+        const bookedCount = resSnapshot.docs.reduce((sum, d) => {
+            const res = d.data() as FirestoreReservation;
+            if (res.status === 'CANCELED') return sum;
+            return sum + (res.tickets?.reduce((tSum: number, t: any) => tSum + (t.count || 0), 0) || 0);
+        }, 0);
+
+        const remaining = performance.capacity - bookedCount;
+        if (totalQuantity > remaining) {
+            throw new Error(`枚数が販売可能数（${remaining}枚）を超えています`);
+        }
+
         transaction.set(newResRef, {
             userId,
             productionId,

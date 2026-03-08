@@ -30,16 +30,13 @@ export function calculateBookedCount(
 
 /**
  * 残席チェック
- * capacity === 0 は「無制限」として扱い、常にOKを返す。
+ * capacity === 0 は「0席」として扱う（無制限ではない）。
  */
 export function validateCapacity(
     capacity: number,
     bookedCount: number,
     requestedCount: number
 ): { ok: boolean; remaining: number; error?: string } {
-    if (capacity === 0) {
-        return { ok: true, remaining: Infinity };
-    }
     const remaining = Math.max(0, capacity - bookedCount);
     if (requestedCount > remaining) {
         return {

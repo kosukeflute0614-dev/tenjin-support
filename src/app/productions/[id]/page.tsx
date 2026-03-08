@@ -6,7 +6,6 @@ import { doc, onSnapshot, collection, query, where, getDocs, getDoc, limit } fro
 import { serializeDoc, serializeDocs, toDate } from '@/lib/firestore-utils';
 import Link from 'next/link';
 import ProductionSettingsTabs from '@/components/ProductionSettingsTabs';
-import Breadcrumb from '@/components/Breadcrumb';
 import { useAuth } from '@/components/AuthProvider';
 import { Production, Performance } from '@/types';
 import { useRouter } from 'next/navigation';
@@ -142,10 +141,6 @@ export default function ProductionDetailPage({ params }: { params: Promise<{ id:
 
     return (
         <div className="container" style={{ maxWidth: '1000px' }}>
-            <Breadcrumb items={[
-                { label: 'ダッシュボード', href: '/dashboard' },
-                { label: details.production.title }
-            ]} />
             <div className="page-header" style={{ marginBottom: '2rem' }}>
                 <div style={{ marginBottom: '1.25rem' }}>
                     <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
@@ -154,7 +149,7 @@ export default function ProductionDetailPage({ params }: { params: Promise<{ id:
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                        <h2 className="heading-lg" style={{ marginBottom: '0.5rem' }}>{details.production.title}</h2>
+                        <h2 className="heading-lg" style={{ marginBottom: '0.5rem' }}>公演詳細</h2>
                         <p className="text-muted" style={{ fontSize: '0.95rem' }}>公演のスケジュールとチケット設定を管理します。</p>
                     </div>
                 </div>

@@ -3,6 +3,7 @@ import { addPerformanceClient, updatePerformanceClient, deletePerformanceClient 
 import { formatDate, formatTime } from '@/lib/format';
 import { SmartMaskedDatePicker, SmartMaskedTimeInput, SmartNumberInput } from './SmartInputs';
 import { useAuth } from './AuthProvider';
+import { useToast } from '@/components/Toast';
 import { Performance } from '@/types';
 import { toDate } from '@/lib/firestore-utils';
 import { Calendar } from 'lucide-react';
@@ -14,9 +15,9 @@ type Props = {
 
 export default function PerformanceManager({ productionId, performances }: Props) {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [editingId, setEditingId] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -43,7 +44,7 @@ export default function PerformanceManager({ productionId, performances }: Props
         try {
             await deletePerformanceClient(idToDelete, user.uid);
         } catch (error: any) {
-            setError(error.message || '削除に失敗しました。');
+            showToast(error.message || '削除に失敗しました。', 'error');
         } finally {
             setIsProcessing(false);
         }
@@ -82,23 +83,13 @@ export default function PerformanceManager({ productionId, performances }: Props
             {/* モーダル類 */}
             {deletingId && (
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000 }} onKeyDown={(e) => { if (e.key === 'Escape') setDeletingId(null); }}>
-                    <div className="card" role="dialog" aria-modal="true" aria-labelledby="modal-title-perf-delete" style={{ width: '90%', maxWidth: '400px', padding: '2rem', textAlign: 'center', background: '#fff' }}>
+                    <div className="card" role="dialog" aria-modal="true" aria-labelledby="modal-title-perf-delete" style={{ width: '90%', maxWidth: '400px', padding: '2rem', textAlign: 'center', background: 'var(--card-bg)' }}>
                         <h4 id="modal-title-perf-delete" style={{ marginBottom: '1rem' }}>削除の確認</h4>
-                        <p style={{ marginBottom: '1.5rem', color: '#666' }}>この公演回を削除してもよろしいですか？</p>
+                        <p style={{ marginBottom: '1.5rem', color: 'var(--text-muted)' }}>この公演回を削除してもよろしいですか？</p>
                         <div style={{ display: 'flex', gap: '1rem' }}>
                             <button onClick={() => setDeletingId(null)} className="btn btn-secondary" style={{ flex: 1 }} disabled={isProcessing}>キャンセル</button>
                             <button onClick={handleConfirmDelete} className="btn btn-danger" style={{ flex: 1, background: '#d32f2f' }} disabled={isProcessing}>{isProcessing ? '削除中...' : '削除する'}</button>
                         </div>
-                    </div>
-                </div>
-            )}
-
-            {error && (
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000 }} onKeyDown={(e) => { if (e.key === 'Escape') setError(null); }}>
-                    <div className="card" role="dialog" aria-modal="true" aria-labelledby="modal-title-perf-error" style={{ width: '90%', maxWidth: '400px', padding: '2rem', textAlign: 'center', background: '#fff' }}>
-                        <h4 id="modal-title-perf-error" style={{ marginBottom: '1rem', color: '#d32f2f' }}>エラー</h4>
-                        <p style={{ marginBottom: '1.5rem' }}>{error}</p>
-                        <button onClick={() => setError(null)} className="btn btn-primary" style={{ width: '100%' }}>閉じる</button>
                     </div>
                 </div>
             )}
@@ -122,7 +113,7 @@ export default function PerformanceManager({ productionId, performances }: Props
                         width: '95%',
                         maxWidth: '500px',
                         padding: '2.5rem',
-                        background: '#fff',
+                        background: 'var(--card-bg)',
                         borderRadius: '24px',
                         boxShadow: 'var(--shadow-xl)'
                     }}>
@@ -141,7 +132,7 @@ export default function PerformanceManager({ productionId, performances }: Props
                             <button
                                 onClick={() => setIsAddModalOpen(false)}
                                 aria-label="閉じる"
-                                style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#999' }}
+                                style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--slate-500)' }}
                             >
                                 ×
                             </button>
@@ -156,7 +147,7 @@ export default function PerformanceManager({ productionId, performances }: Props
                             const time = formData.get('time') as string;
                             const capacity = parseInt(formData.get('capacity') as string);
                             if (isNaN(capacity) || capacity < 1) {
-                                setError('定員は1以上の数値で入力してください');
+                                showToast('定員は1以上の数値で入力してください', 'error');
                                 setIsProcessing(false);
                                 return;
                             }
@@ -165,7 +156,7 @@ export default function PerformanceManager({ productionId, performances }: Props
                                 await addPerformanceClient(productionId, startTime, capacity, user.uid);
                                 setIsAddModalOpen(false);
                             } catch (e: any) {
-                                setError(e.message || '登録に失敗しました。');
+                                showToast(e.message || '登録に失敗しました。', 'error');
                             } finally {
                                 setIsProcessing(false);
                             }
@@ -205,12 +196,12 @@ export default function PerformanceManager({ productionId, performances }: Props
                 {sortedDateKeys.map(dateKey => (
                     <div key={dateKey} style={{ marginBottom: '1.5rem' }}>
                         <div style={{
-                            background: '#f8f9fa',
+                            background: 'var(--secondary)',
                             padding: '0.6rem 1rem',
                             borderRadius: '8px',
                             fontSize: '0.95rem',
                             fontWeight: 'bold',
-                            color: '#333',
+                            color: 'var(--foreground)',
                             borderLeft: '4px solid #8b0000',
                             marginBottom: '0.75rem',
                             display: 'flex',
@@ -218,13 +209,13 @@ export default function PerformanceManager({ productionId, performances }: Props
                             alignItems: 'center'
                         }}>
                             <span>{dateKey} ({getDayOfWeek(dateKey)})</span>
-                            <span style={{ fontSize: '0.8rem', color: '#888', fontWeight: 'normal' }}>{groupedPerformances[dateKey].length} 公演</span>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>{groupedPerformances[dateKey].length} 公演</span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             {groupedPerformances[dateKey].map((perf) => (
                                 <div key={perf.id} style={{
-                                    background: '#fff',
-                                    border: '1px solid #eee',
+                                    background: 'var(--card-bg)',
+                                    border: '1px solid var(--card-border)',
                                     borderRadius: '8px',
                                     padding: '0.75rem 1rem',
                                     display: 'flex',
@@ -242,7 +233,7 @@ export default function PerformanceManager({ productionId, performances }: Props
                                             const time = formData.get('time') as string;
                                             const capacity = parseInt(formData.get('capacity') as string);
                                             if (isNaN(capacity) || capacity < 1) {
-                                                setError('定員は1以上の数値で入力してください');
+                                                showToast('定員は1以上の数値で入力してください', 'error');
                                                 setIsProcessing(false);
                                                 return;
                                             }
@@ -252,7 +243,7 @@ export default function PerformanceManager({ productionId, performances }: Props
                                                 setEditingId(null);
                                             } catch (error: any) {
                                                 console.error('Failed to update performance:', error);
-                                                setError(error.message || '更新に失敗しました。');
+                                                showToast(error.message || '更新に失敗しました。', 'error');
                                             } finally {
                                                 setIsProcessing(false);
                                             }
@@ -294,7 +285,7 @@ export default function PerformanceManager({ productionId, performances }: Props
                                         <>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                                                 <div style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{formatTime(perf.startTime)}</div>
-                                                <div style={{ fontSize: '0.85rem', color: '#666', background: '#f0f0f0', padding: '0.2rem 0.6rem', borderRadius: '4px' }}>
+                                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', background: 'var(--secondary)', padding: '0.2rem 0.6rem', borderRadius: '4px' }}>
                                                     定員: {perf.capacity}名
                                                 </div>
                                             </div>
@@ -331,7 +322,7 @@ export default function PerformanceManager({ productionId, performances }: Props
                     </div>
                 ))}
                 {performances.length === 0 && (
-                    <div style={{ textAlign: 'center', padding: '3rem', color: '#999', background: '#fafafa', borderRadius: '12px', border: '2px dashed #eee' }}>
+                    <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--slate-500)', background: 'var(--secondary)', borderRadius: '12px', border: '2px dashed #eee' }}>
                         公演がまだ登録されていません。
                     </div>
                 )}

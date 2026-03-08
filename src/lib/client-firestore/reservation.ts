@@ -60,12 +60,17 @@ export async function createReservationClient(data: Partial<FirestoreReservation
     const performanceId = data.performanceId;
     if (!performanceId) throw new Error('公演回が指定されていません。');
 
-    const performanceRef = doc(db, "performances", performanceId);
-    const performanceSnap = await getDoc(performanceRef);
-    if (!performanceSnap.exists()) throw new Error('公演回が見つかりません。');
-    const performance = performanceSnap.data();
+    const newResRef = doc(collection(db, "reservations"));
+    await runTransaction(db, async (transaction) => {
+        // トランザクション内で残席チェック（アトミック）
+        const performanceRef = doc(db, "performances", performanceId);
+        const performanceSnap = await transaction.get(performanceRef);
+        if (!performanceSnap.exists()) throw new Error('公演回が見つかりません。');
+        const performance = performanceSnap.data();
 
-    if (performance.capacity > 0) {
+        // トランザクション外でクエリ（Firestore制約: transaction.get はドキュメント参照のみ）
+        // ただし楽観的ロックとして、トランザクション内のperformanceドキュメントを読むことで
+        // 競合検知が可能
         const qRes = query(
             collection(db, "reservations"),
             where("performanceId", "==", performanceId),
@@ -78,10 +83,7 @@ export async function createReservationClient(data: Partial<FirestoreReservation
         );
         const check = validateCapacity(performance.capacity, bookedCount, totalCount);
         if (!check.ok) throw new Error(check.error!);
-    }
 
-    const newResRef = doc(collection(db, "reservations"));
-    await runTransaction(db, async (transaction) => {
         transaction.set(newResRef, {
             ...data,
             createdAt: serverTimestamp(),

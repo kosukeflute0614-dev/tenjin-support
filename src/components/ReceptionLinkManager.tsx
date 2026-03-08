@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { updateReceptionStatusClient, updateReceptionScheduleClient } from '@/lib/client-firestore';
 import { formatForDateTimeLocal, formatDateTime } from '@/lib/format';
 import { getEffectiveReceptionStatus } from '@/lib/production';
@@ -11,6 +12,12 @@ import { useAuth } from './AuthProvider';
 import { useToast } from '@/components/Toast';
 import { useRouter } from 'next/navigation';
 
+type ValidationError = {
+    message: string;
+    href: string;
+    linkLabel: string;
+};
+
 type Props = {
     productionId: string;
     initialStatus: string;
@@ -20,6 +27,16 @@ type Props = {
     initialEndMinutes?: number;
     performances?: any[];
     customId?: string | null;
+    production?: {
+        ticketTypes?: { id: string; name: string; price: number }[];
+        venue?: string;
+        emailTemplates?: {
+            confirmation?: { body: string };
+            confirmationEnabled?: boolean;
+            reminder?: { body: string };
+            reminderEnabled?: boolean;
+        };
+    };
 };
 
 type ModalType = 'TOGGLE_STATUS' | 'SAVE_START' | 'SAVE_END' | 'CLEAR_SCHEDULE' | null;
@@ -32,7 +49,8 @@ export default function ReceptionLinkManager({
     initialEndMode = 'MANUAL',
     initialEndMinutes = 0,
     performances = [],
-    customId = null
+    customId = null,
+    production: productionData
 }: Props) {
     const { user } = useAuth();
     const { showToast } = useToast();
@@ -68,7 +86,76 @@ export default function ReceptionLinkManager({
     const [confirmedEndMode, setConfirmedEndMode] = useState(initialEndMode);
     const [confirmedEndMinutes, setConfirmedEndMinutes] = useState(initialEndMinutes);
 
+    // Unsaved changes detection: compare input fields against confirmed/saved values
+    const isDirty = useMemo(() => {
+        const confirmedStartStr = formatForDateTimeLocal(confirmedStart);
+        const savedStartDate = confirmedStartStr.split('T')[0] || '';
+        const savedStartTime = confirmedStartStr.split('T')[1]?.slice(0, 5) || '';
+        const confirmedEndStr = formatForDateTimeLocal(confirmedEnd);
+        const savedEndDate = confirmedEndStr.split('T')[0] || '';
+        const savedEndTime = confirmedEndStr.split('T')[1]?.slice(0, 5) || '';
+        const savedEndMinutes = confirmedEndMinutes;
+        const currentTotalMinutes = (endHours * 60) + endMinutesPart;
+
+        return (
+            inputStartDate !== savedStartDate ||
+            inputStartTime !== savedStartTime ||
+            inputEndDate !== savedEndDate ||
+            inputEndTime !== savedEndTime ||
+            endMode !== confirmedEndMode ||
+            currentTotalMinutes !== savedEndMinutes
+        );
+    }, [inputStartDate, inputStartTime, inputEndDate, inputEndTime, endMode, endHours, endMinutesPart, confirmedStart, confirmedEnd, confirmedEndMode, confirmedEndMinutes]);
+
+    useUnsavedChanges(isDirty);
+
     const [scheduleMessage, setScheduleMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+
+    // 受付開始前のバリデーション
+    const validateReceptionStart = (): ValidationError[] => {
+        const errors: ValidationError[] = [];
+
+        // 1. チケット種別が1つも登録されていない場合
+        if (!productionData?.ticketTypes || productionData.ticketTypes.length === 0) {
+            errors.push({
+                message: 'チケット種別が1つも登録されていません。予約受付を開始するには、少なくとも1つのチケット種別を追加してください。',
+                href: `/productions/${productionId}`,
+                linkLabel: 'チケット種別を追加する',
+            });
+        }
+
+        // 2. メールテンプレートに {{venue}} が含まれているのに会場名が未設定
+        const venueIsEmpty = !productionData?.venue || productionData.venue.trim().length === 0;
+        if (venueIsEmpty && productionData?.emailTemplates) {
+            const et = productionData.emailTemplates;
+            const confirmationUsesVenue = et.confirmationEnabled !== false && et.confirmation?.body?.includes('{{venue}}');
+            const reminderUsesVenue = et.reminderEnabled && et.reminder?.body?.includes('{{venue}}');
+
+            // デフォルトテンプレート（まだカスタマイズされていない場合）も {{venue}} を含む
+            const noCustomConfirmation = !et.confirmation;
+            const defaultUsesVenue = noCustomConfirmation; // デフォルトテンプレートは {{venue}} を含む
+
+            if (confirmationUsesVenue || reminderUsesVenue || defaultUsesVenue) {
+                errors.push({
+                    message: '自動送信メールのテンプレートに「会場名」の変数（{{venue}}）が使われていますが、会場名が設定されていません。メール内の会場名が空欄のまま送信されてしまいます。',
+                    href: `/productions/${productionId}`,
+                    linkLabel: '会場名を設定する',
+                });
+            }
+        }
+
+        // emailTemplatesが未設定の場合もデフォルトテンプレートに {{venue}} が含まれる
+        if (venueIsEmpty && !productionData?.emailTemplates) {
+            errors.push({
+                message: '自動送信メールのテンプレートに「会場名」の変数（{{venue}}）が使われていますが、会場名が設定されていません。メール内の会場名が空欄のまま送信されてしまいます。',
+                href: `/productions/${productionId}`,
+                linkLabel: '会場名を設定する',
+            });
+        }
+
+        return errors;
+    };
 
     // Effective status
     const [effectiveStatus, setEffectiveStatus] = useState<'OPEN' | 'BEFORE_START' | 'CLOSED'>('CLOSED');
@@ -322,7 +409,7 @@ export default function ReceptionLinkManager({
     const getStatusDisplay = () => {
         switch (effectiveStatus) {
             case 'OPEN':
-                return { label: '受付中', color: '#2e7d32', bg: '#e8f5e9', border: '#c8e6c9' };
+                return { label: '受付中', color: 'var(--success)', bg: '#e8f5e9', border: '#c8e6c9' };
             case 'BEFORE_START':
                 return { label: '受付開始待機中', color: '#7b1fa2', bg: '#f3e5f5', border: '#e1bee7' };
             case 'CLOSED':
@@ -377,8 +464,8 @@ export default function ReceptionLinkManager({
                                         '設定されているスケジュールを解除してもよろしいですか？'}
 
                             {modalType === 'TOGGLE_STATUS' && !isCurrentlyOpen && confirmedStart && (
-                                <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#fff5f5', borderRadius: '4px', textAlign: 'left', fontSize: '0.85rem' }}>
-                                    <strong style={{ color: '#c53030' }}>注意:</strong> 開始時刻の設定は解除され、即座に受付開始となります。終了設定（{renderEndLabel()}）は維持されます。
+                                <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: 'rgba(220, 53, 69, 0.08)', borderRadius: '4px', textAlign: 'left', fontSize: '0.85rem' }}>
+                                    <strong style={{ color: 'var(--accent)' }}>注意:</strong> 開始時刻の設定は解除され、即座に受付開始となります。終了設定（{renderEndLabel()}）は維持されます。
                                 </div>
                             )}
                         </div>
@@ -403,7 +490,7 @@ export default function ReceptionLinkManager({
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#718096', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>
                             現在の予約受付ステータス
                         </div>
                         <div style={{
@@ -412,14 +499,25 @@ export default function ReceptionLinkManager({
                             {display.label}
                         </div>
                         {hasSavedSchedule && (
-                            <div style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: '#856404' }}>
+                            <div style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                                 <span style={{ fontWeight: 'bold' }}>スケジュール: </span>
                                 {confirmedStart ? formatDateTime(confirmedStart) : '手動で開始'} 〜 {renderEndLabel()}
                             </div>
                         )}
                     </div>
                     <button
-                        onClick={() => setModalType('TOGGLE_STATUS')}
+                        onClick={() => {
+                            if (!isCurrentlyOpen) {
+                                // 受付開始前にバリデーション
+                                const errors = validateReceptionStart();
+                                if (errors.length > 0) {
+                                    setValidationErrors(errors);
+                                    return;
+                                }
+                                setValidationErrors([]);
+                            }
+                            setModalType('TOGGLE_STATUS');
+                        }}
                         disabled={isUpdating}
                         className={`btn ${isCurrentlyOpen ? 'btn-secondary' : 'btn-primary'}`}
                         style={{
@@ -431,6 +529,68 @@ export default function ReceptionLinkManager({
                     </button>
                 </div>
             </div>
+
+            {/* Validation Errors */}
+            {validationErrors.length > 0 && (
+                <div style={{
+                    marginBottom: '1.5rem',
+                    padding: '1.25rem 1.5rem',
+                    backgroundColor: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    borderRadius: '12px',
+                    animation: 'fadeIn 0.3s',
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                        <span style={{ fontSize: '1.1rem' }}>⚠️</span>
+                        <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--accent)' }}>
+                            予約受付を開始できません
+                        </h4>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {validationErrors.map((error, index) => (
+                            <div key={index} style={{
+                                padding: '0.75rem 1rem',
+                                backgroundColor: 'var(--card-bg)',
+                                borderRadius: '8px',
+                                border: '1px solid #fde2e2',
+                            }}>
+                                <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--accent)', lineHeight: 1.6 }}>
+                                    {error.message}
+                                </p>
+                                <a
+                                    href={error.href}
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '0.3rem',
+                                        marginTop: '0.5rem',
+                                        fontSize: '0.85rem',
+                                        fontWeight: 600,
+                                        color: 'var(--primary)',
+                                        textDecoration: 'none',
+                                    }}
+                                >
+                                    {error.linkLabel} →
+                                </a>
+                            </div>
+                        ))}
+                    </div>
+                    <button
+                        onClick={() => setValidationErrors([])}
+                        style={{
+                            marginTop: '0.75rem',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '0.8rem',
+                            color: '#9ca3af',
+                            padding: '0.25rem 0',
+                        }}
+                    >
+                        閉じる
+                    </button>
+                </div>
+            )}
 
             {/* Schedule Accordion */}
                 <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
@@ -470,7 +630,7 @@ export default function ReceptionLinkManager({
                                 }}>
                                     <label style={{ display: 'block', fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem' }}>
                                         1. 受付開始の設定
-                                        {isCurrentlyOpen && <span style={{ marginLeft: '1rem', color: '#666', fontSize: '0.8rem', fontWeight: 'normal' }}>(受付中のため設定不可)</span>}
+                                        {isCurrentlyOpen && <span style={{ marginLeft: '1rem', color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 'normal' }}>(受付中のため設定不可)</span>}
                                     </label>
                                     <div style={{ display: 'grid', gap: '1rem' }}>
                                         <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1rem', flexWrap: 'wrap' }}>
@@ -504,7 +664,7 @@ export default function ReceptionLinkManager({
                                 </div>
 
                                 {/* End Setting Section */}
-                                <div className="form-group" style={{ padding: '1.5rem', border: '1px solid var(--card-border)', borderRadius: '8px', background: '#fcfcfc' }}>
+                                <div className="form-group" style={{ padding: '1.5rem', border: '1px solid var(--card-border)', borderRadius: '8px', background: 'var(--card-bg)' }}>
                                     <label style={{ display: 'block', fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem' }}>2. 受付終了の設定</label>
                                     <div style={{ display: 'grid', gap: '1.25rem' }}>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -631,7 +791,7 @@ export default function ReceptionLinkManager({
                         <div style={{
                             marginTop: '2rem',
                             padding: '2rem',
-                            backgroundColor: '#f8f9fa',
+                            backgroundColor: 'var(--secondary)',
                             borderRadius: '12px',
                             border: '1px solid var(--card-border)',
                             textAlign: 'center',

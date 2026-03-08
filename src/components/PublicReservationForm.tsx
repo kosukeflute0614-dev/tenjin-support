@@ -7,6 +7,7 @@ import { db } from '@/lib/firebase';
 import { calculateBookedCount } from '@/lib/capacity-utils';
 import { formatDateTime } from '@/lib/format';
 import { Production, Performance, TicketType, FormFieldConfig } from '@/types';
+import { useToast } from '@/components/Toast';
 
 type ProductionWithPerformances = Production & { performances: Performance[] };
 
@@ -38,7 +39,7 @@ export default function PublicReservationForm({ production, promoterId }: Props)
     });
     const [customFieldValues, setCustomFieldValues] = useState<Record<string, string | boolean>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const { showToast } = useToast();
     const [remainingSeats, setRemainingSeats] = useState<number | null>(null);
     const [remainingLoading, setRemainingLoading] = useState(false);
 
@@ -96,7 +97,7 @@ export default function PublicReservationForm({ production, promoterId }: Props)
     const handleToConfirm = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (totalTickets === 0) {
-            setError('チケットを1枚以上選択してください');
+            showToast('チケットを1枚以上選択してください', 'error');
             return;
         }
         const formData = new FormData(e.currentTarget);
@@ -126,7 +127,6 @@ export default function PublicReservationForm({ production, promoterId }: Props)
 
     const handleFinalSubmit = async () => {
         setIsSubmitting(true);
-        setError(null);
         try {
             const perfRef = doc(db, "performances", selectedPerformanceId);
             const perfSnap = await getDoc(perfRef);
@@ -167,7 +167,7 @@ export default function PublicReservationForm({ production, promoterId }: Props)
             setStep('success');
             window.scrollTo(0, 0);
         } catch (err: any) {
-            setError(err.message || '予約の登録に失敗しました。');
+            showToast(err.message || '予約の登録に失敗しました。', 'error');
             setStep('input');
         } finally {
             setIsSubmitting(false);
@@ -265,13 +265,13 @@ export default function PublicReservationForm({ production, promoterId }: Props)
     const renderTicketField = () => {
         if (!selectedPerformanceId) return null;
         return (
-            <div className="form-group" style={{ marginBottom: '1.5rem', padding: '1rem', border: '1px solid var(--card-border)', borderRadius: '8px', background: '#fcfcfc' }}>
+            <div className="form-group" style={{ marginBottom: '1.5rem', padding: '1rem', border: '1px solid var(--card-border)', borderRadius: '8px', background: 'var(--card-bg)' }}>
                 <label style={{ display: 'block', marginBottom: '1rem', fontWeight: 'bold' }}>
                     券種・枚数 <span style={{ color: 'var(--primary)', fontSize: '0.8rem' }}>(必須: 合計1枚以上)</span>
                 </label>
                 <div style={{ display: 'grid', gap: '0.75rem' }}>
                     {ticketTypes.map((ticket: TicketType) => (
-                        <div key={ticket.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', borderBottom: '1px solid #f0f0f0' }}>
+                        <div key={ticket.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', borderBottom: '1px solid var(--card-border)' }}>
                             <div>
                                 <div style={{ fontWeight: 'bold' }}>{ticket.name}</div>
                                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>¥{ticket.price.toLocaleString()}</div>
@@ -500,7 +500,7 @@ export default function PublicReservationForm({ production, promoterId }: Props)
                         <div style={{ fontWeight: 'bold' }}>{selectedPerformance ? formatDateTime(selectedPerformance.startTime) : '未選択'}</div>
                     </section>
 
-                    <section style={{ backgroundColor: '#fcfcfc', padding: '1rem', borderRadius: '8px' }}>
+                    <section style={{ backgroundColor: 'var(--card-bg)', padding: '1rem', borderRadius: '8px' }}>
                         <h3 style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>予約枚数</h3>
                         <div style={{ display: 'grid', gap: '0.5rem' }}>
                             {Object.entries(ticketCounts).map(([typeId, count]) => {
@@ -513,7 +513,7 @@ export default function PublicReservationForm({ production, promoterId }: Props)
                                     </div>
                                 );
                             })}
-                            <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #eee', textAlign: 'right', fontWeight: 'bold', color: 'var(--primary)', fontSize: '1.2rem' }}>
+                            <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--card-border)', textAlign: 'right', fontWeight: 'bold', color: 'var(--primary)', fontSize: '1.2rem' }}>
                                 合計: {totalTickets}枚
                             </div>
                         </div>
@@ -571,16 +571,10 @@ export default function PublicReservationForm({ production, promoterId }: Props)
                 チケット予約フォーム
             </h2>
 
-            {error && (
-                <div style={{ padding: '1rem', backgroundColor: '#fff5f5', border: '1px solid #feb2b2', borderRadius: '8px', color: '#c53030', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-                    {error}
-                </div>
-            )}
-
             {formFields.map(field => renderFormField(field))}
 
             {remainingSeats !== null && remainingSeats > 0 && totalTickets > remainingSeats && (
-                <div style={{ padding: '1rem', backgroundColor: '#fff5f5', border: '1px solid #feb2b2', borderRadius: '8px', color: '#c53030', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                <div style={{ padding: '1rem', backgroundColor: 'rgba(220, 53, 69, 0.08)', border: '1px solid #feb2b2', borderRadius: '8px', color: 'var(--accent)', marginBottom: '1rem', fontSize: '0.9rem' }}>
                     残席数（{remainingSeats}枚）を超える予約はできません。枚数を調整してください。
                 </div>
             )}

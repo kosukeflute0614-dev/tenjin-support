@@ -106,13 +106,13 @@ export default function CheckinList({
                         return (
                             <Fragment key={res.id}>
                                 {showHeader && (
-                                    <tr style={{ background: '#f8f9fa' }}>
-                                        <td colSpan={4} style={{ padding: '0.5rem 1rem', fontWeight: 'bold', borderBottom: '1px solid #eee', fontSize: '0.85rem', color: 'var(--primary)' }}>
+                                    <tr style={{ background: 'var(--secondary)' }}>
+                                        <td colSpan={4} style={{ padding: '0.5rem 1rem', fontWeight: 'bold', borderBottom: '1px solid var(--card-border)', fontSize: '0.85rem', color: 'var(--primary)' }}>
                                             {group}
                                         </td>
                                     </tr>
                                 )}
-                                <tr style={{ borderBottom: '1px solid #eee', background: (res.checkinStatus === 'CHECKED_IN') ? '#f0fff4' : 'transparent' }}>
+                                <tr style={{ borderBottom: '1px solid var(--card-border)', background: (res.checkinStatus === 'CHECKED_IN') ? '#f0fff4' : 'transparent' }}>
                                     <td style={{ padding: '1rem' }}>
                                         <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
                                             {res.customerName}
@@ -214,7 +214,7 @@ function CheckinBadge({ status }: { status: string }) {
     const styles: any = {
         CHECKED_IN: { bg: 'var(--primary)', color: '#fff', label: '全員入場' },
         PARTIALLY_CHECKED_IN: { bg: '#e2e3e5', color: '#383d41', label: '一部入場' },
-        NOT_CHECKED_IN: { bg: '#eee', color: '#666', label: '未入場' }
+        NOT_CHECKED_IN: { bg: '#eee', color: 'var(--text-muted)', label: '未入場' }
     }
     const style = styles[status] || styles.NOT_CHECKED_IN
 
@@ -349,7 +349,7 @@ function DetailModal({
             <ModalOverlay onClose={() => setView('DETAIL')} ariaLabelledBy="modal-title-partial-edit">
                 <div style={{ position: 'relative', height: '80vh', display: 'flex', flexDirection: 'column' }}>
                     {/* ヘッダー */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #eee', paddingBottom: '1rem', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '1rem', flexShrink: 0 }}>
                         <h2 id="modal-title-partial-edit" className="heading-md" style={{ margin: 0 }}>一部入場・会計</h2>
                         <button onClick={() => setView('DETAIL')} aria-label="閉じる" style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
                     </div>
@@ -362,12 +362,12 @@ function DetailModal({
                                 <div style={{ marginBottom: '1.5rem' }}>
                                     <label style={{
                                         fontSize: '0.85rem', fontWeight: 'bold', display: 'block', marginBottom: '0.75rem',
-                                        color: '#333', borderLeft: '4px solid var(--primary)', padding: '0.4rem 0.75rem',
+                                        color: 'var(--foreground)', borderLeft: '4px solid var(--primary)', padding: '0.4rem 0.75rem',
                                         background: '#f4f4f4', borderRadius: '0 4px 4px 0'
                                     }}>
                                         1. 入場する人数
                                     </label>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', background: '#f8f9fa', padding: '1rem', borderRadius: '8px', border: '1px solid #eee' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', background: 'var(--secondary)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--card-border)' }}>
                                         <div style={{ width: '160px' }}>
                                             <NumberStepper
                                                 value={partialEntryCount}
@@ -377,9 +377,9 @@ function DetailModal({
                                             />
                                         </div>
                                         <div style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
-                                            <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#333' }}>{partialEntryCount}</span>
-                                            <span style={{ fontSize: '0.9rem', color: '#666' }}>名が入場</span>
-                                            <span style={{ fontSize: '0.8rem', color: '#888', marginLeft: '0.5rem' }}>(残り {remaining}名のうち)</span>
+                                            <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--foreground)' }}>{partialEntryCount}</span>
+                                            <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>名が入場</span>
+                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>(残り {remaining}名のうち)</span>
                                         </div>
                                     </div>
                                 </div>
@@ -388,7 +388,7 @@ function DetailModal({
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '0.75rem' }}>
                                         <label style={{
                                             fontSize: '0.85rem', fontWeight: 'bold', display: 'block', margin: 0,
-                                            color: '#333', borderLeft: '4px solid var(--primary)', padding: '0.4rem 0.75rem',
+                                            color: 'var(--foreground)', borderLeft: '4px solid var(--primary)', padding: '0.4rem 0.75rem',
                                             background: '#f4f4f4', borderRadius: '0 4px 4px 0', flex: 1
                                         }}>
                                             2. 今回お支払いいただく枚数
@@ -401,7 +401,7 @@ function DetailModal({
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                         {ticketPaymentStatus.map((t: any) => (
-                                            <div key={t.ticketTypeId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fcfcfc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #eee' }}>
+                                            <div key={t.ticketTypeId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--card-bg)', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--card-border)' }}>
                                                 <div style={{ fontSize: '0.85rem' }}>
                                                     <div style={{ fontWeight: 'bold' }}>{(t.ticketType?.name) || '不明な券種'} (¥{(t.price || 0).toLocaleString()})</div>
                                                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>残交付: {t.remainingCount || 0}枚</div>
@@ -428,7 +428,7 @@ function DetailModal({
                             <div style={{ width: '240px' }}>
                                 <div style={{ background: 'var(--secondary)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.05)' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                        <span style={{ fontSize: '0.8rem', color: '#666' }}>今回会計額</span>
+                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>今回会計額</span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                         <span style={{ fontWeight: '900', fontSize: '1.5rem' }}>¥{currentTransactionAmount.toLocaleString()}</span>
@@ -437,7 +437,7 @@ function DetailModal({
                                             <button
                                                 onClick={() => setShowKeypad(!showKeypad)}
                                                 style={{
-                                                    background: '#fff',
+                                                    background: 'var(--card-bg)',
                                                     border: '1px solid var(--primary)',
                                                     borderRadius: '4px',
                                                     padding: '4px 12px',
@@ -454,13 +454,13 @@ function DetailModal({
                                                 <div
                                                     ref={keypadRef}
                                                     style={{
-                                                        position: 'absolute', right: '0', top: '45px', width: '280px', background: '#fff',
+                                                        position: 'absolute', right: '0', top: '45px', width: '280px', background: 'var(--card-bg)',
                                                         border: '1px solid #ddd', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
                                                         zIndex: 100, padding: '0.75rem 1rem'
                                                     }}
                                                 >
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                                                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#666' }}>お釣り計算</span>
+                                                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>お釣り計算</span>
                                                         <button
                                                             onClick={() => setShowKeypad(false)}
                                                             style={{
@@ -468,7 +468,7 @@ function DetailModal({
                                                                 border: 'none',
                                                                 fontSize: '1.25rem',
                                                                 cursor: 'pointer',
-                                                                color: '#666',
+                                                                color: 'var(--text-muted)',
                                                                 width: '28px',
                                                                 height: '28px',
                                                                 display: 'flex',
@@ -484,13 +484,13 @@ function DetailModal({
                                                     </div>
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.75rem' }}>
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                            <span style={{ fontSize: '0.75rem', color: '#999' }}>預かり</span>
-                                                            <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#333' }}>
+                                                            <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)' }}>預かり</span>
+                                                            <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--foreground)' }}>
                                                                 {received.toLocaleString()} <span style={{ fontSize: '0.8rem', fontWeight: 'normal' }}>円</span>
                                                             </div>
                                                         </div>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #eee', paddingTop: '0.4rem' }}>
-                                                            <span style={{ fontSize: '0.75rem', color: '#999' }}>{change >= 0 ? 'お釣り' : '不足'}</span>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--card-border)', paddingTop: '0.4rem' }}>
+                                                            <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)' }}>{change >= 0 ? 'お釣り' : '不足'}</span>
                                                             <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: change >= 0 ? 'var(--success)' : 'var(--primary)' }}>
                                                                 ¥{Math.abs(change).toLocaleString()}
                                                             </div>
@@ -520,7 +520,7 @@ function DetailModal({
                     <div style={{
                         position: 'absolute', bottom: '-1.5rem', right: '-1.5rem', left: '-1.5rem',
                         padding: '1rem 1.5rem', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)',
-                        borderTop: '1px solid #eee', display: 'flex', justifyContent: 'flex-end',
+                        borderTop: '1px solid var(--card-border)', display: 'flex', justifyContent: 'flex-end',
                         borderRadius: '0 0 12px 12px', zIndex: 10, flexShrink: 0
                     }}>
                         <button
@@ -547,8 +547,8 @@ function DetailModal({
                     <div style={{ position: 'relative', height: 'auto', display: 'flex', flexDirection: 'column' }}>
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '1rem' }}>
                             <h3 id="modal-title-reset-confirm1" style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>この内容で取り消しますか？</h3>
-                            <div style={{ background: '#f8f9fa', padding: '1.5rem', borderRadius: '12px', marginBottom: '1.5rem', textAlign: 'left', width: '100%', maxWidth: '400px', border: '1px solid #eee' }}>
-                                <div style={{ marginBottom: '0.75rem', fontWeight: 'bold', color: '#666', fontSize: '0.9rem' }}>取消内容:</div>
+                            <div style={{ background: 'var(--secondary)', padding: '1.5rem', borderRadius: '12px', marginBottom: '1.5rem', textAlign: 'left', width: '100%', maxWidth: '400px', border: '1px solid var(--card-border)' }}>
+                                <div style={{ marginBottom: '0.75rem', fontWeight: 'bold', color: 'var(--text-muted)', fontSize: '0.9rem' }}>取消内容:</div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span>入場取消</span>
@@ -556,7 +556,7 @@ function DetailModal({
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #ddd', paddingTop: '0.5rem' }}>
                                         <span>返金合計</span>
-                                        <span style={{ fontWeight: 'bold', color: '#c53030' }}>¥{totalRefund.toLocaleString()}</span>
+                                        <span style={{ fontWeight: 'bold', color: 'var(--accent)' }}>¥{totalRefund.toLocaleString()}</span>
                                     </div>
                                 </div>
                             </div>
@@ -566,7 +566,7 @@ function DetailModal({
                         <div style={{
                             position: 'absolute', bottom: '-1.5rem', right: '-1.5rem', left: '-1.5rem',
                             padding: '1rem 1.5rem', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)',
-                            borderTop: '1px solid #eee', display: 'flex', justifyContent: 'flex-end', gap: '1rem',
+                            borderTop: '1px solid var(--card-border)', display: 'flex', justifyContent: 'flex-end', gap: '1rem',
                             borderRadius: '0 0 12px 12px', zIndex: 10
                         }}>
                             <button className="btn btn-secondary" style={{ padding: '0.8rem 2rem' }} onClick={() => setConfirmStep(0)}>いいえ</button>
@@ -583,8 +583,8 @@ function DetailModal({
                     <div style={{ position: 'relative', height: 'auto', display: 'flex', flexDirection: 'column' }}>
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '1rem' }}>
                             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
-                            <h3 id="modal-title-reset-confirm2" style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem', color: '#c53030' }}>本当に取り消しますか？</h3>
-                            <p style={{ fontSize: '1rem', marginBottom: '1.5rem', color: '#666', textAlign: 'center' }}>
+                            <h3 id="modal-title-reset-confirm2" style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem', color: 'var(--accent)' }}>本当に取り消しますか？</h3>
+                            <p style={{ fontSize: '1rem', marginBottom: '1.5rem', color: 'var(--text-muted)', textAlign: 'center' }}>
                                 入場記録と支払い記録が削除されます。<br />
                                 この操作は元に戻せません。
                             </p>
@@ -594,7 +594,7 @@ function DetailModal({
                         <div style={{
                             position: 'absolute', bottom: '-1.5rem', right: '-1.5rem', left: '-1.5rem',
                             padding: '1rem 1.5rem', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)',
-                            borderTop: '1px solid #eee', display: 'flex', justifyContent: 'flex-end', gap: '1rem',
+                            borderTop: '1px solid var(--card-border)', display: 'flex', justifyContent: 'flex-end', gap: '1rem',
                             borderRadius: '0 0 12px 12px', zIndex: 10
                         }}>
                             <button className="btn btn-secondary" style={{ padding: '0.8rem 2rem' }} onClick={() => setConfirmStep(0)}>いいえ、戻ります</button>
@@ -616,7 +616,7 @@ function DetailModal({
             <ModalOverlay onClose={() => setView('DETAIL')} ariaLabelledBy="modal-title-partial-reset">
                 <div style={{ position: 'relative', height: '80vh', display: 'flex', flexDirection: 'column' }}>
                     {/* ヘッダー */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #eee', paddingBottom: '1rem', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '1rem', flexShrink: 0 }}>
                         <h2 id="modal-title-partial-reset" className="heading-md" style={{ margin: 0 }}>入場/支払いの取消</h2>
                         <button onClick={() => setView('DETAIL')} aria-label="閉じる" style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
                     </div>
@@ -627,7 +627,7 @@ function DetailModal({
                             {/* 左カラム: 入力 */}
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                 <div>
-                                    <label style={{ fontSize: '0.85rem', fontWeight: 'bold', display: 'block', marginBottom: '0.75rem', color: '#666' }}>1. 取消する入場人数 <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: '#888' }}>(現在: {checkedInCount}名)</span></label>
+                                    <label style={{ fontSize: '0.85rem', fontWeight: 'bold', display: 'block', marginBottom: '0.75rem', color: 'var(--text-muted)' }}>1. 取消する入場人数 <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>(現在: {checkedInCount}名)</span></label>
                                     <NumberStepper
                                         value={resetCount}
                                         min={0}
@@ -638,13 +638,13 @@ function DetailModal({
                                 </div>
 
                                 <div>
-                                    <label style={{ fontSize: '0.85rem', fontWeight: 'bold', display: 'block', marginBottom: '0.75rem', color: '#666' }}>2. 返金する枚数 (券種ごと)</label>
-                                    <div style={{ background: '#fcfcfc', border: '1px solid #eee', borderRadius: '8px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                    <label style={{ fontSize: '0.85rem', fontWeight: 'bold', display: 'block', marginBottom: '0.75rem', color: 'var(--text-muted)' }}>2. 返金する枚数 (券種ごと)</label>
+                                    <div style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: '8px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                         {ticketPaymentStatus.filter((t: any) => (t.paidCount || 0) > 0).map((t: any) => (
                                             <div key={t.ticketTypeId}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                                                     <div style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{(t.ticketType?.name) || '不明な券種'}</div>
-                                                    <div style={{ fontSize: '0.75rem', color: '#888' }}>支払い済み: {t.paidCount || 0}枚</div>
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>支払い済み: {t.paidCount || 0}枚</div>
                                                 </div>
                                                 <NumberStepper
                                                     value={refundBreakdown[t.ticketTypeId] || 0}
@@ -664,9 +664,9 @@ function DetailModal({
 
                             {/* 右カラム: 合計 */}
                             <div style={{ width: '240px' }}>
-                                <div style={{ background: '#fff5f5', padding: '1.25rem', borderRadius: '12px', border: '1px solid #ffeded' }}>
-                                    <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#c53030', marginBottom: '0.5rem' }}>返金合計額</div>
-                                    <div style={{ fontSize: '1.5rem', fontWeight: '900', color: '#c53030' }}>
+                                <div style={{ background: 'rgba(220, 53, 69, 0.08)', padding: '1.25rem', borderRadius: '12px', border: '1px solid #ffeded' }}>
+                                    <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--accent)', marginBottom: '0.5rem' }}>返金合計額</div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--accent)' }}>
                                         ¥{totalRefund.toLocaleString()}
                                     </div>
                                 </div>
@@ -679,7 +679,7 @@ function DetailModal({
                     <div style={{
                         position: 'absolute', bottom: '-1.5rem', right: '-1.5rem', left: '-1.5rem',
                         padding: '1rem 1.5rem', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)',
-                        borderTop: '1px solid #eee', display: 'flex', justifyContent: 'flex-end',
+                        borderTop: '1px solid var(--card-border)', display: 'flex', justifyContent: 'flex-end',
                         borderRadius: '0 0 12px 12px', zIndex: 10
                     }}>
                         <button
@@ -703,7 +703,7 @@ function DetailModal({
         <ModalOverlay onClose={onClose} ariaLabelledBy="modal-title-checkin-detail">
             <div style={{ position: 'relative', height: '80vh', display: 'flex', flexDirection: 'column' }}>
                 {/* ヘッダー */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', borderBottom: '1px solid #eee', paddingBottom: '1rem', flexShrink: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '1rem', flexShrink: 0 }}>
                     <div>
                         <h2 id="modal-title-checkin-detail" className="heading-md" style={{ marginBottom: '0.2rem' }}>{res.customerName} 様</h2>
                         <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{res.customerNameKana}</p>
@@ -716,9 +716,9 @@ function DetailModal({
                     <div style={{ display: 'flex', gap: '2rem' }}>
                         {/* 左カラム: 明細と状況 */}
                         <div style={{ flex: 1 }}>
-                            <div style={{ marginBottom: '1rem', background: '#fff', border: '1px solid #eee', borderRadius: '6px', overflow: 'hidden' }}>
-                                <div style={{ padding: '0.5rem 0.75rem', background: '#fcfcfc', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#666' }}>予約チケット</span>
+                            <div style={{ marginBottom: '1rem', background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: '6px', overflow: 'hidden' }}>
+                                <div style={{ padding: '0.5rem 0.75rem', background: 'var(--card-bg)', borderBottom: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>予約チケット</span>
                                     <span style={{
                                         fontSize: '0.65rem',
                                         padding: '0.1rem 0.4rem',
@@ -736,14 +736,14 @@ function DetailModal({
                                     {ticketPaymentStatus.map((t: any) => (
                                         <div key={t.ticketTypeId} style={{ display: 'flex', padding: '0.5rem 0.75rem', borderBottom: '1px solid #fafafa', alignItems: 'center' }}>
                                             <div style={{ flex: 1 }}>
-                                                <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: '#333', marginBottom: '0.1rem' }}>{t.ticketType?.name || '不明な券種'}</div>
+                                                <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'var(--foreground)', marginBottom: '0.1rem' }}>{t.ticketType?.name || '不明な券種'}</div>
                                                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                                    <span style={{ fontSize: '0.8rem', color: '#666' }}>¥{(t.price || 0).toLocaleString()}</span>
+                                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>¥{(t.price || 0).toLocaleString()}</span>
                                                     <span style={{ fontSize: '0.75rem', color: '#ccc' }}>×</span>
                                                     <span style={{
                                                         fontSize: '0.85rem',
                                                         fontWeight: 'bold',
-                                                        background: '#f0f0f0',
+                                                        background: 'var(--secondary)',
                                                         padding: '0.05rem 0.4rem',
                                                         borderRadius: '3px',
                                                         color: '#000'
@@ -766,7 +766,7 @@ function DetailModal({
                             </div>
 
                             {/* 操作履歴 */}
-                            <div style={{ padding: '0.75rem', background: '#fcfcfc', border: '1px solid #eee', borderRadius: '6px' }}>
+                            <div style={{ padding: '0.75rem', background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: '6px' }}>
                                 <h3 style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>受付履歴</h3>
                                 <div style={{ maxHeight: '100px', overflowY: 'auto', fontSize: '0.75rem' }}>
                                     {res.logs && res.logs.length > 0 ? (
@@ -776,7 +776,7 @@ function DetailModal({
                                                     {log.type === 'CHECKIN' ? <span style={{ color: 'var(--success)' }}>● 入場</span> : <span style={{ color: 'var(--primary)' }}>× 取消</span>}
                                                     {log.count > 0 && ` (${log.count}枚)`}
                                                 </span>
-                                                <span style={{ color: '#999' }}>
+                                                <span style={{ color: 'var(--slate-500)' }}>
                                                     {(() => {
                                                         const date = log.createdAt?.toDate ? log.createdAt.toDate() : new Date(log.createdAt);
                                                         return isNaN(date.getTime()) ? '時刻不明' : date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
@@ -795,7 +795,7 @@ function DetailModal({
                         <div style={{ width: '240px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                             {/* 会計情報 */}
                             <div style={{ background: 'var(--secondary)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)', marginBottom: '0.5rem' }}>
-                                <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '0.5rem' }}>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
                                     {currentPaidAmount >= totalAmount ? '受領合計' : '今回請求額'}
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -808,7 +808,7 @@ function DetailModal({
                                             <button
                                                 onClick={() => setShowKeypad(!showKeypad)}
                                                 style={{
-                                                    background: '#fff',
+                                                    background: 'var(--card-bg)',
                                                     border: '1px solid var(--primary)',
                                                     borderRadius: '4px',
                                                     padding: '4px 12px',
@@ -829,7 +829,7 @@ function DetailModal({
                                                         right: '0',
                                                         top: '45px',
                                                         width: '280px',
-                                                        background: '#fff',
+                                                        background: 'var(--card-bg)',
                                                         border: '1px solid #ddd',
                                                         borderRadius: '12px',
                                                         boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
@@ -838,7 +838,7 @@ function DetailModal({
                                                     }}
                                                 >
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                                                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#666' }}>お釣り計算</span>
+                                                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>お釣り計算</span>
                                                         <button
                                                             onClick={() => setShowKeypad(false)}
                                                             style={{
@@ -846,7 +846,7 @@ function DetailModal({
                                                                 border: 'none',
                                                                 fontSize: '1.25rem',
                                                                 cursor: 'pointer',
-                                                                color: '#666',
+                                                                color: 'var(--text-muted)',
                                                                 width: '28px',
                                                                 height: '28px',
                                                                 display: 'flex',
@@ -863,13 +863,13 @@ function DetailModal({
 
                                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.75rem' }}>
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                            <span style={{ fontSize: '0.75rem', color: '#999' }}>預かり</span>
-                                                            <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#333' }}>
+                                                            <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)' }}>預かり</span>
+                                                            <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--foreground)' }}>
                                                                 {received.toLocaleString()} <span style={{ fontSize: '0.8rem', fontWeight: 'normal' }}>円</span>
                                                             </div>
                                                         </div>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #eee', paddingTop: '0.4rem' }}>
-                                                            <span style={{ fontSize: '0.75rem', color: '#999' }}>{change >= 0 ? 'お釣り' : '不足'}</span>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--card-border)', paddingTop: '0.4rem' }}>
+                                                            <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)' }}>{change >= 0 ? 'お釣り' : '不足'}</span>
                                                             <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: change >= 0 ? 'var(--success)' : 'var(--primary)' }}>
                                                                 ¥{Math.abs(change).toLocaleString()}
                                                             </div>
@@ -890,7 +890,7 @@ function DetailModal({
                                         </div>
                                     )}
                                 </div>
-                                <div style={{ marginTop: '0.4rem', paddingTop: '0.4rem', borderTop: '1px solid rgba(0,0,0,0.05)', fontSize: '0.75rem', color: '#888' }}>
+                                <div style={{ marginTop: '0.4rem', paddingTop: '0.4rem', borderTop: '1px solid rgba(0,0,0,0.05)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span>予約時合計:</span>
                                         <span>¥{totalAmount.toLocaleString()}</span>
@@ -930,7 +930,7 @@ function DetailModal({
 
                             <button
                                 className="btn btn-secondary"
-                                style={{ padding: '0.5rem', fontSize: '0.8rem', marginTop: 'auto', color: '#666', border: 'none', background: 'none', textDecoration: 'underline' }}
+                                style={{ padding: '0.5rem', fontSize: '0.8rem', marginTop: 'auto', color: 'var(--text-muted)', border: 'none', background: 'none', textDecoration: 'underline' }}
                                 onClick={() => setView('PARTIAL_RESET')}
                                 disabled={isPending || checkedInCount === 0}
                             >
@@ -944,7 +944,7 @@ function DetailModal({
                 <div style={{
                     position: 'absolute', bottom: '-1.5rem', right: '-1.5rem', left: '-1.5rem',
                     padding: '1rem 1.5rem', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)',
-                    borderTop: '1px solid #eee', display: 'flex', justifyContent: 'flex-end',
+                    borderTop: '1px solid var(--card-border)', display: 'flex', justifyContent: 'flex-end',
                     borderRadius: '0 0 12px 12px', zIndex: 10, flexShrink: 0
                 }}>
                     <button className="btn btn-secondary" style={{ minWidth: '120px' }} onClick={onClose}>閉じる</button>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useCallback, useEffect, useState } from 'react';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import {
     TEMPLATE_VARIABLES,
     getVariableLabel,
@@ -42,6 +43,10 @@ export default function EmailTemplateEditModal({
     const [timing, setTiming] = useState(template.timing || '');
     const [activeField, setActiveField] = useState<'subject' | 'body'>('body');
     const [showResetConfirm, setShowResetConfirm] = useState(false);
+    const [isDirty, setIsDirty] = useState(false);
+
+    useUnsavedChanges(isDirty);
+
     const subjectEditorRef = useRef<HTMLDivElement>(null);
     const bodyEditorRef = useRef<HTMLDivElement>(null);
     const isInitialized = useRef(false);
@@ -91,11 +96,13 @@ export default function EmailTemplateEditModal({
         const editor = activeField === 'subject' ? subjectEditorRef.current : bodyEditorRef.current;
         if (!editor) return;
         insertChipToEditor(editor, variableKey);
+        setIsDirty(true);
     }, [activeField, insertChipToEditor]);
 
     const handleSave = () => {
         const finalSubject = subjectEditorRef.current ? htmlToInlineText(subjectEditorRef.current) : template.subject;
         const finalBody = bodyEditorRef.current ? htmlToText(bodyEditorRef.current) : template.body;
+        setIsDirty(false);
         onSave({ subject: finalSubject, body: finalBody, timing: showTiming ? timing : undefined });
     };
 
@@ -118,21 +125,21 @@ export default function EmailTemplateEditModal({
             }}
         >
             <div role="dialog" aria-modal="true" aria-labelledby="modal-title-email-template" style={{
-                background: '#fff', borderRadius: '12px',
+                background: 'var(--card-bg)', borderRadius: '12px',
                 width: '100%', maxWidth: '800px', maxHeight: '90vh',
                 overflow: 'hidden', display: 'flex', flexDirection: 'column',
                 boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2)',
             }}>
                 {/* ヘッダー */}
                 <div style={{
-                    padding: '1.25rem 1.5rem', borderBottom: '1px solid #eee',
+                    padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--card-border)',
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 }}>
                     <h3 id="modal-title-email-template" style={{ margin: 0, fontSize: '1.1rem', fontWeight: 'bold' }}>
                         {icon} {title} — テンプレート編集
                     </h3>
                     <button onClick={onClose} aria-label="閉じる" title="閉じる"
-                        style={{ border: 'none', background: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#999', padding: '0.25rem', lineHeight: 1 }}
+                        style={{ border: 'none', background: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--slate-500)', padding: '0.25rem', lineHeight: 1 }}
                     >&times;</button>
                 </div>
 
@@ -141,7 +148,7 @@ export default function EmailTemplateEditModal({
                     {showTiming && timingOptions && (
                         <div style={{ marginBottom: '1.25rem' }}>
                             <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', marginBottom: '0.5rem' }}>送信タイミング</label>
-                            <select className="input" value={timing} onChange={(e) => setTiming(e.target.value)} style={{ width: '100%', maxWidth: '300px' }}>
+                            <select className="input" value={timing} onChange={(e) => { setTiming(e.target.value); setIsDirty(true); }} style={{ width: '100%', maxWidth: '300px' }}>
                                 {timingOptions.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
                             </select>
                         </div>
@@ -153,12 +160,13 @@ export default function EmailTemplateEditModal({
                         <div
                             ref={subjectEditorRef} contentEditable suppressContentEditableWarning
                             onFocus={() => setActiveField('subject')}
+                            onInput={() => setIsDirty(true)}
                             onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
                             onPaste={(e) => { e.preventDefault(); document.execCommand('insertText', false, e.clipboardData.getData('text/plain').replace(/\n/g, ' ')); }}
                             style={{
                                 width: '100%', padding: '0.6rem 0.75rem', border: '1px solid #ccc', borderRadius: '6px',
                                 fontSize: '0.95rem', lineHeight: '1.6', fontFamily: 'inherit', outline: 'none',
-                                whiteSpace: 'nowrap', overflow: 'hidden', background: '#fff', minHeight: '2.4rem',
+                                whiteSpace: 'nowrap', overflow: 'hidden', background: 'var(--card-bg)', minHeight: '2.4rem',
                             }}
                         />
                     </div>
@@ -166,7 +174,7 @@ export default function EmailTemplateEditModal({
                     {/* 変数挿入パレット */}
                     <div style={{ marginBottom: '1rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#555' }}>変数を挿入</span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--slate-600)' }}>変数を挿入</span>
                             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                                 — クリックで{activeField === 'subject' ? '件名' : '本文'}のカーソル位置に挿入
                             </span>
@@ -177,7 +185,7 @@ export default function EmailTemplateEditModal({
                                     style={{
                                         display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
                                         padding: '0.35rem 0.65rem', border: '1px solid #ddd', borderRadius: '6px',
-                                        background: '#fafafa', cursor: 'pointer', fontSize: '0.8rem', color: '#444',
+                                        background: 'var(--secondary)', cursor: 'pointer', fontSize: '0.8rem', color: 'var(--foreground)',
                                         transition: 'all 0.15s', whiteSpace: 'nowrap',
                                     }}
                                     onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.background = 'rgba(139, 0, 0, 0.05)'; e.currentTarget.style.color = 'var(--primary)'; }}
@@ -195,12 +203,13 @@ export default function EmailTemplateEditModal({
                         <div
                             ref={bodyEditorRef} contentEditable suppressContentEditableWarning
                             onFocus={() => setActiveField('body')}
+                            onInput={() => setIsDirty(true)}
                             onPaste={(e) => { e.preventDefault(); document.execCommand('insertText', false, e.clipboardData.getData('text/plain')); }}
                             style={{
                                 width: '100%', minHeight: '350px', padding: '0.75rem',
                                 border: '1px solid #ccc', borderRadius: '6px', fontSize: '0.9rem', lineHeight: '1.8',
                                 fontFamily: 'inherit', outline: 'none', overflowY: 'auto',
-                                whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: '#fff',
+                                whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: 'var(--card-bg)',
                             }}
                         />
                     </div>
@@ -208,8 +217,8 @@ export default function EmailTemplateEditModal({
 
                 {/* フッター */}
                 <div style={{
-                    padding: '1rem 1.5rem', borderTop: '1px solid #eee',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fafafa',
+                    padding: '1rem 1.5rem', borderTop: '1px solid var(--card-border)',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--secondary)',
                 }}>
                     <div>
                         {onReset && (
@@ -218,8 +227,8 @@ export default function EmailTemplateEditModal({
                                 style={{
                                     display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
                                     padding: '0.5rem 1rem', border: '1px solid #ccc',
-                                    borderRadius: '6px', background: '#fff', cursor: 'pointer',
-                                    fontSize: '0.85rem', color: '#888', fontWeight: '500',
+                                    borderRadius: '6px', background: 'var(--card-bg)', cursor: 'pointer',
+                                    fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: '500',
                                     transition: 'all 0.15s',
                                 }}
                                 onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#999'; e.currentTarget.style.color = '#555'; }}

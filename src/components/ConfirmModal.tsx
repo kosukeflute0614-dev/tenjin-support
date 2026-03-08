@@ -37,7 +37,7 @@ export default function ConfirmModal({
                 role="dialog"
                 aria-modal="true"
                 style={{
-                    background: '#fff',
+                    background: 'var(--card-bg)',
                     borderRadius: '12px',
                     width: '100%',
                     maxWidth: '420px',
@@ -52,7 +52,7 @@ export default function ConfirmModal({
                     <p style={{
                         margin: 0,
                         fontSize: '0.9rem',
-                        color: '#555',
+                        color: 'var(--slate-600)',
                         lineHeight: '1.7',
                         whiteSpace: 'pre-line',
                     }}>
@@ -64,8 +64,8 @@ export default function ConfirmModal({
                     display: 'flex',
                     justifyContent: 'flex-end',
                     gap: '0.75rem',
-                    background: '#fafafa',
-                    borderTop: '1px solid #eee',
+                    background: 'var(--secondary)',
+                    borderTop: '1px solid var(--card-border)',
                 }}>
                     <button
                         className="btn btn-secondary"

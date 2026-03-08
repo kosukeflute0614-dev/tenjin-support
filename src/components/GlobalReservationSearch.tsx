@@ -67,7 +67,7 @@ export default function GlobalReservationSearch({ productionId }: { productionId
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>見つかりませんでした</p>
                 )}
                 {results.map(res => (
-                    <div key={res.id} style={{ padding: '0.75rem 0', borderBottom: '1px solid #eee' }}>
+                    <div key={res.id} style={{ padding: '0.75rem 0', borderBottom: '1px solid var(--card-border)' }}>
                         <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{res.customerName}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--primary)', marginTop: '0.2rem' }}>
                             予約回: {formatDateTime(res.performance.startTime)}

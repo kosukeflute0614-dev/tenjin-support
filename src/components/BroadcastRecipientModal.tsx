@@ -176,7 +176,7 @@ export default function BroadcastRecipientModal({ isOpen, onClose, onConfirm, pr
                 aria-modal="true"
                 aria-labelledby="modal-title-recipients"
                 style={{
-                    background: '#fff',
+                    background: 'var(--card-bg)',
                     borderRadius: '12px',
                     width: '100%',
                     maxWidth: '700px',
@@ -190,7 +190,7 @@ export default function BroadcastRecipientModal({ isOpen, onClose, onConfirm, pr
                 {/* ヘッダー */}
                 <div style={{
                     padding: '1.25rem 1.5rem',
-                    borderBottom: '1px solid #eee',
+                    borderBottom: '1px solid var(--card-border)',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -199,7 +199,7 @@ export default function BroadcastRecipientModal({ isOpen, onClose, onConfirm, pr
                         <h3 id="modal-title-recipients" style={{ margin: 0, fontSize: '1.1rem', fontWeight: 'bold' }}>
                             📋 送信先を選択
                         </h3>
-                        <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: '#888' }}>
+                        <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                             {selectedEmails.size} / {allEmails.size} 件選択中
                         </p>
                     </div>
@@ -208,7 +208,7 @@ export default function BroadcastRecipientModal({ isOpen, onClose, onConfirm, pr
                         aria-label="閉じる"
                         style={{
                             border: 'none', background: 'none',
-                            fontSize: '1.5rem', cursor: 'pointer', color: '#999',
+                            fontSize: '1.5rem', cursor: 'pointer', color: 'var(--slate-500)',
                             padding: '0.25rem', lineHeight: 1,
                         }}
                     >
@@ -219,9 +219,9 @@ export default function BroadcastRecipientModal({ isOpen, onClose, onConfirm, pr
                 {/* コンテンツ */}
                 <div style={{ overflow: 'auto', padding: '1rem 1.5rem', flex: 1 }}>
                     {isLoading ? (
-                        <div style={{ textAlign: 'center', padding: '3rem', color: '#888' }}>読み込み中...</div>
+                        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>読み込み中...</div>
                     ) : groups.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '3rem', color: '#888' }}>
+                        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                             メールアドレスが登録されている予約がありません。
                         </div>
                     ) : (
@@ -259,7 +259,7 @@ export default function BroadcastRecipientModal({ isOpen, onClose, onConfirm, pr
                                             <span>
                                                 {formatPerformanceDate(group.performance.startTime)}
                                             </span>
-                                            <span style={{ fontWeight: 'normal', fontSize: '0.8rem', color: '#888' }}>
+                                            <span style={{ fontWeight: 'normal', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                                                 ({group.recipients.length}件)
                                             </span>
                                         </label>
@@ -276,8 +276,8 @@ export default function BroadcastRecipientModal({ isOpen, onClose, onConfirm, pr
                                                         padding: '0.5rem 1rem 0.5rem 2.25rem',
                                                         cursor: 'pointer',
                                                         fontSize: '0.85rem',
-                                                        borderBottom: '1px solid #f0f0f0',
-                                                        background: selectedEmails.has(r.email) ? '#fff' : '#fafafa',
+                                                        borderBottom: '1px solid var(--card-border)',
+                                                        background: selectedEmails.has(r.email) ? 'var(--card-bg)' : 'var(--secondary)',
                                                         transition: 'background 0.15s',
                                                     }}
                                                 >
@@ -290,7 +290,7 @@ export default function BroadcastRecipientModal({ isOpen, onClose, onConfirm, pr
                                                     <span style={{ fontWeight: '600', minWidth: '80px' }}>
                                                         {r.customerName}
                                                     </span>
-                                                    <span style={{ color: '#666', fontSize: '0.8rem' }}>
+                                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                                                         {r.email}
                                                     </span>
                                                 </label>
@@ -306,13 +306,13 @@ export default function BroadcastRecipientModal({ isOpen, onClose, onConfirm, pr
                 {/* フッター */}
                 <div style={{
                     padding: '1rem 1.5rem',
-                    borderTop: '1px solid #eee',
+                    borderTop: '1px solid var(--card-border)',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    background: '#fafafa',
+                    background: 'var(--secondary)',
                 }}>
-                    <span style={{ fontSize: '0.85rem', color: '#666' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                         <strong style={{ color: 'var(--primary)' }}>{selectedEmails.size}</strong> 件の宛先が選択されています
                     </span>
                     <div style={{ display: 'flex', gap: '0.75rem' }}>

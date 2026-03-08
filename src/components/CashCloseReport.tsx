@@ -76,15 +76,15 @@ export default function CashCloseReport({
                 marginBottom: '2rem',
             }}>
                 <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
-                    <div style={{ fontSize: '0.8rem', color: '#888', fontWeight: 'bold', marginBottom: '0.4rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '0.4rem' }}>
                         レジ締め済み
                     </div>
                     <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--foreground)' }}>
-                        {summary.completedCount}<span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#666' }}> / {summary.totalCount} 回</span>
+                        {summary.completedCount}<span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--text-muted)' }}> / {summary.totalCount} 回</span>
                     </div>
                 </div>
                 <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
-                    <div style={{ fontSize: '0.8rem', color: '#888', fontWeight: 'bold', marginBottom: '0.4rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '0.4rem' }}>
                         売上合計
                     </div>
                     <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--foreground)' }}>
@@ -92,7 +92,7 @@ export default function CashCloseReport({
                     </div>
                 </div>
                 <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
-                    <div style={{ fontSize: '0.8rem', color: '#888', fontWeight: 'bold', marginBottom: '0.4rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '0.4rem' }}>
                         差額合計
                     </div>
                     <div style={{
@@ -141,8 +141,8 @@ export default function CashCloseReport({
                                             fontSize: '0.8rem',
                                             padding: '0.2rem 0.6rem',
                                             borderRadius: '4px',
-                                            background: '#f0f0f0',
-                                            color: '#888',
+                                            background: 'var(--secondary)',
+                                            color: 'var(--text-muted)',
                                             fontWeight: 'bold',
                                         }}>
                                             未精算
@@ -175,13 +175,13 @@ export default function CashCloseReport({
                                             fontSize: '0.8rem',
                                             padding: '0.2rem 0.6rem',
                                             borderRadius: '4px',
-                                            background: '#e8f5e9',
+                                            background: 'rgba(46, 125, 50, 0.1)',
                                             color: 'var(--success)',
                                             fontWeight: 'bold',
                                         }}>
                                             レジ締め済み
                                         </span>
-                                        <span style={{ fontSize: '0.8rem', color: '#888' }}>
+                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                                             最終精算: {latest.createdAt ? formatDateTime(latest.createdAt) : ''}
                                         </span>
                                     </div>
@@ -232,26 +232,26 @@ export default function CashCloseReport({
 
                             {/* 展開時の詳細 */}
                             {isExpanded && (
-                                <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #eee' }}>
+                                <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--card-border)' }}>
                                     {/* 精算結果テーブル */}
-                                    <h4 style={{ fontSize: '0.95rem', fontWeight: 'bold', marginBottom: '0.75rem', color: '#555' }}>
+                                    <h4 style={{ fontSize: '0.95rem', fontWeight: 'bold', marginBottom: '0.75rem', color: 'var(--slate-600)' }}>
                                         精算結果
                                     </h4>
                                     <table style={{ width: '100%', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
                                         <tbody>
                                             <tr>
-                                                <td style={{ padding: '0.4rem 0', color: '#555' }}>チケット売上合計</td>
+                                                <td style={{ padding: '0.4rem 0', color: 'var(--slate-600)' }}>チケット売上合計</td>
                                                 <td style={{ padding: '0.4rem 0', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(latest.expectedSales)}</td>
                                             </tr>
                                             <tr>
-                                                <td style={{ padding: '0.4rem 0', color: '#555' }}>現金実数</td>
+                                                <td style={{ padding: '0.4rem 0', color: 'var(--slate-600)' }}>現金実数</td>
                                                 <td style={{ padding: '0.4rem 0', textAlign: 'right' }}>{formatCurrency(latest.cashTotal)}</td>
                                             </tr>
                                             <tr>
-                                                <td style={{ padding: '0.4rem 0', color: '#555' }}>釣り銭準備金</td>
+                                                <td style={{ padding: '0.4rem 0', color: 'var(--slate-600)' }}>釣り銭準備金</td>
                                                 <td style={{ padding: '0.4rem 0', textAlign: 'right' }}>-{formatCurrency(latest.changeFloat)}</td>
                                             </tr>
-                                            <tr style={{ borderTop: '1px solid #eee' }}>
+                                            <tr style={{ borderTop: '1px solid var(--card-border)' }}>
                                                 <td style={{ padding: '0.4rem 0', fontWeight: '600' }}>実売上額</td>
                                                 <td style={{ padding: '0.4rem 0', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(latest.actualSales)}</td>
                                             </tr>
@@ -266,7 +266,7 @@ export default function CashCloseReport({
                                         marginBottom: '1.5rem',
                                         background: latest.discrepancy === 0 ? '#e8f5e9' : latest.discrepancy > 0 ? '#e3f2fd' : '#ffebee',
                                     }}>
-                                        <div style={{ fontSize: '0.8rem', color: '#555', marginBottom: '0.2rem' }}>差額</div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--slate-600)', marginBottom: '0.2rem' }}>差額</div>
                                         <div style={{
                                             fontSize: '1.3rem',
                                             fontWeight: '900',
@@ -283,7 +283,7 @@ export default function CashCloseReport({
                                     {/* 金種別内訳 */}
                                     {latest.denominations && latest.denominations.length > 0 && (
                                         <div style={{ marginBottom: '1.5rem' }}>
-                                            <h4 style={{ fontSize: '0.95rem', fontWeight: 'bold', marginBottom: '0.75rem', color: '#555' }}>
+                                            <h4 style={{ fontSize: '0.95rem', fontWeight: 'bold', marginBottom: '0.75rem', color: 'var(--slate-600)' }}>
                                                 金種別内訳
                                             </h4>
                                             <div style={{ fontSize: '0.85rem' }}>
@@ -294,7 +294,7 @@ export default function CashCloseReport({
                                                         padding: '0.3rem 0',
                                                         borderBottom: '1px solid #f5f5f5',
                                                     }}>
-                                                        <span style={{ color: '#555' }}>
+                                                        <span style={{ color: 'var(--slate-600)' }}>
                                                             {getDenominationLabel(d.denomination)}: {d.count}枚
                                                         </span>
                                                         <span style={{ fontVariantNumeric: 'tabular-nums' }}>
@@ -319,13 +319,13 @@ export default function CashCloseReport({
 
                                     {/* 備考 */}
                                     {latest.remarks && (
-                                        <div style={{ marginBottom: '1.5rem', fontSize: '0.85rem', color: '#555' }}>
+                                        <div style={{ marginBottom: '1.5rem', fontSize: '0.85rem', color: 'var(--slate-600)' }}>
                                             <strong>備考:</strong> {latest.remarks}
                                         </div>
                                     )}
 
                                     {/* 精算者・日時 */}
-                                    <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: '1.5rem' }}>
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
                                         <div>精算日時: {latest.createdAt ? formatDateTime(latest.createdAt) : ''}</div>
                                         <div>精算者: {latest.closedByType === 'ORGANIZER' ? '主催者' : 'スタッフ'}</div>
                                     </div>
@@ -333,7 +333,7 @@ export default function CashCloseReport({
                                     {/* 過去の精算履歴 */}
                                     {closings.length > 1 && (
                                         <div>
-                                            <h4 style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.75rem', color: '#555' }}>
+                                            <h4 style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.75rem', color: 'var(--slate-600)' }}>
                                                 過去の精算履歴（{closings.length}件）
                                             </h4>
                                             {closings.map((h, idx) => (
@@ -345,7 +345,7 @@ export default function CashCloseReport({
                                                     borderBottom: '1px solid #f5f5f5',
                                                     fontSize: '0.85rem',
                                                 }}>
-                                                    <span style={{ color: '#888' }}>
+                                                    <span style={{ color: 'var(--text-muted)' }}>
                                                         {h.createdAt ? formatDateTime(h.createdAt) : ''}
                                                         {idx === 0 && (
                                                             <span style={{

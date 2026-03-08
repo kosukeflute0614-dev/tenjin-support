@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { createSameDayTicketClient, createSameDayTicketStaffClient } from '@/lib/client-firestore'
 import { NumberStepper, SoftKeypad } from './TouchInputs'
 import { useAuth } from './AuthProvider'
+import { useToast } from '@/components/Toast'
 import { TicketType } from '@/types'
 
 export default function SameDayTicketForm({
@@ -29,7 +30,7 @@ export default function SameDayTicketForm({
         return initial
     })
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [error, setError] = useState('')
+    const { showToast } = useToast()
 
     // nextNumber が変更されたら（かつ名前が手付かずなら）デフォルト名を更新
     const prevDefaultNameRef = useRef(`当日_${nextNumber}`)
@@ -55,16 +56,15 @@ export default function SameDayTicketForm({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (totalQuantity === 0) {
-            setError('枚数を指定してください')
+            showToast('枚数を指定してください', 'error')
             return
         }
         if (totalQuantity > remainingCount) {
-            setError('満席のため登録できません')
+            showToast('満席のため登録できません', 'error')
             return
         }
 
         setIsSubmitting(true)
-        setError('')
 
         try {
             if (staffToken) {
@@ -94,7 +94,7 @@ export default function SameDayTicketForm({
             setReceivedStr('')
             setShowKeypad(false)
         } catch (err: any) {
-            setError(err.message || '登録に失敗しました')
+            showToast(err.message || '登録に失敗しました', 'error')
         } finally {
             setIsSubmitting(false)
         }
@@ -102,12 +102,6 @@ export default function SameDayTicketForm({
 
     return (
         <form onSubmit={handleSubmit} className="card" style={{ background: '#fff9f9', position: 'relative', height: '100%', display: 'flex', flexDirection: 'column' }}>
-            {error && (
-                <div style={{ color: 'var(--accent)', fontSize: '0.85rem', marginBottom: '1rem', padding: '0.5rem', border: '1px solid var(--accent)', background: '#fff', borderRadius: '4px' }}>
-                    {error}
-                </div>
-            )}
-
             <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.5rem' }}>
                 <div className="form-group" style={{ marginBottom: '1.5rem' }}>
                     <label className="label" htmlFor="sameDayCustomerName" style={{ fontWeight: 'bold' }}>お名前</label>
@@ -134,10 +128,10 @@ export default function SameDayTicketForm({
                     </label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                         {ticketTypes.map(t => (
-                            <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '0.75rem', borderRadius: '8px', border: '1px solid #eee' }}>
+                            <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--card-bg)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)' }}>
                                 <div style={{ fontSize: '0.9rem' }}>
                                     <div style={{ fontWeight: 'bold' }}>{t.name}</div>
-                                    <div style={{ fontSize: '0.8rem', color: '#888' }}>¥{(t.doorPrice ?? t.price).toLocaleString()}</div>
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>¥{(t.doorPrice ?? t.price).toLocaleString()}</div>
                                 </div>
                                 <div style={{ width: '140px' }}>
                                     <NumberStepper
@@ -154,13 +148,13 @@ export default function SameDayTicketForm({
                 </div>
             </div>
 
-            <div style={{ borderTop: '1px solid #eee', marginTop: '1rem', paddingTop: '1rem' }}>
+            <div style={{ borderTop: '1px solid var(--card-border)', marginTop: '1rem', paddingTop: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                     <div>
-                        <div style={{ fontSize: '0.8rem', color: '#666' }}>合計金額</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>合計金額</div>
                         <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--primary)' }}>
                             ¥{totalPrice.toLocaleString()}
-                            <span style={{ fontSize: '0.9rem', color: '#666', fontWeight: 'normal', marginLeft: '0.5rem' }}>({totalQuantity}枚)</span>
+                            <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 'normal', marginLeft: '0.5rem' }}>({totalQuantity}枚)</span>
                         </div>
                     </div>
 
@@ -170,7 +164,7 @@ export default function SameDayTicketForm({
                             type="button"
                             onClick={() => setShowKeypad(!showKeypad)}
                             style={{
-                                background: '#fff',
+                                background: 'var(--card-bg)',
                                 border: '1px solid var(--primary)',
                                 borderRadius: '4px',
                                 padding: '6px 16px',
@@ -187,13 +181,13 @@ export default function SameDayTicketForm({
                             <div
                                 ref={keypadRef}
                                 style={{
-                                    position: 'absolute', right: '0', bottom: '100%', marginBottom: '10px', width: '280px', background: '#fff',
+                                    position: 'absolute', right: '0', bottom: '100%', marginBottom: '10px', width: '280px', background: 'var(--card-bg)',
                                     border: '1px solid #ddd', borderRadius: '12px', boxShadow: 'var(--shadow-lg)',
                                     zIndex: 100, padding: '0.75rem 1rem'
                                 }}
                             >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                                    <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#666' }}>お釣り計算</span>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>お釣り計算</span>
                                     <button
                                         type="button"
                                         onClick={() => setShowKeypad(false)}
@@ -203,7 +197,7 @@ export default function SameDayTicketForm({
                                             border: 'none',
                                             fontSize: '1.25rem',
                                             cursor: 'pointer',
-                                            color: '#666',
+                                            color: 'var(--text-muted)',
                                             width: '28px',
                                             height: '28px',
                                             display: 'flex',
@@ -220,13 +214,13 @@ export default function SameDayTicketForm({
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.75rem' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span style={{ fontSize: '0.75rem', color: '#999' }}>預かり</span>
-                                        <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#333' }}>
+                                        <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)' }}>預かり</span>
+                                        <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--foreground)' }}>
                                             {received.toLocaleString()} <span style={{ fontSize: '0.8rem', fontWeight: 'normal' }}>円</span>
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #eee', paddingTop: '0.4rem' }}>
-                                        <span style={{ fontSize: '0.75rem', color: '#999' }}>{change >= 0 ? 'お釣り' : '不足'}</span>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--card-border)', paddingTop: '0.4rem' }}>
+                                        <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)' }}>{change >= 0 ? 'お釣り' : '不足'}</span>
                                         <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: change >= 0 ? 'var(--success)' : 'var(--primary)' }}>
                                             ¥{Math.abs(change).toLocaleString()}
                                         </div>

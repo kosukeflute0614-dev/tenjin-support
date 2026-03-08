@@ -99,18 +99,18 @@ export default function DashboardPage() {
 
     // ステータスバッジの計算
     const receptionBadge: Badge | undefined = production?.receptionStatus === 'OPEN'
-        ? { label: '受付中', bg: '#dcfce7', color: '#166534', borderColor: '#bbf7d0' }
+        ? { label: '受付中', bg: '#dcfce7', color: 'var(--success)', borderColor: '#bbf7d0' }
         : production?.receptionStatus === 'CLOSED'
             ? { label: '停止中', bg: '#f1f5f9', color: '#64748b', borderColor: '#e2e8f0' }
             : undefined;
 
     const reservationBadge: Badge | undefined = salesReport && salesReport.totalTickets > 0
-        ? { label: `${salesReport.totalTickets}件`, bg: '#dbeafe', color: '#1e40af', borderColor: '#bfdbfe' }
+        ? { label: `${salesReport.totalTickets}件`, bg: '#dbeafe', color: 'var(--primary)', borderColor: '#bfdbfe' }
         : undefined;
 
     const staffTokenCount = production?.staffTokens ? Object.keys(production.staffTokens).length : 0;
     const staffBadge: Badge | undefined = staffTokenCount > 0
-        ? { label: `${staffTokenCount}名`, bg: '#f3e8ff', color: '#7c3aed', borderColor: '#e9d5ff' }
+        ? { label: `${staffTokenCount}名`, bg: '#f3e8ff', color: 'var(--primary)', borderColor: '#e9d5ff' }
         : undefined;
 
     // href helper
@@ -194,7 +194,7 @@ export default function DashboardPage() {
                             padding: '1.25rem 1.5rem',
                             boxShadow: 'var(--shadow-sm)'
                         }}>
-                            <div style={{ fontSize: '0.8rem', color: '#888', fontWeight: 'bold', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Wallet size={16} /> 売上予定金額</div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Wallet size={16} /> 売上予定金額</div>
                             <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--foreground)' }}>{formatCurrency(salesReport.totalRevenue)}</div>
                         </div>
                         <div style={{
@@ -204,8 +204,8 @@ export default function DashboardPage() {
                             padding: '1.25rem 1.5rem',
                             boxShadow: 'var(--shadow-sm)'
                         }}>
-                            <div style={{ fontSize: '0.8rem', color: '#888', fontWeight: 'bold', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Ticket size={16} /> 予約総数</div>
-                            <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--foreground)' }}>{salesReport.totalTickets}<span style={{ fontSize: '0.9rem', fontWeight: 'bold', marginLeft: '0.25rem', color: '#666' }}>枚</span></div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Ticket size={16} /> 予約総数</div>
+                            <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--foreground)' }}>{salesReport.totalTickets}<span style={{ fontSize: '0.9rem', fontWeight: 'bold', marginLeft: '0.25rem', color: 'var(--text-muted)' }}>枚</span></div>
                         </div>
                     </div>
                 )}
@@ -228,10 +228,10 @@ export default function DashboardPage() {
                         <div style={{ overflowX: 'auto' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.95rem', minWidth: '500px' }}>
                                 <thead>
-                                    <tr style={{ borderBottom: '2px solid var(--card-border)', background: '#f8f9fa' }}>
-                                        <th style={{ padding: '0.8rem 1.2rem', color: '#666', fontWeight: 'bold', fontSize: '0.8rem', width: '25%' }}>開演時間</th>
-                                        <th style={{ padding: '0.8rem 1.2rem', color: '#666', fontWeight: 'bold', fontSize: '0.8rem', width: '45%' }}>予約状況 / 定員</th>
-                                        <th style={{ padding: '0.8rem 1.2rem', color: '#666', fontWeight: 'bold', fontSize: '0.8rem', width: '30%' }}>残席</th>
+                                    <tr style={{ borderBottom: '2px solid var(--card-border)', background: 'var(--secondary)' }}>
+                                        <th style={{ padding: '0.8rem 1.2rem', color: 'var(--text-muted)', fontWeight: 'bold', fontSize: '0.8rem', width: '25%' }}>開演時間</th>
+                                        <th style={{ padding: '0.8rem 1.2rem', color: 'var(--text-muted)', fontWeight: 'bold', fontSize: '0.8rem', width: '45%' }}>予約状況 / 定員</th>
+                                        <th style={{ padding: '0.8rem 1.2rem', color: 'var(--text-muted)', fontWeight: 'bold', fontSize: '0.8rem', width: '30%' }}>残席</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -251,8 +251,8 @@ export default function DashboardPage() {
 
                                             return (
                                                 <React.Fragment key={dateKey}>
-                                                    <tr style={{ background: '#fcfcfc', borderBottom: '1px solid var(--card-border)' }}>
-                                                        <td colSpan={3} style={{ padding: '0.6rem 1.2rem', fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+                                                    <tr style={{ background: 'var(--card-bg)', borderBottom: '1px solid var(--card-border)' }}>
+                                                        <td colSpan={3} style={{ padding: '0.6rem 1.2rem', fontWeight: 'bold', color: 'var(--foreground)', fontSize: '0.9rem' }}>
                                                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}><Calendar size={16} /> {dateKey} ({dayOfWeek})</span>
                                                         </td>
                                                     </tr>
@@ -264,7 +264,7 @@ export default function DashboardPage() {
                                                             <td style={{ padding: '1rem 1.2rem' }}>
                                                                 <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                                                                     <span style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{perf.bookedCount}</span>
-                                                                    <span style={{ fontSize: '0.8rem', color: '#888' }}>/ {perf.capacity} 席</span>
+                                                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>/ {perf.capacity} 席</span>
                                                                 </div>
                                                                 <div
                                                                     role="progressbar"
@@ -289,7 +289,7 @@ export default function DashboardPage() {
                                                                     padding: '4px 10px',
                                                                     borderRadius: '6px',
                                                                     fontSize: '0.9rem',
-                                                                    backgroundColor: perf.remainingCount <= 5 ? 'rgba(139, 0, 0, 0.1)' : '#f8f9fa',
+                                                                    backgroundColor: perf.remainingCount <= 5 ? 'rgba(139, 0, 0, 0.1)' : 'var(--secondary)',
                                                                     color: perf.remainingCount <= 5 ? '#8b0000' : '#444',
                                                                     border: perf.remainingCount <= 5 ? '1px solid rgba(139, 0, 0, 0.2)' : '1px solid #eee'
                                                                 }}>

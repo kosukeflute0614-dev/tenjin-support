@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { fetchProductionSalesReportClient } from '@/lib/client-firestore';
 import { SalesReport } from '@/types';
 import { useAuth } from './AuthProvider';
+import { useToast } from '@/components/Toast';
 import { formatCurrency, formatDateTime } from '@/lib/format';
 import { exportToCSV } from '@/lib/export-utils';
 
@@ -13,29 +14,27 @@ type Props = {
 
 export default function SalesReportView({ productionId }: Props) {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [report, setReport] = useState<SalesReport | null>(null);
     const [loading, setLoading] = useState(true);
-
-    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchReport = async () => {
             if (!user) return;
             setLoading(true);
-            setError(null);
             try {
                 const data = await fetchProductionSalesReportClient(productionId, user.uid);
                 setReport(data);
                 if (!data) {
-                    setError('レポートデータが見つかりませんでした。');
+                    showToast('レポートデータが見つかりませんでした。', 'error');
                 }
             } catch (err: any) {
                 console.error("Failed to fetch sales report:", err);
                 // 権限エラーの場合のメッセージを具体化
                 if (err.code === 'permission-denied') {
-                    setError('閲覧権限がありません。管理者としてログインしているか確認してください。');
+                    showToast('閲覧権限がありません。管理者としてログインしているか確認してください。', 'error');
                 } else {
-                    setError('データの取得中にエラーが発生しました。詳細はブラウザのコンソールを確認してください。');
+                    showToast('データの取得中にエラーが発生しました。詳細はブラウザのコンソールを確認してください。', 'error');
                 }
             } finally {
                 setLoading(false);
@@ -75,7 +74,7 @@ export default function SalesReportView({ productionId }: Props) {
     };
 
     if (loading) return <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>集計中...</div>;
-    if (error || !report) return <div className="card" style={{ padding: '2rem', textAlign: 'center', color: error ? '#e53e3e' : 'inherit' }}>{error || 'レポートの取得に失敗しました。'}</div>;
+    if (!report) return <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>データを取得できませんでした</div>;
 
     return (
         <div style={{ display: 'grid', gap: '2rem' }}>
@@ -106,7 +105,7 @@ export default function SalesReportView({ productionId }: Props) {
                 <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
-                            <tr style={{ borderBottom: '1px solid var(--card-border)', background: '#fff' }}>
+                            <tr style={{ borderBottom: '1px solid var(--card-border)', background: 'var(--card-bg)' }}>
                                 <th style={{ padding: '0.75rem 1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>券種名</th>
                                 <th style={{ padding: '0.75rem 1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>枚数</th>
                                 <th style={{ padding: '0.75rem 1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>金額</th>
@@ -133,7 +132,7 @@ export default function SalesReportView({ productionId }: Props) {
                 <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
-                            <tr style={{ borderBottom: '1px solid var(--card-border)', background: '#fff' }}>
+                            <tr style={{ borderBottom: '1px solid var(--card-border)', background: 'var(--card-bg)' }}>
                                 <th style={{ padding: '0.75rem 1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>開演時間</th>
                                 <th style={{ padding: '0.75rem 1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>予約枚数</th>
                                 <th style={{ padding: '0.75rem 1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>来場人数</th>

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/Toast';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { createProductionClient, updateProductionBasicInfoClient, updateProductionCustomIdClient, checkCustomIdDuplicateClient } from '@/lib/client-firestore';
 import { addPerformanceClient } from '@/lib/client-firestore';
 import { addTicketTypeClient } from '@/lib/client-firestore';
@@ -91,6 +92,11 @@ export default function NewProductionPage() {
     const updateTicket = (id: string, field: keyof TicketEntry, value: string | number) => {
         setTickets(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t));
     };
+
+    const isDirty = title.trim().length > 0 ||
+        performances.some(p => p.date || p.time) ||
+        tickets.some(t => t.name.trim().length > 0 || t.advancePrice > 0 || t.doorPrice > 0);
+    useUnsavedChanges(isDirty);
 
     // --- Validation ---
     const isStep1Valid = title.trim().length > 0;
@@ -182,7 +188,7 @@ export default function NewProductionPage() {
     }
 
     return (
-        <div className="container" style={{ maxWidth: '720px', paddingBottom: '3rem' }}>
+        <div className="container" style={{ maxWidth: '1000px', paddingBottom: '3rem' }}>
             <div style={{ marginBottom: '1.5rem' }}>
                 <Link href="/dashboard" className="btn btn-secondary" style={{
                     display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
@@ -260,7 +266,7 @@ export default function NewProductionPage() {
                         <h3 style={{ fontSize: '1.15rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
                             公演タイトルを入力してください
                         </h3>
-                        <p style={{ fontSize: '0.85rem', color: '#888', marginBottom: '1.5rem' }}>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
                             チケットやメールに表示される公演名です。
                         </p>
                         <input
@@ -281,15 +287,15 @@ export default function NewProductionPage() {
                         <h3 style={{ fontSize: '1.15rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
                             公演日時を登録してください
                         </h3>
-                        <p style={{ fontSize: '0.85rem', color: '#888', marginBottom: '1.5rem' }}>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
                             最低1つの公演回が必要です。後から追加・変更もできます。
                         </p>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             {performances.map((perf, idx) => (
                                 <div key={perf.id} style={{
-                                    padding: '1.25rem', background: '#f8f9fa', borderRadius: '10px',
-                                    border: '1px solid #eee', position: 'relative',
+                                    padding: '1.25rem', background: 'var(--secondary)', borderRadius: '10px',
+                                    border: '1px solid var(--card-border)', position: 'relative',
                                 }}>
                                     <div style={{
                                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -331,7 +337,7 @@ export default function NewProductionPage() {
                                             />
                                         </div>
                                         <div style={{ flex: '0 1 120px' }}>
-                                            <label style={{ fontSize: '0.85rem', fontWeight: '600', color: '#444', display: 'block', marginBottom: '6px', marginLeft: '4px' }}>
+                                            <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--foreground)', display: 'block', marginBottom: '6px', marginLeft: '4px' }}>
                                                 定員
                                             </label>
                                             <input
@@ -353,7 +359,7 @@ export default function NewProductionPage() {
                             style={{
                                 marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem',
                                 padding: '0.6rem 1.25rem', border: '1px dashed #ccc', borderRadius: '8px',
-                                background: 'transparent', cursor: 'pointer', fontSize: '0.9rem', color: '#666',
+                                background: 'transparent', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-muted)',
                                 width: '100%', justifyContent: 'center',
                                 transition: 'all 0.15s',
                             }}
@@ -371,15 +377,15 @@ export default function NewProductionPage() {
                         <h3 style={{ fontSize: '1.15rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
                             券種と価格を設定してください
                         </h3>
-                        <p style={{ fontSize: '0.85rem', color: '#888', marginBottom: '1.5rem' }}>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
                             最低1つの券種が必要です。後から追加・変更もできます。
                         </p>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             {tickets.map((ticket, idx) => (
                                 <div key={ticket.id} style={{
-                                    padding: '1.25rem', background: '#f8f9fa', borderRadius: '10px',
-                                    border: '1px solid #eee', position: 'relative',
+                                    padding: '1.25rem', background: 'var(--secondary)', borderRadius: '10px',
+                                    border: '1px solid var(--card-border)', position: 'relative',
                                 }}>
                                     <div style={{
                                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -403,7 +409,7 @@ export default function NewProductionPage() {
                                     </div>
                                     <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
                                         <div style={{ flex: '1 1 200px' }}>
-                                            <label style={{ fontSize: '0.85rem', fontWeight: '600', color: '#444', display: 'block', marginBottom: '6px', marginLeft: '4px' }}>
+                                            <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--foreground)', display: 'block', marginBottom: '6px', marginLeft: '4px' }}>
                                                 券種名
                                             </label>
                                             <input
@@ -416,7 +422,7 @@ export default function NewProductionPage() {
                                             />
                                         </div>
                                         <div style={{ flex: '0 1 140px' }}>
-                                            <label style={{ fontSize: '0.85rem', fontWeight: '600', color: '#444', display: 'block', marginBottom: '6px', marginLeft: '4px' }}>
+                                            <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--foreground)', display: 'block', marginBottom: '6px', marginLeft: '4px' }}>
                                                 前売り (円)
                                             </label>
                                             <input
@@ -429,7 +435,7 @@ export default function NewProductionPage() {
                                             />
                                         </div>
                                         <div style={{ flex: '0 1 140px' }}>
-                                            <label style={{ fontSize: '0.85rem', fontWeight: '600', color: '#444', display: 'block', marginBottom: '6px', marginLeft: '4px' }}>
+                                            <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--foreground)', display: 'block', marginBottom: '6px', marginLeft: '4px' }}>
                                                 当日 (円)
                                             </label>
                                             <input
@@ -451,7 +457,7 @@ export default function NewProductionPage() {
                             style={{
                                 marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem',
                                 padding: '0.6rem 1.25rem', border: '1px dashed #ccc', borderRadius: '8px',
-                                background: 'transparent', cursor: 'pointer', fontSize: '0.9rem', color: '#666',
+                                background: 'transparent', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-muted)',
                                 width: '100%', justifyContent: 'center',
                                 transition: 'all 0.15s',
                             }}

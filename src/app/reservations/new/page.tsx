@@ -41,7 +41,7 @@ export default function NewReservationPage() {
     }
 
     return (
-        <div className="container" style={{ maxWidth: '600px' }}>
+        <div className="container" style={{ maxWidth: '1000px' }}>
             <div style={{ marginBottom: '1.5rem' }}>
                 <Link href="/reservations" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
                     <span>&larr;</span> 予約一覧に戻る

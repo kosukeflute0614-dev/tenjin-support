@@ -49,7 +49,7 @@ export default function ReservationForm({ productions }: Props) {
             const map: Record<string, number> = {};
             for (const perf of allPerformances) {
                 const booked = calculateBookedCount(allResDocs, perf.id);
-                map[perf.id] = perf.capacity > 0 ? Math.max(0, perf.capacity - booked) : -1;
+                map[perf.id] = Math.max(0, perf.capacity - booked);
             }
             setRemainingMap(map);
         };
@@ -196,9 +196,9 @@ export default function ReservationForm({ productions }: Props) {
                     <option value="">選択してください</option>
                     {allPerformances.map(perf => (
                         <option key={perf.id} value={perf.id}>
-                            【{perf.productionTitle}】 {formatDateTime(perf.startTime)}{remainingMap[perf.id] !== undefined && remainingMap[perf.id] >= 0
+                            【{perf.productionTitle}】 {formatDateTime(perf.startTime)}{remainingMap[perf.id] !== undefined
                                 ? ` (残: ${remainingMap[perf.id]})`
-                                : remainingMap[perf.id] === -1 ? '' : ''
+                                : ''
                             }
                         </option>
                     ))}
@@ -219,7 +219,7 @@ export default function ReservationForm({ productions }: Props) {
                     ) : (
                         <div style={{ display: 'grid', gap: '0.75rem' }}>
                             {ticketTypes.map((ticket: TicketType) => (
-                                <div key={ticket.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', borderBottom: '1px solid #eee' }}>
+                                <div key={ticket.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', borderBottom: '1px solid var(--card-border)' }}>
                                     <div>
                                         <div style={{ fontWeight: 'bold' }}>{ticket.name}</div>
                                         <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>¥{ticket.price.toLocaleString()}</div>
@@ -261,7 +261,7 @@ export default function ReservationForm({ productions }: Props) {
                 type="submit"
                 className="btn btn-primary"
                 style={{ width: '100%', padding: '1rem', fontWeight: 'bold', fontSize: '1.1rem' }}
-                disabled={!selectedPerformanceId || totalTickets === 0 || (remainingMap[selectedPerformanceId] >= 0 && totalTickets > remainingMap[selectedPerformanceId])}
+                disabled={!selectedPerformanceId || totalTickets === 0 || (remainingMap[selectedPerformanceId] !== undefined && totalTickets > remainingMap[selectedPerformanceId])}
             >
                 予約を登録する
             </button>

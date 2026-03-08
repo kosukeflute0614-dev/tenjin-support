@@ -8,7 +8,6 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc, getDocs, updateDoc, addDoc, collection, query, where, serverTimestamp } from 'firebase/firestore';
 import { serializeDoc, serializeDocs } from '@/lib/firestore-utils';
 import { Production, EmailTemplateData, FirestoreReservation } from '@/types';
-import Breadcrumb from '@/components/Breadcrumb';
 import EmailTemplateEditModal from '@/components/EmailTemplateEditModal';
 import BroadcastRecipientModal, { type BroadcastRecipient } from '@/components/BroadcastRecipientModal';
 import TemplateInlineEditor from '@/components/TemplateInlineEditor';
@@ -419,18 +418,13 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
 
     return (
         <div className="container" style={{ maxWidth: '1000px' }}>
-            <Breadcrumb items={[
-                { label: 'ダッシュボード', href: '/dashboard' },
-                { label: production.title, href: `/productions/${id}` },
-                { label: 'メール設定' }
-            ]} />
             <div style={{ marginBottom: '1.25rem' }}>
                 <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
                     <span>&larr;</span> ダッシュボードに戻る
                 </Link>
             </div>
             <div style={{ marginBottom: '2rem' }}>
-                <h2 className="heading-lg" style={{ marginBottom: '0.5rem' }}>✉️ {production.title} — メール管理</h2>
+                <h2 className="heading-lg" style={{ marginBottom: '0.5rem' }}>メール管理</h2>
                 <p className="text-muted" style={{ fontSize: '0.9rem' }}>自動メールの設定や、予約者への一斉送信を管理できます。</p>
             </div>
 
@@ -491,7 +485,7 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                                 title={confirmationEnabled ? 'ON' : 'OFF'}
                             >
                                 <div style={{
-                                    width: '22px', height: '22px', borderRadius: '50%', background: '#fff',
+                                    width: '22px', height: '22px', borderRadius: '50%', background: 'var(--card-bg)',
                                     position: 'absolute', top: '3px',
                                     left: confirmationEnabled ? '27px' : '3px',
                                     transition: 'left 0.2s',
@@ -500,37 +494,37 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                             </button>
                         </div>
                         <div style={{
-                            background: '#f8f9fa', borderRadius: '8px', padding: '1rem 1.25rem',
-                            fontSize: '0.85rem', color: '#555', lineHeight: '1.7', border: '1px solid #eee',
+                            background: 'var(--secondary)', borderRadius: '8px', padding: '1rem 1.25rem',
+                            fontSize: '0.85rem', color: 'var(--slate-600)', lineHeight: '1.7', border: '1px solid var(--card-border)',
                         }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                <span style={{ fontWeight: 'bold', color: '#333' }}>テンプレート内容</span>
+                                <span style={{ fontWeight: 'bold', color: 'var(--foreground)' }}>テンプレート内容</span>
                                 <button
                                     onClick={() => setEditingType('confirmation')}
                                     style={{
                                         display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
                                         padding: '0.35rem 0.75rem', border: '1px solid var(--primary)',
-                                        borderRadius: '6px', background: '#fff', cursor: 'pointer',
+                                        borderRadius: '6px', background: 'var(--card-bg)', cursor: 'pointer',
                                         fontSize: '0.8rem', color: 'var(--primary)', fontWeight: '600',
                                         transition: 'all 0.15s',
                                     }}
                                     onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--primary)'; e.currentTarget.style.color = '#fff'; }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = 'var(--primary)'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--card-bg)'; e.currentTarget.style.color = 'var(--primary)'; }}
                                 >
                                     ✏️ 編集
                                 </button>
                             </div>
                             <div style={{ borderLeft: '3px solid var(--primary)', paddingLeft: '0.75rem' }}>
                                 <p style={{ margin: '0 0 0.25rem' }}>
-                                    <span style={{ color: '#999', fontSize: '0.8rem' }}>件名:</span>{' '}
+                                    <span style={{ color: 'var(--slate-500)', fontSize: '0.8rem' }}>件名:</span>{' '}
                                     {highlightVariables(confirmationTemplate.subject)}
                                 </p>
                                 <p style={{ margin: '0 0 0.25rem' }}>
-                                    <span style={{ color: '#999', fontSize: '0.8rem' }}>送信元:</span>{' '}
+                                    <span style={{ color: 'var(--slate-500)', fontSize: '0.8rem' }}>送信元:</span>{' '}
                                     Tenjin-Support &lt;no-reply@tenjin-support.com&gt;
                                 </p>
                                 <p style={{ margin: '0', whiteSpace: 'pre-line' }}>
-                                    <span style={{ color: '#999', fontSize: '0.8rem' }}>本文:</span>{' '}
+                                    <span style={{ color: 'var(--slate-500)', fontSize: '0.8rem' }}>本文:</span>{' '}
                                     {getBodySummary(confirmationTemplate.body)}...
                                 </p>
                             </div>
@@ -562,7 +556,7 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                                 title={reminderEnabled ? 'ON' : 'OFF'}
                             >
                                 <div style={{
-                                    width: '22px', height: '22px', borderRadius: '50%', background: '#fff',
+                                    width: '22px', height: '22px', borderRadius: '50%', background: 'var(--card-bg)',
                                     position: 'absolute', top: '3px',
                                     left: reminderEnabled ? '27px' : '3px',
                                     transition: 'left 0.2s',
@@ -571,37 +565,37 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                             </button>
                         </div>
                         <div style={{
-                            background: '#f8f9fa', borderRadius: '8px', padding: '1rem 1.25rem',
-                            fontSize: '0.85rem', color: '#555', lineHeight: '1.7', border: '1px solid #eee',
+                            background: 'var(--secondary)', borderRadius: '8px', padding: '1rem 1.25rem',
+                            fontSize: '0.85rem', color: 'var(--slate-600)', lineHeight: '1.7', border: '1px solid var(--card-border)',
                         }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                <span style={{ fontWeight: 'bold', color: '#333' }}>テンプレート内容</span>
+                                <span style={{ fontWeight: 'bold', color: 'var(--foreground)' }}>テンプレート内容</span>
                                 <button
                                     onClick={() => setEditingType('reminder')}
                                     style={{
                                         display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
                                         padding: '0.35rem 0.75rem', border: '1px solid var(--primary)',
-                                        borderRadius: '6px', background: '#fff', cursor: 'pointer',
+                                        borderRadius: '6px', background: 'var(--card-bg)', cursor: 'pointer',
                                         fontSize: '0.8rem', color: 'var(--primary)', fontWeight: '600',
                                         transition: 'all 0.15s',
                                     }}
                                     onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--primary)'; e.currentTarget.style.color = '#fff'; }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = 'var(--primary)'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--card-bg)'; e.currentTarget.style.color = 'var(--primary)'; }}
                                 >
                                     ✏️ 編集
                                 </button>
                             </div>
                             <div style={{ borderLeft: '3px solid var(--primary)', paddingLeft: '0.75rem' }}>
                                 <p style={{ margin: '0 0 0.25rem' }}>
-                                    <span style={{ color: '#999', fontSize: '0.8rem' }}>件名:</span>{' '}
+                                    <span style={{ color: 'var(--slate-500)', fontSize: '0.8rem' }}>件名:</span>{' '}
                                     {highlightVariables(reminderTemplate.subject)}
                                 </p>
                                 <p style={{ margin: '0 0 0.25rem' }}>
-                                    <span style={{ color: '#999', fontSize: '0.8rem' }}>送信タイミング:</span>{' '}
+                                    <span style={{ color: 'var(--slate-500)', fontSize: '0.8rem' }}>送信タイミング:</span>{' '}
                                     {getTimingLabel(reminderTemplate.timing || '')}
                                 </p>
                                 <p style={{ margin: '0', whiteSpace: 'pre-line' }}>
-                                    <span style={{ color: '#999', fontSize: '0.8rem' }}>本文:</span>{' '}
+                                    <span style={{ color: 'var(--slate-500)', fontSize: '0.8rem' }}>本文:</span>{' '}
                                     {getBodySummary(reminderTemplate.body)}...
                                 </p>
                             </div>
@@ -628,7 +622,7 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                                 />
                                 全予約者（キャンセル除く）
                                 {allTargetCount !== null && (
-                                    <span style={{ fontSize: '0.8rem', color: '#888' }}>— {allTargetCount}件</span>
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>— {allTargetCount}件</span>
                                 )}
                             </label>
 
@@ -667,10 +661,10 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                                     <div style={{ marginTop: '0.75rem' }}>
                                         <div style={{
                                             padding: '0.75rem 1rem',
-                                            background: '#e8f5e9',
+                                            background: 'rgba(46, 125, 50, 0.1)',
                                             borderRadius: '6px',
                                             fontSize: '0.85rem',
-                                            color: '#2e7d32',
+                                            color: 'var(--success)',
                                             marginBottom: '0.5rem',
                                         }}>
                                             <strong>{customRecipients.length}件</strong> の宛先が選択されています
@@ -685,13 +679,13 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                                             {customRecipients.map(r => (
                                                 <div key={r.email} style={{
                                                     padding: '0.4rem 0.75rem',
-                                                    borderBottom: '1px solid #f0f0f0',
+                                                    borderBottom: '1px solid var(--card-border)',
                                                     display: 'flex',
                                                     justifyContent: 'space-between',
                                                     alignItems: 'center',
                                                 }}>
                                                     <span style={{ fontWeight: '600' }}>{r.customerName}</span>
-                                                    <span style={{ color: '#888' }}>{r.email}</span>
+                                                    <span style={{ color: 'var(--text-muted)' }}>{r.email}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -712,7 +706,7 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                             }}>
                                 送信対象: <strong>{allTargetCount !== null ? `${allTargetCount} 件` : '取得中...'}</strong>
                                 {allTargetCount !== null && allTargetCount > 0 && (
-                                    <span style={{ marginLeft: '0.5rem', fontSize: '0.8rem', color: '#888' }}>
+                                    <span style={{ marginLeft: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                                         （メールアドレスが登録されている予約者のみ、重複除外済み）
                                     </span>
                                 )}
@@ -729,8 +723,8 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                                 style={{
                                     display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
                                     padding: '0.35rem 0.75rem', border: '1px solid #ccc',
-                                    borderRadius: '6px', background: '#fff', cursor: 'pointer',
-                                    fontSize: '0.8rem', color: '#888', fontWeight: '500',
+                                    borderRadius: '6px', background: 'var(--card-bg)', cursor: 'pointer',
+                                    fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '500',
                                     transition: 'all 0.15s',
                                 }}
                                 onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#999'; e.currentTarget.style.color = '#555'; }}
@@ -814,7 +808,7 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                                     <strong>件名:</strong> {highlightVariables(broadcastSubject)}
                                 </p>
                                 <div style={{
-                                    background: '#fff', border: '1px solid #ddd',
+                                    background: 'var(--card-bg)', border: '1px solid #ddd',
                                     borderRadius: '6px', padding: '1rem',
                                     whiteSpace: 'pre-wrap', fontSize: '0.85rem',
                                     marginTop: '0.5rem', maxHeight: '200px', overflow: 'auto',
@@ -834,12 +828,12 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem', minWidth: '600px' }}>
                             <thead>
-                                <tr style={{ borderBottom: '2px solid var(--card-border)', background: '#f8f9fa' }}>
-                                    <th style={{ padding: '0.75rem 1rem', color: '#666', fontWeight: 'bold', fontSize: '0.8rem' }}>送信日時</th>
-                                    <th style={{ padding: '0.75rem 1rem', color: '#666', fontWeight: 'bold', fontSize: '0.8rem' }}>件名</th>
-                                    <th style={{ padding: '0.75rem 1rem', color: '#666', fontWeight: 'bold', fontSize: '0.8rem' }}>送信対象</th>
-                                    <th style={{ padding: '0.75rem 1rem', color: '#666', fontWeight: 'bold', fontSize: '0.8rem' }}>送信件数</th>
-                                    <th style={{ padding: '0.75rem 1rem', color: '#666', fontWeight: 'bold', fontSize: '0.8rem' }}>ステータス</th>
+                                <tr style={{ borderBottom: '2px solid var(--card-border)', background: 'var(--secondary)' }}>
+                                    <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', fontWeight: 'bold', fontSize: '0.8rem' }}>送信日時</th>
+                                    <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', fontWeight: 'bold', fontSize: '0.8rem' }}>件名</th>
+                                    <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', fontWeight: 'bold', fontSize: '0.8rem' }}>送信対象</th>
+                                    <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', fontWeight: 'bold', fontSize: '0.8rem' }}>送信件数</th>
+                                    <th style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', fontWeight: 'bold', fontSize: '0.8rem' }}>ステータス</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -855,7 +849,7 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                                     </tr>
                                 ) : (
                                     history.map(log => (
-                                        <tr key={log.id} style={{ borderBottom: '1px solid #eee' }}>
+                                        <tr key={log.id} style={{ borderBottom: '1px solid var(--card-border)' }}>
                                             <td style={{ padding: '0.75rem 1rem' }}>{formatSentAt(log.sentAt)}</td>
                                             <td style={{ padding: '0.75rem 1rem', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                 {log.subject}
@@ -866,7 +860,7 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                                             <td style={{ padding: '0.75rem 1rem' }}>{log.sentCount} / {log.totalTargets}</td>
                                             <td style={{ padding: '0.75rem 1rem' }}>
                                                 {log.errorCount === 0 ? (
-                                                    <span style={{ color: '#2e7d32', fontWeight: '600' }}>完了</span>
+                                                    <span style={{ color: 'var(--success)', fontWeight: '600' }}>完了</span>
                                                 ) : (
                                                     <span style={{ color: '#e65100', fontWeight: '600' }}>一部エラー ({log.errorCount}件)</span>
                                                 )}
@@ -887,18 +881,18 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
 
                     <div style={{
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        padding: '1.25rem', background: '#f8f9fa', borderRadius: '10px',
-                        border: '1px solid #eee',
+                        padding: '1.25rem', background: 'var(--secondary)', borderRadius: '10px',
+                        border: '1px solid var(--card-border)',
                     }}>
                         <div>
                             <div style={{ fontWeight: '600', fontSize: '0.95rem', marginBottom: '0.3rem' }}>
                                 メールのコピーを主催者に送信
                             </div>
-                            <p style={{ margin: 0, fontSize: '0.82rem', color: '#888', lineHeight: '1.5' }}>
+                            <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
                                 有効にすると、自動メール（予約確認）と一斉送信メールが送られたタイミングで、<br />
                                 主催者メールアドレス宛にもコピーが届きます。
                                 {production.organizerEmail?.trim() ? (
-                                    <span style={{ display: 'block', marginTop: '0.3rem', color: '#555' }}>
+                                    <span style={{ display: 'block', marginTop: '0.3rem', color: 'var(--slate-600)' }}>
                                         送信先: <strong>{production.organizerEmail}</strong>
                                     </span>
                                 ) : (
@@ -930,7 +924,7 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                                 left: production.emailTemplates?.ccToOrganizer ? '27px' : '3px',
                                 width: '22px', height: '22px',
                                 borderRadius: '50%',
-                                background: '#fff',
+                                background: 'var(--card-bg)',
                                 boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                                 transition: 'left 0.2s',
                             }} />
