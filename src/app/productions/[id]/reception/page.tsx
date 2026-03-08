@@ -71,20 +71,18 @@ export default function ReceptionPage({ params }: { params: Promise<{ id: string
                 </p>
             </div>
 
-            <div style={{ display: 'grid', gap: '2rem' }}>
-                <ReceptionLinkManager
-                    productionId={production.id}
-                    initialStatus={production.receptionStatus}
-                    initialStart={production.receptionStart ? toDate(production.receptionStart).toISOString() : null}
-                    initialEnd={production.receptionEnd ? toDate(production.receptionEnd).toISOString() : null}
-                    initialEndMode={(production as any).receptionEndMode || 'MANUAL'}
-                    initialEndMinutes={(production as any).receptionEndMinutes || 0}
-                    performances={performances}
-                    customId={production.customId}
-                />
+            <ReceptionLinkManager
+                productionId={production.id}
+                initialStatus={production.receptionStatus}
+                initialStart={production.receptionStart ? toDate(production.receptionStart).toISOString() : null}
+                initialEnd={production.receptionEnd ? toDate(production.receptionEnd).toISOString() : null}
+                initialEndMode={(production as any).receptionEndMode || 'MANUAL'}
+                initialEndMinutes={(production as any).receptionEndMinutes || 0}
+                performances={performances}
+                customId={production.customId}
+            />
 
-                <ActorUrlManager production={production} />
-            </div>
+            <ActorUrlManager production={production} />
         </div>
     );
 }

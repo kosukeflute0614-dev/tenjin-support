@@ -23,6 +23,7 @@ import { Production, Performance, FirestoreReservation } from "@/types";
 import { useAuth } from '@/components/AuthProvider';
 import Breadcrumb from '@/components/Breadcrumb';
 import { serializeDoc, serializeDocs } from '@/lib/firestore-utils';
+import { ensureInvitationTicket } from '@/lib/client-firestore';
 
 export default function CheckinPage({ params }: { params: any }) {
     const { user, loading } = useAuth();
@@ -62,6 +63,9 @@ export default function CheckinPage({ params }: { params: any }) {
                         router.push('/productions');
                         return;
                     }
+
+                    // 既存公演に招待チケットが無ければ自動追加
+                    await ensureInvitationTicket(productionId, user.uid);
 
                     // 2. Get Performance
                     const performanceRef = doc(db, "performances", performanceId);

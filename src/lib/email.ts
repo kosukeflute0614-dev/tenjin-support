@@ -1,5 +1,5 @@
 import { Resend } from 'resend';
-import { FirestoreReservation, TicketType } from '@/types';
+import { FirestoreReservation, TicketType, EmailTemplateData } from '@/types';
 import { toDate } from './firestore-utils';
 import type { DateLike } from './format';
 
@@ -16,6 +16,79 @@ interface ReservationEmailData {
     productionTitle: string;
     performanceStartTime: DateLike;
     ticketTypes: TicketType[];
+    organizerName?: string;
+    organizerEmail?: string;
+    venue?: string;
+    template?: EmailTemplateData | null;
+    confirmationEnabled?: boolean;
+}
+
+/**
+ * テンプレート変数を実際の値に置換する
+ */
+export function replaceTemplateVariables(
+    text: string,
+    vars: {
+        customerName: string;
+        productionTitle: string;
+        performanceDate: string;
+        venue?: string;
+        ticketDetails: string;
+        totalAmount: string;
+        ticketCount: string;
+        organizerName: string;
+        organizerEmail?: string;
+    }
+): string {
+    return text
+        .replace(/\{\{customer_name\}\}/g, vars.customerName)
+        .replace(/\{\{production_title\}\}/g, vars.productionTitle)
+        .replace(/\{\{performance_date\}\}/g, vars.performanceDate)
+        .replace(/\{\{venue\}\}/g, vars.venue || '')
+        .replace(/\{\{ticket_details\}\}/g, vars.ticketDetails)
+        .replace(/\{\{total_amount\}\}/g, vars.totalAmount)
+        .replace(/\{\{ticket_count\}\}/g, vars.ticketCount)
+        .replace(/\{\{organizer_name\}\}/g, vars.organizerName)
+        .replace(/\{\{organizer_email\}\}/g, vars.organizerEmail || '');
+}
+
+/**
+ * デフォルトの予約確認メール本文（テンプレート未設定時）
+ */
+function buildDefaultConfirmationText(
+    customerName: string,
+    productionTitle: string,
+    performanceDate: string,
+    reservationId: string,
+    ticketDetailsText: string,
+    totalAmount: string,
+): string {
+    return `${customerName} 様
+
+この度は「${productionTitle}」にご予約いただき、誠にありがとうございます。
+以下の内容でご予約を承りました。
+
+━━━━━━━━━━━━━━━━━━
+予約番号: ${reservationId.slice(0, 8).toUpperCase()}
+公演名: ${productionTitle}
+日時: ${performanceDate} 開演
+お名前: ${customerName}
+━━━━━━━━━━━━━━━━━━
+
+【チケット明細】
+${ticketDetailsText}
+
+合計: ${totalAmount}
+
+━━━━━━━━━━━━━━━━━━
+
+【ご来場時のお願い】
+・開演時間の10分前までに受付をお済ませください。
+・お支払いは当日受付にてお願いいたします。
+
+──────────────────
+※ このメールは送信専用アドレスから配信しています。
+※ ご不明な点がございましたら ${REPLY_TO} までお問い合わせください。`;
 }
 
 export async function sendReservationConfirmation(data: ReservationEmailData): Promise<void> {
@@ -24,7 +97,13 @@ export async function sendReservationConfirmation(data: ReservationEmailData): P
         return;
     }
 
-    const { reservation, reservationId, productionTitle, performanceStartTime, ticketTypes } = data;
+    // メール送信が無効化されている場合はスキップ
+    if (data.confirmationEnabled === false) {
+        console.log('[Email] 予約確認メールが無効化されているためスキップしました');
+        return;
+    }
+
+    const { reservation, reservationId, productionTitle, performanceStartTime, ticketTypes, template, organizerName, organizerEmail, venue } = data;
 
     if (!reservation.customerEmail) return;
 
@@ -39,8 +118,9 @@ export async function sendReservationConfirmation(data: ReservationEmailData): P
         hour: '2-digit',
         minute: '2-digit',
     });
+    const performanceDate = `${formattedDate} ${formattedTime}`;
 
-    // 券種ごとの明細を作成
+    // 券種ごとの明細
     const ticketRows = reservation.tickets
         .filter(t => t.count > 0)
         .map(t => {
@@ -52,105 +132,48 @@ export async function sendReservationConfirmation(data: ReservationEmailData): P
         });
 
     const totalAmount = ticketRows.reduce((sum, r) => sum + r.subtotal, 0);
+    const totalTicketCount = ticketRows.reduce((sum, r) => sum + r.count, 0);
 
-    const ticketRowsHtml = ticketRows
-        .map(r =>
-            `<tr>
-                <td style="padding:8px 12px;border-bottom:1px solid #eee;">${r.name}</td>
-                <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;">${r.count}枚</td>
-                <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;">&yen;${r.subtotal.toLocaleString()}</td>
-            </tr>`)
-        .join('');
+    // テキスト形式のチケット詳細
+    const ticketDetailsText = ticketRows
+        .map(r => `${r.name} × ${r.count}枚  ¥${r.subtotal.toLocaleString()}`)
+        .join('\n');
 
-    const html = `
-<!DOCTYPE html>
-<html lang="ja">
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#f5f5f5;font-family:'Helvetica Neue',Arial,'Hiragino Sans',sans-serif;color:#333;">
-  <div style="max-width:600px;margin:0 auto;padding:24px 16px;">
-    <div style="background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.1);">
-      <!-- ヘッダー -->
-      <div style="background:#8b0000;padding:24px 32px;">
-        <h1 style="margin:0;color:#fff;font-size:20px;font-weight:600;">ご予約完了のお知らせ</h1>
-      </div>
-      <!-- 本文 -->
-      <div style="padding:32px;">
-        <p style="margin:0 0 16px;line-height:1.8;">
-          ${reservation.customerName} 様<br><br>
-          この度は「<strong>${productionTitle}</strong>」にご予約いただき、誠にありがとうございます。<br>
-          以下の内容でご予約を承りました。
-        </p>
-        <!-- 予約詳細 -->
-        <div style="background:#fafafa;border:1px solid #eee;border-radius:6px;padding:20px 24px;margin:24px 0;">
-          <h2 style="margin:0 0 16px;font-size:15px;color:#8b0000;border-bottom:2px solid #8b0000;padding-bottom:8px;">予約内容</h2>
-          <table style="width:100%;font-size:14px;margin-bottom:12px;">
-            <tr>
-              <td style="padding:6px 0;color:#888;width:100px;">予約番号</td>
-              <td style="padding:6px 0;font-weight:600;">${reservationId.slice(0, 8).toUpperCase()}</td>
-            </tr>
-            <tr>
-              <td style="padding:6px 0;color:#888;">公演名</td>
-              <td style="padding:6px 0;">${productionTitle}</td>
-            </tr>
-            <tr>
-              <td style="padding:6px 0;color:#888;">日時</td>
-              <td style="padding:6px 0;">${formattedDate} ${formattedTime} 開演</td>
-            </tr>
-            <tr>
-              <td style="padding:6px 0;color:#888;">お名前</td>
-              <td style="padding:6px 0;">${reservation.customerName}</td>
-            </tr>
-          </table>
-        </div>
-        <!-- チケット明細 -->
-        <div style="margin:24px 0;">
-          <h2 style="margin:0 0 12px;font-size:15px;color:#8b0000;border-bottom:2px solid #8b0000;padding-bottom:8px;">チケット明細</h2>
-          <table style="width:100%;font-size:14px;border-collapse:collapse;">
-            <thead>
-              <tr style="background:#f8f8f8;">
-                <th style="padding:8px 12px;text-align:left;border-bottom:2px solid #ddd;">券種</th>
-                <th style="padding:8px 12px;text-align:center;border-bottom:2px solid #ddd;">枚数</th>
-                <th style="padding:8px 12px;text-align:right;border-bottom:2px solid #ddd;">小計</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${ticketRowsHtml}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colspan="2" style="padding:10px 12px;font-weight:600;text-align:right;border-top:2px solid #333;">合計</td>
-                <td style="padding:10px 12px;font-weight:600;text-align:right;border-top:2px solid #333;">&yen;${totalAmount.toLocaleString()}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-        <!-- 注意事項 -->
-        <div style="background:#fff9f0;border-left:4px solid #e8a400;padding:16px 20px;margin:24px 0;font-size:13px;line-height:1.8;">
-          <strong>ご来場時のお願い</strong><br>
-          ・開演時間の10分前までに受付をお済ませください。<br>
-          ・お支払いは当日受付にてお願いいたします。
-        </div>
-        <p style="margin:24px 0 0;font-size:13px;color:#888;line-height:1.8;">
-          ※ このメールは送信専用アドレスから配信しています。<br>
-          ※ ご不明な点がございましたら、下記までお問い合わせください。<br>
-          　 <a href="mailto:${REPLY_TO}" style="color:#8b0000;">${REPLY_TO}</a>
-        </p>
-      </div>
-      <!-- フッター -->
-      <div style="background:#f8f8f8;padding:16px 32px;text-align:center;font-size:12px;color:#aaa;border-top:1px solid #eee;">
-        Tenjin-Support &mdash; 演劇公演サポートシステム
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
+    let subject: string;
+    let text: string;
+
+    if (template?.subject && template?.body) {
+        const templateVars = {
+            customerName: reservation.customerName,
+            productionTitle,
+            performanceDate,
+            venue: venue || '',
+            ticketDetails: ticketDetailsText,
+            totalAmount: `¥${totalAmount.toLocaleString()}`,
+            ticketCount: `${totalTicketCount}枚`,
+            organizerName: organizerName || '',
+            organizerEmail: organizerEmail || '',
+        };
+        subject = replaceTemplateVariables(template.subject, templateVars);
+        text = replaceTemplateVariables(template.body, templateVars);
+    } else {
+        subject = `【予約完了】${productionTitle}`;
+        text = buildDefaultConfirmationText(
+            reservation.customerName,
+            productionTitle,
+            performanceDate,
+            reservationId,
+            ticketDetailsText,
+            `¥${totalAmount.toLocaleString()}`,
+        );
+    }
 
     const sendPayload = {
         from: FROM_EMAIL,
         to: reservation.customerEmail,
         replyTo: REPLY_TO,
-        subject: `【予約完了】${productionTitle}`,
-        html,
+        subject,
+        text,
     };
 
     console.log('[Email] 送信パラメータ:', JSON.stringify({
@@ -158,32 +181,83 @@ export async function sendReservationConfirmation(data: ReservationEmailData): P
         to: sendPayload.to,
         replyTo: sendPayload.replyTo,
         subject: sendPayload.subject,
-        htmlLength: sendPayload.html.length,
+        textLength: sendPayload.text.length,
+        usingTemplate: !!(template?.subject && template?.body),
     }, null, 2));
 
     try {
         const result = await resend.emails.send(sendPayload);
-        console.log('[Email] 予約確認メール送信成功 - レスポンス全体:', JSON.stringify(result, null, 2));
-        if (result.data) {
-            console.log('[Email] レスポンス data.id:', result.data.id);
-        }
+        console.log('[Email] 予約確認メール送信成功:', result.data?.id || 'no id');
         if (result.error) {
-            console.warn('[Email] レスポンスにエラーが含まれています:', JSON.stringify(result.error, null, 2));
+            console.warn('[Email] レスポンスにエラー:', JSON.stringify(result.error, null, 2));
         }
     } catch (error: unknown) {
         console.error('[Email] 予約確認メール送信失敗');
         if (error instanceof Error) {
-            console.error('[Email] エラー名:', error.name);
-            console.error('[Email] エラーメッセージ:', error.message);
-            console.error('[Email] スタックトレース:', error.stack);
-        }
-        const resendError = error as Record<string, unknown>;
-        if (resendError?.statusCode) {
-            console.error('[Email] HTTPステータス:', resendError.statusCode);
-        }
-        if (resendError?.response) {
-            console.error('[Email] エラーレスポンス:', JSON.stringify(resendError.response, null, 2));
+            console.error('[Email] エラー:', error.message);
         }
         console.error('[Email] エラー全体:', JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2));
+    }
+}
+
+/**
+ * 一斉送信用の変数を置換する（宛先ごとに異なる値）
+ */
+function replaceBroadcastVariables(
+    text: string,
+    vars: { customerName: string; productionTitle: string; organizerName: string; organizerEmail: string },
+): string {
+    return text
+        .replace(/\{\{customer_name\}\}/g, vars.customerName)
+        .replace(/\{\{production_title\}\}/g, vars.productionTitle)
+        .replace(/\{\{organizer_name\}\}/g, vars.organizerName)
+        .replace(/\{\{organizer_email\}\}/g, vars.organizerEmail)
+        .replace(/\{\{venue\}\}/g, '') // 未実装
+        .replace(/\{\{performance_date\}\}/g, '') // 一斉送信では宛先ごとに異なるため空文字
+        .replace(/\{\{ticket_details\}\}/g, '')
+        .replace(/\{\{total_amount\}\}/g, '')
+        .replace(/\{\{ticket_count\}\}/g, '');
+}
+
+/**
+ * 一斉送信メールを送信する
+ */
+export async function sendBroadcastEmail(params: {
+    to: string;
+    subject: string;
+    body: string;
+    customerName: string;
+    productionTitle: string;
+    organizerName: string;
+    organizerEmail: string;
+}): Promise<{ success: boolean; error?: string }> {
+    if (!resend) {
+        return { success: false, error: 'RESEND_API_KEY が未設定です' };
+    }
+
+    const vars = {
+        customerName: params.customerName,
+        productionTitle: params.productionTitle,
+        organizerName: params.organizerName,
+        organizerEmail: params.organizerEmail,
+    };
+    const subject = replaceBroadcastVariables(params.subject, vars);
+    const text = replaceBroadcastVariables(params.body, vars);
+
+    try {
+        const result = await resend.emails.send({
+            from: FROM_EMAIL,
+            to: params.to,
+            replyTo: REPLY_TO,
+            subject,
+            text,
+        });
+        if (result.error) {
+            return { success: false, error: JSON.stringify(result.error) };
+        }
+        return { success: true };
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : '不明なエラー';
+        return { success: false, error: message };
     }
 }

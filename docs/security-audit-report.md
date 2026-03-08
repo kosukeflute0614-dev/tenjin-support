@@ -37,7 +37,7 @@
 - **深刻度**: CRITICAL
 - **発見内容**:
   - Firebase API Key がソースコード内に存在: `AIzaSyDjnmQYlhJ1q7aprhANJcq8FOezLnsBQXk`
-  - RESEND API Key がソースコード内に存在: `re_KT9RTWbd_4AwsK5EpJBvUxPcPzbRtrfjL`
+  - RESEND API Key がソースコード内に存在していた（旧キーは無効化済み・再発行対応済み）
   - `.gitignore` に `.env.local` が含まれているが、万一コミットされた場合のリスクが極めて高い
 - **影響**:
   - リポジトリアクセス権を持つ全員が Firebase プロジェクトに直接アクセス可能

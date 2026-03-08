@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createReservation } from '@/app/actions/reservation';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { calculateBookedCount } from '@/lib/capacity-utils';
 import { formatDateTime } from '@/lib/format';
 import { Production, Performance, TicketType, FormFieldConfig } from '@/types';
 
@@ -38,10 +39,45 @@ export default function PublicReservationForm({ production, promoterId }: Props)
     const [customFieldValues, setCustomFieldValues] = useState<Record<string, string | boolean>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [remainingSeats, setRemainingSeats] = useState<number | null>(null);
+    const [remainingLoading, setRemainingLoading] = useState(false);
+
+    useEffect(() => {
+        if (!selectedPerformanceId) { setRemainingSeats(null); return; }
+        const fetchRemaining = async () => {
+            setRemainingLoading(true);
+            setRemainingSeats(null);
+            try {
+                const perfRef = doc(db, "performances", selectedPerformanceId);
+                const perfSnap = await getDoc(perfRef);
+                if (!perfSnap.exists()) { setRemainingSeats(null); return; }
+                const perf = perfSnap.data();
+                if (!perf.capacity || perf.capacity <= 0) { setRemainingSeats(null); return; }
+
+                const q = query(
+                    collection(db, "reservations"),
+                    where("performanceId", "==", selectedPerformanceId),
+                    where("productionId", "==", production.id)
+                );
+                const snapshot = await getDocs(q);
+                const bookedCount = calculateBookedCount(
+                    snapshot.docs.map(d => d.data() as any),
+                    selectedPerformanceId
+                );
+                setRemainingSeats(Math.max(0, perf.capacity - bookedCount));
+            } catch (err: any) {
+                console.error("残席取得エラー:", err);
+                setRemainingSeats(null);
+            } finally {
+                setRemainingLoading(false);
+            }
+        };
+        fetchRemaining();
+    }, [selectedPerformanceId, production.id]);
 
     const performances = production.performances || [];
     const selectedPerformance = performances.find((p: Performance) => p.id === selectedPerformanceId);
-    const ticketTypes = production.ticketTypes || [];
+    const ticketTypes = (production.ticketTypes || []).filter((tt: TicketType) => tt.isPublic !== false);
 
     // formFields が保存されていればそれを使用、なければデフォルト
     const formFields: FormFieldConfig[] = production.formFields && production.formFields.length > 0
@@ -207,6 +243,22 @@ export default function PublicReservationForm({ production, promoterId }: Props)
                     );
                 })}
             </select>
+            {remainingSeats !== null && (
+                <div style={{
+                    padding: '0.6rem 1rem',
+                    background: remainingSeats === 0 ? '#fff5f5' : '#f0fff4',
+                    border: `1px solid ${remainingSeats === 0 ? '#fed7d7' : '#c6f6d5'}`,
+                    borderRadius: '8px',
+                    fontSize: '0.9rem',
+                    color: remainingSeats === 0 ? '#c53030' : '#276749',
+                    marginTop: '0.5rem',
+                }}>
+                    {remainingSeats === 0
+                        ? 'この公演回は満席です'
+                        : `残席: ${remainingSeats}枚`
+                    }
+                </div>
+            )}
         </div>
     );
 
@@ -361,9 +413,9 @@ export default function PublicReservationForm({ production, promoterId }: Props)
             case 'customer_email':
                 return <div key={field.id}>{renderEmailField()}</div>;
             case 'performance_select':
-                return <div key={field.id}>{renderPerformanceField()}</div>;
+                return <div key={field.id}>{renderPerformanceField()}{renderTicketField()}</div>;
             case 'ticket_select':
-                return <div key={field.id}>{renderTicketField()}</div>;
+                return null; // performance_select 内で一緒にレンダリング済み
             case 'remarks':
                 return <div key={field.id}>{renderRemarksField()}</div>;
             default:
@@ -527,12 +579,18 @@ export default function PublicReservationForm({ production, promoterId }: Props)
 
             {formFields.map(field => renderFormField(field))}
 
+            {remainingSeats !== null && remainingSeats > 0 && totalTickets > remainingSeats && (
+                <div style={{ padding: '1rem', backgroundColor: '#fff5f5', border: '1px solid #feb2b2', borderRadius: '8px', color: '#c53030', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                    残席数（{remainingSeats}枚）を超える予約はできません。枚数を調整してください。
+                </div>
+            )}
+
             <div style={{ marginTop: '0.5rem' }}>
                 <button
                     type="submit"
                     className="btn btn-primary"
                     style={{ width: '100%', padding: '1.2rem', fontWeight: 'bold', fontSize: '1.2rem' }}
-                    disabled={!selectedPerformanceId || totalTickets === 0 || isSubmitting}
+                    disabled={!selectedPerformanceId || totalTickets === 0 || isSubmitting || (remainingSeats !== null && totalTickets > remainingSeats)}
                 >
                     予約する
                 </button>

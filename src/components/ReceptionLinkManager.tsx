@@ -219,29 +219,64 @@ export default function ReceptionLinkManager({
                 }
             } else if (currentModal === 'SAVE_START') {
                 const combinedStart = inputStartDate && inputStartTime ? `${inputStartDate}T${inputStartTime}` : null;
+                const newStart = combinedStart ? new Date(combinedStart) : null;
+
+                // 新しいスケジュールで effective status を再計算
+                const newEffective = getEffectiveReceptionStatus({
+                    receptionStatus: manualStatus,
+                    receptionStart: newStart,
+                    receptionEnd: confirmedEnd,
+                    receptionEndMode: confirmedEndMode,
+                    receptionEndMinutes: confirmedEndMinutes,
+                    performances: performances,
+                });
+                // トリガーに該当する場合のみステータスを変更
+                const newManual: 'OPEN' | 'CLOSED' = newEffective === 'OPEN' ? 'OPEN'
+                    : newEffective === 'BEFORE_START' ? 'CLOSED'
+                    : manualStatus as 'OPEN' | 'CLOSED'; // それ以外は現状維持
+
                 await updateReceptionScheduleClient(productionId, {
                     receptionStart: combinedStart
                 }, user.uid);
-                await updateReceptionStatusClient(productionId, 'CLOSED', user.uid);
+                if (newManual !== manualStatus) {
+                    await updateReceptionStatusClient(productionId, newManual, user.uid);
+                }
 
-                setManualStatus('CLOSED');
-                setConfirmedStart(combinedStart ? new Date(combinedStart) : null);
+                setManualStatus(newManual);
+                setConfirmedStart(newStart);
 
                 setScheduleMessage({ type: 'success', text: '開始時刻を設定しました' });
                 setTimeout(() => setScheduleMessage(null), 3000);
             } else if (currentModal === 'SAVE_END') {
                 const totalMinutes = (endHours * 60) + endMinutesPart;
                 const combinedEnd = inputEndDate && inputEndTime ? `${inputEndDate}T${inputEndTime}` : null;
+                const newEnd = combinedEnd ? new Date(combinedEnd) : null;
+
+                // 新しいスケジュールで effective status を再計算
+                const newEffective = getEffectiveReceptionStatus({
+                    receptionStatus: manualStatus,
+                    receptionStart: confirmedStart,
+                    receptionEnd: newEnd,
+                    receptionEndMode: endMode,
+                    receptionEndMinutes: totalMinutes,
+                    performances: performances,
+                });
+                // トリガーに該当する場合のみステータスを変更、それ以外は現状維持
+                const newManual: 'OPEN' | 'CLOSED' = newEffective === 'CLOSED' ? 'CLOSED'
+                    : newEffective === 'OPEN' ? 'OPEN'
+                    : manualStatus as 'OPEN' | 'CLOSED';
 
                 await updateReceptionScheduleClient(productionId, {
                     receptionEnd: combinedEnd,
                     receptionEndMode: endMode,
                     receptionEndMinutes: totalMinutes
                 }, user.uid);
-                await updateReceptionStatusClient(productionId, 'CLOSED', user.uid);
+                if (newManual !== manualStatus) {
+                    await updateReceptionStatusClient(productionId, newManual, user.uid);
+                }
 
-                setManualStatus('CLOSED');
-                setConfirmedEnd(combinedEnd ? new Date(combinedEnd) : null);
+                setManualStatus(newManual);
+                setConfirmedEnd(newEnd);
                 setConfirmedEndMode(endMode);
                 setConfirmedEndMinutes(totalMinutes);
 
@@ -298,6 +333,7 @@ export default function ReceptionLinkManager({
 
     const display = getStatusDisplay();
     const hasSavedSchedule = confirmedStart || confirmedEnd || confirmedEndMode !== 'MANUAL';
+    const [scheduleExpanded, setScheduleExpanded] = useState(false);
 
     const formatMinutesAsText = (totalMinutes: number) => {
         const h = Math.floor(totalMinutes / 60);
@@ -317,7 +353,7 @@ export default function ReceptionLinkManager({
     };
 
     return (
-        <div style={{ display: 'grid', gap: '2rem' }}>
+        <div>
             {/* Confirmation Modal */}
             {modalType && (
                 <div style={{
@@ -358,269 +394,287 @@ export default function ReceptionLinkManager({
                 </div>
             )}
 
-            {/* Combined Status Manager Card */}
-            <div className="card" style={{ padding: '2rem', borderTop: `4px solid ${display.color}` }}>
-                <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                    <p className="text-muted" style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>現在の予約受付ステータス</p>
-                    <div style={{
-                        display: 'inline-block', padding: '0.75rem 2.5rem', borderRadius: '50px',
-                        fontSize: '1.5rem', fontWeight: 'bold', color: display.color,
-                        backgroundColor: display.bg, border: `2px solid ${display.border}`
-                    }}>
-                        {display.label}
-                    </div>
-                </div>
-
-                {hasSavedSchedule && (
-                    <div style={{
-                        marginBottom: '1.5rem', padding: '1.25rem', backgroundColor: '#fff9db',
-                        borderRadius: '8px', border: '1px solid #ffe066'
-                    }}>
-                        <p style={{ margin: '0 0 0.75rem 0', fontWeight: 'bold', color: '#856404', fontSize: '0.9rem' }}>現在適用中のスケジュール:</p>
-                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', fontSize: '1rem', color: '#856404', flexWrap: 'wrap' }}>
-                            <div style={{ background: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', border: '1px solid #ffe066' }}>
-                                {confirmedStart ? formatDateTime(confirmedStart) : '手動で開始'}
-                            </div>
-                            <span>〜</span>
-                            <div style={{ background: 'white', padding: '0.4rem 0.8rem', borderRadius: '4px', border: '1px solid #ffe066' }}>
-                                {renderEndLabel()}
-                            </div>
+            {/* Status Hero Section */}
+            <div className="card" style={{
+                padding: '2rem 2.5rem',
+                borderLeft: `5px solid ${display.color}`,
+                marginBottom: '1.5rem',
+                background: display.bg,
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#718096', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>
+                            現在の予約受付ステータス
                         </div>
+                        <div style={{
+                            fontSize: '1.75rem', fontWeight: 'bold', color: display.color, lineHeight: 1.2,
+                        }}>
+                            {display.label}
+                        </div>
+                        {hasSavedSchedule && (
+                            <div style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: '#856404' }}>
+                                <span style={{ fontWeight: 'bold' }}>スケジュール: </span>
+                                {confirmedStart ? formatDateTime(confirmedStart) : '手動で開始'} 〜 {renderEndLabel()}
+                            </div>
+                        )}
                     </div>
-                )}
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <button
                         onClick={() => setModalType('TOGGLE_STATUS')}
                         disabled={isUpdating}
                         className={`btn ${isCurrentlyOpen ? 'btn-secondary' : 'btn-primary'}`}
-                        style={{ width: '100%', padding: '1rem', fontWeight: 'bold', fontSize: '1.1rem' }}
+                        style={{
+                            padding: '0.75rem 2rem', fontWeight: 'bold', fontSize: '1rem',
+                            borderRadius: '8px', minWidth: '160px',
+                        }}
                     >
-                        {isUpdating ? '更新中...' : (isCurrentlyOpen ? '予約受付を今すぐ停止する' : '予約受付を今すぐ開始する')}
+                        {isUpdating ? '更新中...' : (isCurrentlyOpen ? '受付を停止する' : '受付を開始する')}
                     </button>
                 </div>
             </div>
 
-            {/* Schedule Manager Card */}
-            <div className="card" style={{ padding: '2rem' }}>
-                <h3 className="heading-md" style={{ marginBottom: '1.5rem', fontSize: '1.25rem' }}>予約受付スケジュールの設定</h3>
+            {/* Schedule Accordion */}
+                <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+                    <button
+                        type="button"
+                        onClick={() => setScheduleExpanded(!scheduleExpanded)}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%',
+                            padding: '1rem 1.5rem', background: 'none', border: 'none', cursor: 'pointer',
+                            fontSize: '1rem', fontWeight: 'bold', color: 'var(--foreground)', textAlign: 'left'
+                        }}
+                    >
+                        <span style={{
+                            display: 'inline-block', transition: 'transform 0.2s',
+                            transform: scheduleExpanded ? 'rotate(90deg)' : 'rotate(0deg)'
+                        }}>&#9654;</span>
+                        スケジュールを設定する
+                        {!scheduleExpanded && hasSavedSchedule && (
+                            <span style={{ fontWeight: 'normal', fontSize: '0.85rem', color: 'var(--text-muted)', marginLeft: '0.75rem' }}>
+                                {confirmedStart ? formatDateTime(confirmedStart) : '手動開始'} 〜 {renderEndLabel()}
+                            </span>
+                        )}
+                    </button>
 
-                <div style={{ display: 'grid', gap: '2rem' }}>
-                    {/* Start Setting Section */}
-                    <div className="form-group" style={{
-                        padding: '1.5rem',
-                        border: '1px solid var(--card-border)',
-                        borderRadius: '8px',
-                        background: isCurrentlyOpen ? '#f5f5f5' : '#fcfcfc',
-                        opacity: isCurrentlyOpen ? 0.6 : 1,
-                        pointerEvents: isCurrentlyOpen ? 'none' : 'auto',
-                        position: 'relative'
-                    }}>
-                        <label style={{ display: 'block', fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem' }}>
-                            1. 受付開始の設定
-                            {isCurrentlyOpen && <span style={{ marginLeft: '1rem', color: '#666', fontSize: '0.8rem', fontWeight: 'normal' }}>(受付中のため設定不可)</span>}
-                        </label>
-                        <div style={{ display: 'grid', gap: '1rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1rem', flexWrap: 'wrap' }}>
-                                <SmartMaskedDatePicker
-                                    name="receptionStartDate"
-                                    defaultValue={inputStartDate ? new Date(inputStartDate).toISOString() : undefined}
-                                    onChange={setInputStartDate}
-                                    label="開始日"
-                                    style={{ flex: 2, minWidth: '180px' }}
-                                />
-                                <SmartMaskedTimeInput
-                                    name="receptionStartTime"
-                                    defaultValue={inputStartTime}
-                                    onChange={setInputStartTime}
-                                    label="開始時間"
-                                    style={{ flex: 1, minWidth: '120px' }}
-                                />
-                                <span className="text-muted" style={{ fontSize: '0.9rem', whiteSpace: 'nowrap', marginBottom: '12px' }}>から受付開始</span>
-                            </div>
-                            <p className="text-muted" style={{ fontSize: '0.85rem' }}>※未入力の場合は、保存した直後から受付が開始されます。</p>
-                            <button
-                                type="button"
-                                className="btn btn-secondary"
-                                disabled={isUpdating || isCurrentlyOpen}
-                                onClick={() => setModalType('SAVE_START')}
-                                style={{ width: 'fit-content', padding: '0.5rem 1.5rem', fontSize: '0.9rem' }}
-                            >
-                                開始日時のみを確定
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* End Setting Section */}
-                    <div className="form-group" style={{ padding: '1.5rem', border: '1px solid var(--card-border)', borderRadius: '8px', background: '#fcfcfc' }}>
-                        <label style={{ display: 'block', fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem' }}>2. 受付終了の設定</label>
-                        <div style={{ display: 'grid', gap: '1.25rem' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-                                    <input type="radio" name="endMode" value="MANUAL" checked={endMode === 'MANUAL'} onChange={(e) => setEndMode(e.target.value)} />
-                                    <span style={{ fontSize: '0.95rem' }}>日時を個別に指定する</span>
-                                </label>
-                                {endMode === 'MANUAL' && (
-                                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1rem', flexWrap: 'wrap', marginLeft: '1.75rem' }}>
-                                        <SmartMaskedDatePicker
-                                            name="receptionEndDate"
-                                            defaultValue={inputEndDate ? new Date(inputEndDate).toISOString() : undefined}
-                                            onChange={setInputEndDate}
-                                            label="終了日"
-                                            style={{ flex: 2, minWidth: '180px' }}
-                                        />
-                                        <SmartMaskedTimeInput
-                                            name="receptionEndTime"
-                                            defaultValue={inputEndTime}
-                                            onChange={setInputEndTime}
-                                            label="終了時間"
-                                            style={{ flex: 1, minWidth: '120px' }}
-                                        />
+                    {scheduleExpanded && (
+                        <div style={{ padding: '0 1.5rem 1.5rem 1.5rem' }}>
+                            <div style={{ display: 'grid', gap: '2rem' }}>
+                                {/* Start Setting Section */}
+                                <div className="form-group" style={{
+                                    padding: '1.5rem',
+                                    border: '1px solid var(--card-border)',
+                                    borderRadius: '8px',
+                                    background: isCurrentlyOpen ? '#f5f5f5' : '#fcfcfc',
+                                    opacity: isCurrentlyOpen ? 0.6 : 1,
+                                    pointerEvents: isCurrentlyOpen ? 'none' : 'auto',
+                                    position: 'relative'
+                                }}>
+                                    <label style={{ display: 'block', fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+                                        1. 受付開始の設定
+                                        {isCurrentlyOpen && <span style={{ marginLeft: '1rem', color: '#666', fontSize: '0.8rem', fontWeight: 'normal' }}>(受付中のため設定不可)</span>}
+                                    </label>
+                                    <div style={{ display: 'grid', gap: '1rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1rem', flexWrap: 'wrap' }}>
+                                            <SmartMaskedDatePicker
+                                                name="receptionStartDate"
+                                                defaultValue={inputStartDate ? new Date(inputStartDate).toISOString() : undefined}
+                                                onChange={setInputStartDate}
+                                                label="開始日"
+                                                style={{ flex: 2, minWidth: '180px' }}
+                                            />
+                                            <SmartMaskedTimeInput
+                                                name="receptionStartTime"
+                                                defaultValue={inputStartTime}
+                                                onChange={setInputStartTime}
+                                                label="開始時間"
+                                                style={{ flex: 1, minWidth: '120px' }}
+                                            />
+                                            <span className="text-muted" style={{ fontSize: '0.9rem', whiteSpace: 'nowrap', marginBottom: '12px' }}>から受付開始</span>
+                                        </div>
+                                        <p className="text-muted" style={{ fontSize: '0.85rem' }}>※未入力の場合は、保存した直後から受付が開始されます。</p>
+                                        <button
+                                            type="button"
+                                            className="btn btn-secondary"
+                                            disabled={isUpdating || isCurrentlyOpen}
+                                            onClick={() => setModalType('SAVE_START')}
+                                            style={{ width: 'fit-content', padding: '0.5rem 1.5rem', fontSize: '0.9rem' }}
+                                        >
+                                            開始日時のみを確定
+                                        </button>
                                     </div>
-                                )}
-                            </div>
+                                </div>
 
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-                                <input type="radio" name="endMode" value="PERFORMANCE_START" checked={endMode === 'PERFORMANCE_START'} onChange={(e) => setEndMode(e.target.value)} />
-                                <span style={{ fontSize: '0.95rem' }}>各公演回の開始時刻まで受付</span>
-                            </label>
+                                {/* End Setting Section */}
+                                <div className="form-group" style={{ padding: '1.5rem', border: '1px solid var(--card-border)', borderRadius: '8px', background: '#fcfcfc' }}>
+                                    <label style={{ display: 'block', fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem' }}>2. 受付終了の設定</label>
+                                    <div style={{ display: 'grid', gap: '1.25rem' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+                                                <input type="radio" name="endMode" value="MANUAL" checked={endMode === 'MANUAL'} onChange={(e) => setEndMode(e.target.value)} />
+                                                <span style={{ fontSize: '0.95rem' }}>日時を個別に指定する</span>
+                                            </label>
+                                            {endMode === 'MANUAL' && (
+                                                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1rem', flexWrap: 'wrap', marginLeft: '1.75rem' }}>
+                                                    <SmartMaskedDatePicker
+                                                        name="receptionEndDate"
+                                                        defaultValue={inputEndDate ? new Date(inputEndDate).toISOString() : undefined}
+                                                        onChange={setInputEndDate}
+                                                        label="終了日"
+                                                        style={{ flex: 2, minWidth: '180px' }}
+                                                    />
+                                                    <SmartMaskedTimeInput
+                                                        name="receptionEndTime"
+                                                        defaultValue={inputEndTime}
+                                                        onChange={setInputEndTime}
+                                                        label="終了時間"
+                                                        style={{ flex: 1, minWidth: '120px' }}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
 
-                            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer' }}>
-                                <input type="radio" name="endMode" value="BEFORE_PERFORMANCE" checked={endMode === 'BEFORE_PERFORMANCE'} onChange={(e) => setEndMode(e.target.value)} style={{ marginTop: '0.4rem' }} />
-                                <div style={{ display: 'grid', gap: '0.5rem' }}>
-                                    <span style={{ fontSize: '0.95rem' }}>各公演開始の前まで受付（余裕時間を設定）</span>
-                                    {endMode === 'BEFORE_PERFORMANCE' && (
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginLeft: '0.5rem', marginTop: '0.5rem', maxWidth: '400px' }}>
-                                            <NumberStepper
-                                                value={endHours}
-                                                min={0}
-                                                max={72}
-                                                onChange={setEndHours}
-                                                label="時間"
-                                            />
-                                            <NumberStepper
-                                                value={endMinutesPart}
-                                                min={0}
-                                                max={59}
-                                                onChange={setEndMinutesPart}
-                                                label="分前"
-                                            />
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+                                            <input type="radio" name="endMode" value="PERFORMANCE_START" checked={endMode === 'PERFORMANCE_START'} onChange={(e) => setEndMode(e.target.value)} />
+                                            <span style={{ fontSize: '0.95rem' }}>各公演回の開始時刻まで受付</span>
+                                        </label>
+
+                                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer' }}>
+                                            <input type="radio" name="endMode" value="BEFORE_PERFORMANCE" checked={endMode === 'BEFORE_PERFORMANCE'} onChange={(e) => setEndMode(e.target.value)} style={{ marginTop: '0.4rem' }} />
+                                            <div style={{ display: 'grid', gap: '0.5rem' }}>
+                                                <span style={{ fontSize: '0.95rem' }}>各公演開始の前まで受付（余裕時間を設定）</span>
+                                                {endMode === 'BEFORE_PERFORMANCE' && (
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginLeft: '0.5rem', marginTop: '0.5rem', maxWidth: '400px' }}>
+                                                        <NumberStepper
+                                                            value={endHours}
+                                                            min={0}
+                                                            max={72}
+                                                            onChange={setEndHours}
+                                                            label="時間"
+                                                        />
+                                                        <NumberStepper
+                                                            value={endMinutesPart}
+                                                            min={0}
+                                                            max={59}
+                                                            onChange={setEndMinutesPart}
+                                                            label="分前"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </label>
+
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+                                            <input type="radio" name="endMode" value="DAY_BEFORE" checked={endMode === 'DAY_BEFORE'} onChange={(e) => setEndMode(e.target.value)} />
+                                            <span style={{ fontSize: '0.95rem' }}>各公演日の前日23:59まで受付</span>
+                                        </label>
+
+                                        <button
+                                            type="button"
+                                            className="btn btn-secondary"
+                                            disabled={isUpdating}
+                                            onClick={() => setModalType('SAVE_END')}
+                                            style={{ width: 'fit-content', padding: '0.5rem 1.5rem', fontSize: '0.9rem', marginTop: '0.5rem' }}
+                                        >
+                                            終了条件のみを確定
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                        {hasSavedSchedule && (
+                                            <button
+                                                type="button"
+                                                className="btn btn-secondary"
+                                                disabled={isUpdating}
+                                                onClick={() => setModalType('CLEAR_SCHEDULE')}
+                                                style={{ padding: '0.75rem 1.5rem' }}
+                                            >
+                                                スケジュール設定をすべて解除
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {scheduleMessage && (
+                                        <div style={{
+                                            fontSize: '0.9rem', color: scheduleMessage.type === 'success' ? 'var(--success)' : 'var(--primary)',
+                                            fontWeight: 'bold', padding: '0.5rem 0', animation: 'fadeIn 0.3s'
+                                        }}>
+                                            {scheduleMessage.text}
                                         </div>
                                     )}
                                 </div>
-                            </label>
-
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-                                <input type="radio" name="endMode" value="DAY_BEFORE" checked={endMode === 'DAY_BEFORE'} onChange={(e) => setEndMode(e.target.value)} />
-                                <span style={{ fontSize: '0.95rem' }}>各公演日の前日23:59まで受付</span>
-                            </label>
-
-                            <button
-                                type="button"
-                                className="btn btn-secondary"
-                                disabled={isUpdating}
-                                onClick={() => setModalType('SAVE_END')}
-                                style={{ width: 'fit-content', padding: '0.5rem 1.5rem', fontSize: '0.9rem', marginTop: '0.5rem' }}
-                            >
-                                終了条件のみを確定
-                            </button>
-                        </div>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            {hasSavedSchedule && (
-                                <button
-                                    type="button"
-                                    className="btn btn-secondary"
-                                    disabled={isUpdating}
-                                    onClick={() => setModalType('CLEAR_SCHEDULE')}
-                                    style={{ padding: '0.75rem 1.5rem' }}
-                                >
-                                    スケジュール設定をすべて解除
-                                </button>
-                            )}
-                        </div>
-
-                        {scheduleMessage && (
-                            <div style={{
-                                fontSize: '0.9rem', color: scheduleMessage.type === 'success' ? 'var(--success)' : 'var(--primary)',
-                                fontWeight: 'bold', padding: '0.5rem 0', animation: 'fadeIn 0.3s'
-                            }}>
-                                {scheduleMessage.text}
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
-            </div>
 
-            {/* Link Manager Card with QR Code */}
-            <div className="card" style={{ padding: '2rem' }}>
+            {/* URL + QR Code Section */}
+            <div className="card" style={{ padding: '2rem', marginTop: '1.5rem' }}>
                 <h3 className="heading-md" style={{ marginBottom: '1.5rem', fontSize: '1.25rem' }}>一般予約フォーム URL</h3>
-                <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--secondary)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <input type="text" readOnly value={reservationUrl} style={{ flex: 1, border: 'none', background: 'transparent', fontSize: '0.95rem', outline: 'none', color: 'var(--foreground)' }} />
-                    <button onClick={handleCopy} className={`btn ${copied ? 'btn-success' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', minWidth: '80px' }}>{copied ? 'コピー済' : 'コピー'}</button>
-                </div>
-
-                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-                    <button onClick={handleOpen} className="btn btn-primary" style={{ flex: 1, padding: '1rem', fontWeight: 'bold' }}>予約フォームを開く ↗</button>
-                    <button
-                        onClick={() => setShowQRCode(!showQRCode)}
-                        className="btn btn-secondary"
-                        style={{ padding: '1rem', fontWeight: 'bold', minWidth: '140px' }}
-                    >
-                        {showQRCode ? 'QRコードを閉じる' : 'QRコードを表示'}
-                    </button>
-                </div>
-
-                {showQRCode && (
-                    <div style={{
-                        marginTop: '2rem',
-                        padding: '2rem',
-                        backgroundColor: '#f8f9fa',
-                        borderRadius: '12px',
-                        border: '1px solid var(--card-border)',
-                        textAlign: 'center',
-                        animation: 'fadeIn 0.3s'
-                    }}>
-                        <div style={{ marginBottom: '1.5rem', display: 'inline-block', backgroundColor: 'white', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-                            <QRCodeSVG
-                                value={reservationUrl}
-                                size={180}
-                                level="H"
-                                includeMargin={false}
-                                ref={svgRef}
-                            />
-                            {/* Hidden canvas for PNG export */}
-                            <div style={{ display: 'none' }}>
-                                <QRCodeCanvas
-                                    id="qr-canvas"
-                                    value={reservationUrl}
-                                    size={1024} // High resolution for PNG
-                                    level="H"
-                                    includeMargin={true}
-                                />
-                            </div>
-                        </div>
-
-                        <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-                            チラシやポスター等にご自由にお使いください。
-                        </p>
-
-                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                            <button onClick={downloadPNG} className="btn btn-primary" style={{ padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <span>📥</span> PNG画像として保存
-                            </button>
-                            <button onClick={downloadSVG} className="btn btn-secondary" style={{ padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <span>📐</span> SVG形式として保存
-                            </button>
-                        </div>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '1rem' }}>
-                            ※SVG形式は拡大してもぼやけない、印刷物に適したデータです。
-                        </p>
+                    <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--secondary)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--card-border)', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <input type="text" readOnly value={reservationUrl} style={{ flex: 1, border: 'none', background: 'transparent', fontSize: '0.95rem', outline: 'none', color: 'var(--foreground)' }} />
+                        <button onClick={handleCopy} className={`btn ${copied ? 'btn-success' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', minWidth: '80px' }}>{copied ? 'コピー済' : 'コピー'}</button>
                     </div>
-                )}
-            </div>
+
+                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+                        <button onClick={handleOpen} className="btn btn-primary" style={{ flex: 1, padding: '1rem', fontWeight: 'bold' }}>予約フォームを開く ↗</button>
+                        <button
+                            onClick={() => setShowQRCode(!showQRCode)}
+                            className="btn btn-secondary"
+                            style={{ padding: '1rem', fontWeight: 'bold', minWidth: '140px' }}
+                        >
+                            {showQRCode ? 'QRコードを閉じる' : 'QRコードを表示'}
+                        </button>
+                    </div>
+
+                    {showQRCode && (
+                        <div style={{
+                            marginTop: '2rem',
+                            padding: '2rem',
+                            backgroundColor: '#f8f9fa',
+                            borderRadius: '12px',
+                            border: '1px solid var(--card-border)',
+                            textAlign: 'center',
+                            animation: 'fadeIn 0.3s'
+                        }}>
+                            <div style={{ marginBottom: '1.5rem', display: 'inline-block', backgroundColor: 'white', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                                <QRCodeSVG
+                                    value={reservationUrl}
+                                    size={180}
+                                    level="H"
+                                    includeMargin={false}
+                                    ref={svgRef}
+                                />
+                                {/* Hidden canvas for PNG export */}
+                                <div style={{ display: 'none' }}>
+                                    <QRCodeCanvas
+                                        id="qr-canvas"
+                                        value={reservationUrl}
+                                        size={1024} // High resolution for PNG
+                                        level="H"
+                                        includeMargin={true}
+                                    />
+                                </div>
+                            </div>
+
+                            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+                                チラシやポスター等にご自由にお使いください。
+                            </p>
+
+                            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                                <button onClick={downloadPNG} className="btn btn-primary" style={{ padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span>📥</span> PNG画像として保存
+                                </button>
+                                <button onClick={downloadSVG} className="btn btn-secondary" style={{ padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span>📐</span> SVG形式として保存
+                                </button>
+                            </div>
+                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '1rem' }}>
+                                ※SVG形式は拡大してもぼやけない、印刷物に適したデータです。
+                            </p>
+                        </div>
+                    )}
+                </div>
         </div>
     );
 }

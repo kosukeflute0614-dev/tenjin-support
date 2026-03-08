@@ -131,20 +131,20 @@ export default function DashboardPage() {
         {
             id: 'reservation',
             label: '予約・受付',
-            description: '予約の受付から当日対応まで',
+            description: '予約の受付設定と予約の管理',
             borderColor: '#0891b2',
             items: [
                 { href: prodHref('/reception'), icon: <Bell size={32} color="var(--primary)" />, title: '予約受付設定', desc: '受付の開始・停止・期間設定', badge: receptionBadge },
                 { href: '/reservations', icon: <Ticket size={32} color="var(--primary)" />, title: '予約管理', desc: '予約の確認・追加', badge: reservationBadge },
-                { href: '/reception', icon: <Smartphone size={32} color="var(--primary)" />, title: '当日受付', desc: '来場処理・当日券対応' },
             ]
         },
         {
-            id: 'monitoring',
-            label: 'モニタリング・スタッフ',
-            description: '来場状況の確認とスタッフ管理',
+            id: 'operations',
+            label: '当日の運営',
+            description: '公演当日の受付・来場管理・スタッフ体制',
             borderColor: '#d97706',
             items: [
+                { href: '/reception', icon: <Smartphone size={32} color="var(--primary)" />, title: '当日受付', desc: '来場処理・当日券対応' },
                 { href: prodHref('/attendance'), icon: <Users size={32} color="var(--primary)" />, title: '来場状況', desc: 'リアルタイム着券状況の確認' },
                 { href: prodHref('/staff'), icon: <Key size={32} color="var(--primary)" />, title: 'スタッフ管理', desc: '合鍵（スタッフ用URL）の発行と管理', badge: staffBadge },
             ]

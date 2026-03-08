@@ -7,6 +7,7 @@ import { useAuth } from './AuthProvider';
 import { useToast } from '@/components/Toast';
 import { addActorClient, deleteActorClient } from '@/lib/client-firestore';
 import { Production, Actor } from '@/types';
+import { Link2, ChevronDown, ChevronUp, Copy, Trash2, UserPlus, Users } from 'lucide-react';
 
 type Props = {
     production: Production;
@@ -86,71 +87,104 @@ export default function ActorUrlManager({ production }: Props) {
     const actors = production.actors || [];
 
     return (
-        <div style={{ marginTop: '1.5rem', borderTop: '1px solid #f0f0f0', paddingTop: '1.5rem' }}>
+        <div style={{ marginTop: '1.5rem' }}>
+            {/* Accordion header */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="btn btn-secondary"
                 style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.5rem',
-                    fontSize: '0.85rem',
-                    padding: '0.5rem 1rem',
-                    color: '#666',
-                    background: '#f8f9fa',
-                    border: '1px solid #e9ecef',
-                    borderRadius: '20px',
-                    transition: 'all 0.3s ease'
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    padding: '1rem 1.25rem',
+                    background: isOpen ? '#faf5f5' : '#f8f9fa',
+                    border: '1px solid',
+                    borderColor: isOpen ? 'var(--primary)' : '#e2e8f0',
+                    borderRadius: isOpen ? '12px 12px 0 0' : '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
                 }}
             >
-                <span style={{
-                    transition: 'transform 0.3s ease',
-                    transform: isOpen ? 'rotate(90deg)' : 'rotate(0)'
-                }}>▶</span>
-                役者・窓口別のURLを管理
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <Link2 size={18} style={{ color: 'var(--primary)' }} />
+                    <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#2d3748' }}>
+                            役者・窓口別URL
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#718096', marginTop: '2px' }}>
+                            出演者ごとの専用予約URLを発行・管理
+                        </div>
+                    </div>
+                </div>
+                {isOpen
+                    ? <ChevronUp size={18} style={{ color: '#718096' }} />
+                    : <ChevronDown size={18} style={{ color: '#718096' }} />
+                }
             </button>
 
+            {/* Collapsible content */}
             <div style={{
                 maxHeight: isOpen ? '2000px' : '0',
                 overflow: 'hidden',
                 transition: 'max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
                 opacity: isOpen ? 1 : 0,
-                marginTop: isOpen ? '1.5rem' : '0'
             }}>
                 <div style={{
                     backgroundColor: '#fff',
                     padding: '1.5rem',
-                    borderRadius: '12px',
-                    border: '1px solid #edf2f7',
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.02)'
+                    borderRadius: '0 0 12px 12px',
+                    border: '1px solid var(--primary)',
+                    borderTop: 'none',
                 }}>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem', color: '#2d3748' }}>役者・紹介者別URLの発行</h4>
+                    {/* Add form */}
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <label style={{
+                            display: 'block',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            color: '#4a5568',
+                            marginBottom: '0.5rem',
+                        }}>
+                            <UserPlus size={14} style={{ verticalAlign: 'middle', marginRight: '0.35rem' }} />
+                            新しい役者・窓口を追加
+                        </label>
+                        <form onSubmit={handleAddActor} style={{ display: 'flex', gap: '0.5rem' }}>
+                            <input
+                                type="text"
+                                value={newActorName}
+                                onChange={(e) => setNewActorName(e.target.value)}
+                                placeholder="役者名または窓口名を入力"
+                                className="input"
+                                style={{ marginBottom: 0, flex: 1, fontSize: '0.9rem' }}
+                                required
+                            />
+                            <button
+                                type="submit"
+                                disabled={isProcessing || !newActorName.trim()}
+                                className="btn btn-primary"
+                                style={{ whiteSpace: 'nowrap', padding: '0 1.2rem' }}
+                            >
+                                追加
+                            </button>
+                        </form>
+                    </div>
 
-                    <form onSubmit={handleAddActor} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                        <input
-                            type="text"
-                            value={newActorName}
-                            onChange={(e) => setNewActorName(e.target.value)}
-                            placeholder="役者名または窓口名を入力"
-                            className="input"
-                            style={{ marginBottom: 0, flex: 1, fontSize: '0.9rem' }}
-                            required
-                        />
-                        <button
-                            type="submit"
-                            disabled={isProcessing || !newActorName.trim()}
-                            className="btn btn-primary"
-                            style={{ whiteSpace: 'nowrap', padding: '0 1.2rem' }}
-                        >
-                            追加
-                        </button>
-                    </form>
-
+                    {/* Actor cards */}
                     <div style={{ display: 'grid', gap: '0.75rem' }}>
                         {actors.length === 0 ? (
-                            <p style={{ textAlign: 'center', color: '#a0aec0', fontSize: '0.85rem', padding: '1rem' }}>
-                                役者が登録されていません。上のフォームから追加してください。
-                            </p>
+                            <div style={{
+                                textAlign: 'center',
+                                padding: '2.5rem 1rem',
+                                color: '#a0aec0',
+                            }}>
+                                <Users size={40} style={{ color: '#cbd5e0', marginBottom: '0.75rem' }} />
+                                <p style={{ fontSize: '0.9rem', color: '#718096', marginBottom: '0.25rem' }}>
+                                    役者・窓口がまだ登録されていません
+                                </p>
+                                <p style={{ fontSize: '0.8rem', color: '#a0aec0' }}>
+                                    上のフォームから追加して、専用予約URLを発行しましょう
+                                </p>
+                            </div>
                         ) : (
                             actors.map((actor: Actor) => {
                                 const dedicatedUrl = `${baseUrl}/book/${production.customId || production.id}?actor=${actor.id}`;
@@ -160,63 +194,95 @@ export default function ActorUrlManager({ production }: Props) {
                                     <div
                                         key={actor.id}
                                         style={{
+                                            padding: '1rem 1.25rem',
+                                            backgroundColor: '#fff',
+                                            borderRadius: '10px',
+                                            border: '1px solid #e2e8f0',
+                                            boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                                        }}
+                                    >
+                                        {/* Actor name + badge */}
+                                        <div style={{
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'space-between',
-                                            padding: '0.75rem 1rem',
-                                            backgroundColor: '#f8fafc',
-                                            borderRadius: '8px',
-                                            border: '1px solid #edf2f7'
-                                        }}
-                                    >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
-                                            <div style={{ fontWeight: 'bold', color: '#2d3748', minWidth: '80px' }}>{actor.name}</div>
+                                            marginBottom: '0.6rem',
+                                        }}>
                                             <div style={{
-                                                fontSize: '0.75rem',
-                                                color: '#718096',
-                                                backgroundColor: '#fff',
-                                                padding: '0.2rem 0.5rem',
-                                                borderRadius: '4px',
-                                                border: '1px solid #e2e8f0',
-                                                maxWidth: '250px',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                whiteSpace: 'nowrap'
+                                                fontWeight: 600,
+                                                fontSize: '0.95rem',
+                                                color: '#2d3748',
                                             }}>
-                                                {dedicatedUrl}
+                                                {actor.name}
                                             </div>
+                                            <span style={{
+                                                display: 'inline-block',
+                                                fontSize: '0.75rem',
+                                                fontWeight: 600,
+                                                color: count > 0 ? 'var(--primary)' : '#a0aec0',
+                                                backgroundColor: count > 0 ? '#fef2f2' : '#f7fafc',
+                                                padding: '0.2rem 0.6rem',
+                                                borderRadius: '999px',
+                                                border: `1px solid ${count > 0 ? '#fecaca' : '#e2e8f0'}`,
+                                            }}>
+                                                {count}件
+                                            </span>
                                         </div>
 
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                                            <div style={{ textAlign: 'center' }}>
-                                                <div style={{ fontSize: '0.7rem', color: '#a0aec0', lineHeight: 1 }}>予約数</div>
-                                                <div style={{ fontWeight: 'bold', color: 'var(--primary)', fontSize: '1.1rem' }}>{count}</div>
-                                            </div>
+                                        {/* URL block */}
+                                        <div style={{
+                                            fontSize: '0.75rem',
+                                            fontFamily: 'monospace',
+                                            color: '#718096',
+                                            backgroundColor: '#f7fafc',
+                                            padding: '0.5rem 0.75rem',
+                                            borderRadius: '6px',
+                                            border: '1px solid #edf2f7',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap',
+                                            marginBottom: '0.75rem',
+                                        }}>
+                                            {dedicatedUrl}
+                                        </div>
 
-                                            <div style={{ display: 'flex', gap: '0.4rem' }}>
-                                                <button
-                                                    onClick={() => copyToClipboard(dedicatedUrl)}
-                                                    className="btn btn-secondary"
-                                                    style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '6px' }}
-                                                >
-                                                    URLをコピー
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteActor(actor.id)}
-                                                    className="btn"
-                                                    style={{
-                                                        padding: '0.4rem',
-                                                        color: '#e53e3e',
-                                                        fontSize: '0.8rem',
-                                                        background: 'transparent',
-                                                        border: 'none',
-                                                        cursor: 'pointer'
-                                                    }}
-                                                    title="削除"
-                                                >
-                                                    🗑️
-                                                </button>
-                                            </div>
+                                        {/* Action buttons */}
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <button
+                                                onClick={() => copyToClipboard(dedicatedUrl)}
+                                                className="btn btn-secondary"
+                                                style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.35rem',
+                                                    padding: '0.4rem 0.8rem',
+                                                    fontSize: '0.8rem',
+                                                    borderRadius: '6px',
+                                                }}
+                                            >
+                                                <Copy size={13} />
+                                                URLをコピー
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteActor(actor.id)}
+                                                className="btn"
+                                                style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.3rem',
+                                                    padding: '0.4rem 0.7rem',
+                                                    color: '#e53e3e',
+                                                    fontSize: '0.8rem',
+                                                    background: 'transparent',
+                                                    border: '1px solid #fed7d7',
+                                                    borderRadius: '6px',
+                                                    cursor: 'pointer',
+                                                }}
+                                                title="削除"
+                                            >
+                                                <Trash2 size={13} />
+                                                削除
+                                            </button>
                                         </div>
                                     </div>
                                 );

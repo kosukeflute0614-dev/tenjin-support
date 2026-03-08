@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { DayPicker } from 'react-day-picker';
 import { format, parse, isValid } from 'date-fns';
 import { ja } from 'date-fns/locale';
@@ -42,11 +42,13 @@ export function SmartMaskedDatePicker({
 
     // hiddenValue が変わるたびに onChange を呼ぶ
     const hiddenValue = inputValue.replace(/ \/ /g, '-').replace(/ /g, '');
+    const onChangeRef = useRef(onChange);
+    onChangeRef.current = onChange;
     useEffect(() => {
-        if (onChange) {
-            onChange(hiddenValue);
+        if (onChangeRef.current) {
+            onChangeRef.current(hiddenValue);
         }
-    }, [hiddenValue, onChange]);
+    }, [hiddenValue]);
 
     // マスキングロジック
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -216,11 +218,13 @@ export function SmartMaskedTimeInput({
     }, [defaultValue]);
 
     const hiddenValue = inputValue.replace(/ : /g, ':').replace(/ /g, '');
+    const onChangeRef = useRef(onChange);
+    onChangeRef.current = onChange;
     useEffect(() => {
-        if (onChange) {
-            onChange(hiddenValue);
+        if (onChangeRef.current) {
+            onChangeRef.current(hiddenValue);
         }
-    }, [hiddenValue, onChange]);
+    }, [hiddenValue]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const rawValue = e.target.value.replace(/\D/g, '').slice(0, 4);

@@ -164,6 +164,7 @@ export default function ProductionDetailPage({ params }: { params: Promise<{ id:
                 production={details.production}
                 performances={details.performances}
                 ticketTypes={details.production.ticketTypes}
+                userEmail={user.email || ''}
             />
         </div>
     );

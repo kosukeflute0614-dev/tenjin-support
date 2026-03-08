@@ -17,6 +17,30 @@ import { useToast } from '@/components/Toast'
 
 type ReservationWithTickets = any
 
+function hasInvitationTickets(res: any): boolean {
+    return (res.tickets || []).some((t: any) => t.ticketType?.isInvitation === true);
+}
+
+function InvitationBadge() {
+    return (
+        <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '2px',
+            padding: '0.15rem 0.5rem',
+            borderRadius: '4px',
+            fontSize: '0.7rem',
+            fontWeight: 'bold',
+            background: '#7c3aed',
+            color: '#fff',
+            marginLeft: '0.4rem',
+            letterSpacing: '0.05em',
+        }}>
+            招待
+        </span>
+    );
+}
+
 export default function CheckinList({
     reservations,
     performanceId,
@@ -90,7 +114,10 @@ export default function CheckinList({
                                 )}
                                 <tr style={{ borderBottom: '1px solid #eee', background: (res.checkinStatus === 'CHECKED_IN') ? '#f0fff4' : 'transparent' }}>
                                     <td style={{ padding: '1rem' }}>
-                                        <div style={{ fontWeight: 'bold' }}>{res.customerName}</div>
+                                        <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+                                            {res.customerName}
+                                            {hasInvitationTickets(res) && <InvitationBadge />}
+                                        </div>
                                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{res.customerNameKana}</div>
                                     </td>
                                     <td style={{ padding: '1rem' }}>

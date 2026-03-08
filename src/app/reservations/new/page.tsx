@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { fetchBookingOptionsClient } from '@/lib/client-firestore';
+import { fetchBookingOptionsClient, ensureInvitationTicket } from '@/lib/client-firestore';
 import ReservationForm from '@/components/ReservationForm';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
@@ -15,6 +15,8 @@ export default function NewReservationPage() {
         const fetchProductions = async () => {
             if (user) {
                 const data = await fetchBookingOptionsClient(undefined, user.uid);
+                // 既存公演に招待チケットが無ければ自動追加
+                await Promise.all(data.map((prod: any) => ensureInvitationTicket(prod.id, user.uid)));
                 setProductions(data);
             }
             setIsDataLoading(false);

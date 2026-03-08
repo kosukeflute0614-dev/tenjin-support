@@ -145,6 +145,29 @@ export async function updateProductionCustomIdClient(productionId: string, custo
 }
 
 /**
+ * 公演の基本情報（タイトル・会場名・主催者メールアドレス）を更新する（クライアント側）
+ */
+export async function updateProductionBasicInfoClient(
+    productionId: string,
+    data: { title?: string; venue?: string; organizerEmail?: string },
+): Promise<void> {
+    if (!productionId) return;
+
+    const updateData: Record<string, unknown> = { updatedAt: serverTimestamp() };
+    if (data.title !== undefined) updateData.title = data.title;
+    if (data.venue !== undefined) updateData.venue = data.venue;
+    if (data.organizerEmail !== undefined) updateData.organizerEmail = data.organizerEmail;
+
+    try {
+        const productionRef = doc(db, "productions", productionId);
+        await updateDoc(productionRef, updateData);
+    } catch (error) {
+        console.error("[client-firestore] updateProductionBasicInfoClient error:", error);
+        throw error;
+    }
+}
+
+/**
  * カスタムIDの重複をチェックする（クライアント側）
  */
 export async function checkCustomIdDuplicateClient(customId: string, excludeProductionId?: string): Promise<boolean> {

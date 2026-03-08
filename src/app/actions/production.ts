@@ -19,6 +19,7 @@ import { Production } from "@/types";
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { serializeDoc, serializeDocs, toDate } from "@/lib/firestore-utils";
+import { INVITATION_TICKET_NAME, INVITATION_TICKET_ID_PREFIX } from '@/lib/constants';
 import crypto from 'crypto';
 
 function hashPasscode(passcode: string): string {
@@ -87,6 +88,20 @@ export async function createProduction(formData: FormData, userId: string) {
         },
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
+    });
+
+    // 公演IDが確定したので、固定IDの招待チケットを追加
+    const invitationTicket = {
+        id: INVITATION_TICKET_ID_PREFIX + newDoc.id,
+        name: INVITATION_TICKET_NAME,
+        price: 0,
+        advancePrice: 0,
+        doorPrice: 0,
+        isPublic: false,
+        isInvitation: true,
+    };
+    await updateDoc(doc(db, "productions", newDoc.id), {
+        ticketTypes: [invitationTicket],
     });
 
     revalidatePath('/productions')

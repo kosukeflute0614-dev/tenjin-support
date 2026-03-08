@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { DuplicateGroup, FirestoreReservation } from '@/types';
-import { cancelReservation } from '@/app/actions/reservation';
+import { cancelReservationClient } from '@/lib/client-firestore';
 import { formatDate, formatTime } from '@/lib/format';
 import { useAuth } from './AuthProvider';
 import { useToast } from '@/components/Toast';
@@ -36,7 +36,7 @@ export default function DuplicateNotification({ groups }: Props) {
         setIsProcessing(true);
         try {
             if (!user) throw new Error('Unauthorized');
-            await cancelReservation(confirmReservationId, user.uid);
+            await cancelReservationClient(confirmReservationId, user.uid);
             // Re-filtering will be handled by server component revalidation
             if (selectedGroup) {
                 const updatedReservations = selectedGroup.reservations.filter(r => r.id !== confirmReservationId);

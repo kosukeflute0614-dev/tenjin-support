@@ -41,6 +41,9 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
         }
     };
 
+    // 招待チケットは公演設定の券種・価格ページでは非表示にする
+    const visibleTicketTypes = ticketTypes.filter(tt => tt.isInvitation !== true);
+
     return (
         <section>
             <h3 className="heading-md">券種 (Ticket Types)</h3>
@@ -136,7 +139,7 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
             )}
             <div className="card" style={{ marginBottom: '1.5rem' }}>
                 <ul style={{ listStyle: 'none', padding: 0 }}>
-                    {ticketTypes.map(ticket => (
+                    {visibleTicketTypes.map(ticket => (
                         <li key={ticket.id} style={{ padding: '0.75rem 0', borderBottom: '1px solid var(--card-border)' }}>
                             {editingId === ticket.id ? (
                                 <form onSubmit={async (e) => {
@@ -217,7 +220,7 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                             )}
                         </li>
                     ))}
-                    {ticketTypes.length === 0 && (
+                    {visibleTicketTypes.length === 0 && (
                         <li style={{ color: 'var(--text-muted)', padding: '1rem 0' }}>券種がまだ登録されていません。</li>
                     )}
                 </ul>

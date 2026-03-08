@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import PerformanceManager from './PerformanceManager';
 import TicketTypeManager from './TicketTypeManager';
 
-import { updateProductionCustomIdClient, checkCustomIdDuplicateClient } from '@/lib/client-firestore';
+import { updateProductionCustomIdClient, checkCustomIdDuplicateClient, updateProductionBasicInfoClient } from '@/lib/client-firestore';
 import { Production, Performance, TicketType } from '@/types';
 import { Calendar, Ticket, Settings } from 'lucide-react';
 import { useToast } from '@/components/Toast';
@@ -14,11 +14,13 @@ type TabType = 'schedule' | 'tickets' | 'basic';
 export default function ProductionSettingsTabs({
     production,
     performances,
-    ticketTypes
+    ticketTypes,
+    userEmail,
 }: {
     production: Production;
     performances: Performance[];
     ticketTypes: TicketType[];
+    userEmail: string;
 }) {
     const { showToast } = useToast();
     const [activeTab, setActiveTab] = useState<TabType>('schedule');
@@ -27,6 +29,12 @@ export default function ProductionSettingsTabs({
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const [baseUrl, setBaseUrl] = useState('');
+
+    // 基本情報フォーム
+    const [title, setTitle] = useState(production.title);
+    const [venue, setVenue] = useState(production.venue || '');
+    const [organizerEmail, setOrganizerEmail] = useState(production.organizerEmail || userEmail);
+    const [isSavingBasic, setIsSavingBasic] = useState(false);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -67,6 +75,32 @@ export default function ProductionSettingsTabs({
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
         showToast('URLをクリップボードにコピーしました。', 'success');
+    };
+
+    const hasBasicChanges =
+        title !== production.title ||
+        venue !== (production.venue || '') ||
+        organizerEmail !== (production.organizerEmail || userEmail);
+
+    const handleSaveBasicInfo = async () => {
+        if (!title.trim()) {
+            showToast('公演タイトルは必須です。', 'warning');
+            return;
+        }
+        setIsSavingBasic(true);
+        try {
+            await updateProductionBasicInfoClient(production.id, {
+                title: title.trim(),
+                venue: venue.trim(),
+                organizerEmail: organizerEmail.trim(),
+            });
+            showToast('基本情報を保存しました。', 'success');
+        } catch (err) {
+            console.error('Failed to save basic info:', err);
+            showToast('保存に失敗しました。', 'error');
+        } finally {
+            setIsSavingBasic(false);
+        }
     };
 
     const tabIcons: Record<string, React.ReactNode> = {
@@ -141,13 +175,55 @@ export default function ProductionSettingsTabs({
                                 <input
                                     type="text"
                                     className="input"
-                                    defaultValue={production.title}
-                                    disabled
-                                    style={{ backgroundColor: '#f9f9f9' }}
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    placeholder="公演タイトルを入力"
+                                    style={{ marginBottom: 0 }}
                                 />
-                                <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.5rem' }}>※タイトルの変更は現在サポートされていません。</p>
+                                <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.5rem' }}>
+                                    メールテンプレートの「公演名」変数に使用されます。
+                                </p>
                             </div>
                             <div className="form-group">
+                                <label className="label">会場名</label>
+                                <input
+                                    type="text"
+                                    className="input"
+                                    value={venue}
+                                    onChange={(e) => setVenue(e.target.value)}
+                                    placeholder="例: 新宿シアターモリエール"
+                                    style={{ marginBottom: 0 }}
+                                />
+                                <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.5rem' }}>
+                                    メールテンプレートの「会場名」変数に使用されます。
+                                </p>
+                            </div>
+                            <div className="form-group">
+                                <label className="label">主催者メールアドレス</label>
+                                <input
+                                    type="email"
+                                    className="input"
+                                    value={organizerEmail}
+                                    onChange={(e) => setOrganizerEmail(e.target.value)}
+                                    placeholder="example@gmail.com"
+                                    style={{ marginBottom: 0 }}
+                                />
+                                <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.5rem' }}>
+                                    メールテンプレートの「主催者メールアドレス」変数に使用されます。お客様からの問い合わせ先として表示されます。
+                                </p>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                <button
+                                    onClick={handleSaveBasicInfo}
+                                    disabled={isSavingBasic || !hasBasicChanges || !title.trim()}
+                                    className="btn btn-primary"
+                                    style={{ padding: '0.6rem 2rem' }}
+                                >
+                                    {isSavingBasic ? '保存中...' : '基本情報を保存'}
+                                </button>
+                            </div>
+
+                            <div className="form-group" style={{ borderTop: '1px solid #eee', paddingTop: '1.5rem', marginTop: '0.5rem' }}>
                                 <label className="label">公演ID (システム管理用)</label>
                                 <code style={{ fontSize: '0.9rem', color: '#666' }}>{production.id}</code>
                             </div>
