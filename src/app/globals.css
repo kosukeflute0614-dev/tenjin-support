@@ -227,7 +227,7 @@ a {
 /* Dashboard Styles */
 .menu-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 1.5rem;
   margin-top: 2rem;
 }
@@ -424,7 +424,7 @@ p a, li a, span a, td a {
 
 @media (max-width: 768px) {
   .menu-grid {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 1rem;
   }
   .menu-card { min-height: 150px; }

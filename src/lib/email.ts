@@ -21,6 +21,7 @@ interface ReservationEmailData {
     venue?: string;
     template?: EmailTemplateData | null;
     confirmationEnabled?: boolean;
+    ccToOrganizer?: boolean;
 }
 
 /**
@@ -168,7 +169,7 @@ export async function sendReservationConfirmation(data: ReservationEmailData): P
         );
     }
 
-    const sendPayload = {
+    const sendPayload: Record<string, unknown> = {
         from: FROM_EMAIL,
         to: reservation.customerEmail,
         replyTo: REPLY_TO,
@@ -181,15 +182,31 @@ export async function sendReservationConfirmation(data: ReservationEmailData): P
         to: sendPayload.to,
         replyTo: sendPayload.replyTo,
         subject: sendPayload.subject,
-        textLength: sendPayload.text.length,
+        textLength: text.length,
         usingTemplate: !!(template?.subject && template?.body),
     }, null, 2));
 
     try {
-        const result = await resend.emails.send(sendPayload);
+        const result = await resend.emails.send(sendPayload as any);
         console.log('[Email] 予約確認メール送信成功:', result.data?.id || 'no id');
         if (result.error) {
             console.warn('[Email] レスポンスにエラー:', JSON.stringify(result.error, null, 2));
+        }
+
+        // 主催者へのコピー送信
+        if (data.ccToOrganizer && organizerEmail?.trim()) {
+            try {
+                await resend.emails.send({
+                    from: FROM_EMAIL,
+                    to: organizerEmail.trim(),
+                    replyTo: REPLY_TO,
+                    subject: `[コピー] ${subject}`,
+                    text: `※ このメールは主催者コピーです（送信先: ${reservation.customerEmail}）\n\n${text}`,
+                });
+                console.log('[Email] 主催者コピー送信成功');
+            } catch (ccError) {
+                console.error('[Email] 主催者コピー送信失敗:', ccError);
+            }
         }
     } catch (error: unknown) {
         console.error('[Email] 予約確認メール送信失敗');

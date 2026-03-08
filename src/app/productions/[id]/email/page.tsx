@@ -15,7 +15,7 @@ import TemplateInlineEditor from '@/components/TemplateInlineEditor';
 import ConfirmModal from '@/components/ConfirmModal';
 import { sendBroadcastEmails } from '@/app/actions/broadcast';
 
-type Tab = 'AUTO' | 'BROADCAST' | 'HISTORY';
+type Tab = 'AUTO' | 'BROADCAST' | 'HISTORY' | 'SETTINGS';
 type BroadcastMode = 'all' | 'custom';
 
 const TARGET_LABELS: Record<string, string> = {
@@ -164,6 +164,7 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
         confirmationEnabled: boolean;
         reminder: EmailTemplateData;
         reminderEnabled: boolean;
+        ccToOrganizer: boolean;
     }>) => {
         if (!user || !production) return;
         setIsSaving(true);
@@ -208,7 +209,7 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
     const fetchHistory = useCallback(async () => {
         if (!user) return;
         try {
-            const q = query(collection(db, 'broadcastLogs'), where('productionId', '==', id));
+            const q = query(collection(db, 'broadcastLogs'), where('productionId', '==', id), where('userId', '==', user.uid));
             const snapshot = await getDocs(q);
             const logs = snapshot.docs.map(d => {
                 const data = d.data();
@@ -292,7 +293,9 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
             showToast('会場名が設定されていません。公演設定の基本情報から会場名を設定してください。', 'warning');
             return;
         }
-        if (combined.includes('{{organizer_email}}') && !production.organizerEmail?.trim()) {
+        // organizerEmail: production に設定がなければログインユーザーのメールをフォールバック
+        const effectiveOrganizerEmail = production.organizerEmail?.trim() || user.email || '';
+        if (combined.includes('{{organizer_email}}') && !effectiveOrganizerEmail) {
             showToast('主催者メールアドレスが設定されていません。公演設定の基本情報から設定してください。', 'warning');
             return;
         }
@@ -326,7 +329,8 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
             // サーバーアクションで Resend API 送信のみ実行
             const result = await sendBroadcastEmails(
                 recipients, broadcastSubject, broadcastBody,
-                production.title, '', production.organizerEmail || '',
+                production.title, '', effectiveOrganizerEmail,
+                production.emailTemplates?.ccToOrganizer,
             );
 
             // 送信履歴をクライアント側で Firestore に保存
@@ -380,6 +384,7 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
         { id: 'AUTO', label: '自動メール', icon: '⚡' },
         { id: 'BROADCAST', label: '一斉送信', icon: '📨' },
         { id: 'HISTORY', label: '送信履歴', icon: '📋' },
+        { id: 'SETTINGS', label: 'メール設定', icon: '⚙️' },
     ];
 
     /** プレビュー表示用: テンプレート変数部分をハイライト */
@@ -477,8 +482,9 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                                     saveEmailTemplates({ confirmationEnabled: newVal });
                                 }}
                                 style={{
-                                    width: '52px', height: '28px', borderRadius: '14px',
-                                    border: 'none', cursor: 'pointer',
+                                    width: '52px', minWidth: '52px', height: '28px', minHeight: '28px', maxHeight: '28px',
+                                    borderRadius: '14px',
+                                    border: 'none', cursor: 'pointer', padding: 0,
                                     background: confirmationEnabled ? 'var(--primary)' : '#ccc',
                                     position: 'relative', transition: 'background 0.2s', flexShrink: 0,
                                 }}
@@ -547,8 +553,9 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                                     saveEmailTemplates({ reminderEnabled: newVal });
                                 }}
                                 style={{
-                                    width: '52px', height: '28px', borderRadius: '14px',
-                                    border: 'none', cursor: 'pointer',
+                                    width: '52px', minWidth: '52px', height: '28px', minHeight: '28px', maxHeight: '28px',
+                                    borderRadius: '14px',
+                                    border: 'none', cursor: 'pointer', padding: 0,
                                     background: reminderEnabled ? 'var(--primary)' : '#ccc',
                                     position: 'relative', transition: 'background 0.2s', flexShrink: 0,
                                 }}
@@ -869,6 +876,65 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            )}
+
+            {/* メール設定タブ */}
+            {activeTab === 'SETTINGS' && (
+                <div className="card" style={{ padding: '1.5rem' }}>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>⚙️ メール設定</h3>
+
+                    <div style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '1.25rem', background: '#f8f9fa', borderRadius: '10px',
+                        border: '1px solid #eee',
+                    }}>
+                        <div>
+                            <div style={{ fontWeight: '600', fontSize: '0.95rem', marginBottom: '0.3rem' }}>
+                                メールのコピーを主催者に送信
+                            </div>
+                            <p style={{ margin: 0, fontSize: '0.82rem', color: '#888', lineHeight: '1.5' }}>
+                                有効にすると、自動メール（予約確認）と一斉送信メールが送られたタイミングで、<br />
+                                主催者メールアドレス宛にもコピーが届きます。
+                                {production.organizerEmail?.trim() ? (
+                                    <span style={{ display: 'block', marginTop: '0.3rem', color: '#555' }}>
+                                        送信先: <strong>{production.organizerEmail}</strong>
+                                    </span>
+                                ) : (
+                                    <span style={{ display: 'block', marginTop: '0.3rem', color: '#d97706' }}>
+                                        ※ 主催者メールアドレスが未設定です。公演設定の基本情報から設定してください。
+                                    </span>
+                                )}
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => {
+                                const newValue = !production.emailTemplates?.ccToOrganizer;
+                                saveEmailTemplates({ ccToOrganizer: newValue });
+                            }}
+                            disabled={isSaving}
+                            style={{
+                                position: 'relative',
+                                width: '52px', minWidth: '52px', height: '28px', minHeight: '28px', maxHeight: '28px',
+                                borderRadius: '14px', border: 'none', cursor: 'pointer', padding: 0,
+                                background: production.emailTemplates?.ccToOrganizer ? 'var(--primary)' : '#d1d5db',
+                                transition: 'background 0.2s',
+                                flexShrink: 0,
+                                marginLeft: '1rem',
+                            }}
+                        >
+                            <div style={{
+                                position: 'absolute',
+                                top: '3px',
+                                left: production.emailTemplates?.ccToOrganizer ? '27px' : '3px',
+                                width: '22px', height: '22px',
+                                borderRadius: '50%',
+                                background: '#fff',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                                transition: 'left 0.2s',
+                            }} />
+                        </button>
                     </div>
                 </div>
             )}

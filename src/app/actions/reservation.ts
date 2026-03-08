@@ -123,6 +123,7 @@ export async function createReservation(data: FirestoreReservation) {
                     organizerEmail: production.organizerEmail,
                     template: production.emailTemplates?.confirmation || null,
                     confirmationEnabled: production.emailTemplates?.confirmationEnabled,
+                    ccToOrganizer: production.emailTemplates?.ccToOrganizer,
                 });
             }
         } catch (emailError) {
@@ -165,6 +166,7 @@ export async function sendReservationEmail(reservationData: {
                 organizerEmail: production.organizerEmail,
                 template: production.emailTemplates?.confirmation || null,
                 confirmationEnabled: production.emailTemplates?.confirmationEnabled,
+                ccToOrganizer: production.emailTemplates?.ccToOrganizer,
             });
         }
     } catch (emailError) {

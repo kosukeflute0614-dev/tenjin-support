@@ -95,6 +95,7 @@ export interface EmailTemplates {
     confirmationEnabled?: boolean;
     reminder?: EmailTemplateData;
     reminderEnabled?: boolean;
+    ccToOrganizer?: boolean;
 }
 
 export interface Production {

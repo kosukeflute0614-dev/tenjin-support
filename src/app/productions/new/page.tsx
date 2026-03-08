@@ -11,13 +11,12 @@ import { addTicketTypeClient } from '@/lib/client-firestore';
 import { SmartMaskedDatePicker, SmartMaskedTimeInput } from '@/components/SmartInputs';
 import { Trash2, Plus, ArrowRight, ArrowLeft, Check } from 'lucide-react';
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 3;
 
 const STEP_LABELS = [
     '公演タイトル',
     '公演日時',
     '券種・価格',
-    '基本情報',
 ];
 
 interface PerformanceEntry {
@@ -54,11 +53,6 @@ export default function NewProductionPage() {
     const [tickets, setTickets] = useState<TicketEntry[]>([
         { id: '1', name: '', advancePrice: 0, doorPrice: 0 },
     ]);
-
-    // Step 4: 基本情報
-    const [venue, setVenue] = useState('');
-    const [organizerEmail, setOrganizerEmail] = useState('');
-    const [customId, setCustomId] = useState('');
 
     // --- Step 2 helpers ---
     const addPerformance = () => {
@@ -113,7 +107,6 @@ export default function NewProductionPage() {
             case 1: return isStep1Valid;
             case 2: return isStep2Valid;
             case 3: return isStep3Valid;
-            case 4: return true;
             default: return false;
         }
     };
@@ -156,23 +149,14 @@ export default function NewProductionPage() {
                 );
             }
 
-            // 5. 基本情報（任意項目）
-            const basicInfo: { title?: string; venue?: string; organizerEmail?: string } = {};
-            if (venue.trim()) basicInfo.venue = venue.trim();
-            if (organizerEmail.trim()) basicInfo.organizerEmail = organizerEmail.trim();
-            if (Object.keys(basicInfo).length > 0) {
-                await updateProductionBasicInfoClient(productionId, basicInfo);
+            // 5. 主催者メールアドレスをデフォルト設定
+            if (user.email) {
+                await updateProductionBasicInfoClient(productionId, {
+                    organizerEmail: user.email,
+                });
             }
 
-            // 6. カスタムID（任意）
-            if (customId.trim()) {
-                const isDuplicate = await checkCustomIdDuplicateClient(customId.trim());
-                if (!isDuplicate) {
-                    await updateProductionCustomIdClient(productionId, customId.trim());
-                }
-            }
-
-            showToast('公演を作成しました！', 'success');
+            showToast('公演を作成しました!', 'success');
             router.push(`/productions/${productionId}`);
         } catch (error) {
             console.error('Production creation error:', error);
@@ -180,13 +164,6 @@ export default function NewProductionPage() {
             setIsCreating(false);
         }
     };
-
-    // --- Organizer email default ---
-    const initOrganizerEmail = useCallback(() => {
-        if (!organizerEmail && user?.email) {
-            setOrganizerEmail(user.email);
-        }
-    }, [organizerEmail, user?.email]);
 
     if (loading) return <div className="flex-center" style={{ height: '50vh' }}>読み込み中...</div>;
 
@@ -202,11 +179,6 @@ export default function NewProductionPage() {
                 </Link>
             </div>
         );
-    }
-
-    // Step 4 初回表示時にデフォルトメール設定
-    if (step === 4) {
-        initOrganizerEmail();
     }
 
     return (
@@ -490,71 +462,6 @@ export default function NewProductionPage() {
                         </button>
                     </div>
                 )}
-
-                {/* Step 4: 基本情報（任意） */}
-                {step === 4 && (
-                    <div>
-                        <h3 style={{ fontSize: '1.15rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                            基本情報を入力してください
-                        </h3>
-                        <p style={{ fontSize: '0.85rem', color: '#888', marginBottom: '1.5rem' }}>
-                            これらの項目はすべて任意です。後から公演設定で変更できます。
-                        </p>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', marginBottom: '0.4rem' }}>
-                                    会場名
-                                </label>
-                                <input
-                                    type="text"
-                                    className="input"
-                                    value={venue}
-                                    onChange={(e) => setVenue(e.target.value)}
-                                    placeholder="例: 新宿シアターモリエール"
-                                    style={{ marginBottom: 0 }}
-                                />
-                                <p style={{ fontSize: '0.78rem', color: '#999', marginTop: '0.35rem' }}>
-                                    メールテンプレートの「会場名」変数に使用されます。
-                                </p>
-                            </div>
-
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', marginBottom: '0.4rem' }}>
-                                    主催者メールアドレス
-                                </label>
-                                <input
-                                    type="email"
-                                    className="input"
-                                    value={organizerEmail}
-                                    onChange={(e) => setOrganizerEmail(e.target.value)}
-                                    placeholder="example@gmail.com"
-                                    style={{ marginBottom: 0 }}
-                                />
-                                <p style={{ fontSize: '0.78rem', color: '#999', marginTop: '0.35rem' }}>
-                                    お客様からの問い合わせ先メールアドレスとして表示されます。
-                                </p>
-                            </div>
-
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', marginBottom: '0.4rem' }}>
-                                    予約フォームのカスタムURL
-                                </label>
-                                <input
-                                    type="text"
-                                    className="input"
-                                    value={customId}
-                                    onChange={(e) => setCustomId(e.target.value.replace(/[^a-zA-Z0-9-]/g, ''))}
-                                    placeholder="例: winter-performance-2026"
-                                    style={{ marginBottom: 0 }}
-                                />
-                                <p style={{ fontSize: '0.78rem', color: '#999', marginTop: '0.35rem' }}>
-                                    半角英数字とハイフンが使用できます。分かりやすいURLで予約フォームを共有できます。
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
 
             {/* ナビゲーションボタン */}
@@ -577,20 +484,7 @@ export default function NewProductionPage() {
                     )}
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    {step === 4 && (
-                        <button
-                            onClick={handleComplete}
-                            disabled={isCreating}
-                            className="btn btn-secondary"
-                            style={{
-                                padding: '0.7rem 1.5rem', borderRadius: '8px', fontSize: '0.95rem',
-                            }}
-                        >
-                            {isCreating ? '作成中...' : '後で設定する'}
-                        </button>
-                    )}
-
+                <div>
                     {step < TOTAL_STEPS ? (
                         <button
                             onClick={handleNext}
@@ -606,7 +500,7 @@ export default function NewProductionPage() {
                     ) : (
                         <button
                             onClick={handleComplete}
-                            disabled={isCreating}
+                            disabled={isCreating || !isStep3Valid}
                             className="btn btn-primary"
                             style={{
                                 display: 'inline-flex', alignItems: 'center', gap: '0.4rem',

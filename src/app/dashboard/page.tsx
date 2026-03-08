@@ -13,6 +13,7 @@ import { db } from '@/lib/firebase';
 import { doc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { serializeDoc, toDate } from '@/lib/firestore-utils';
 import { Settings, Ticket, Bell, Smartphone, Users, Key, ClipboardList, FileEdit, Wallet, Mail, BarChart3, Calendar } from 'lucide-react';
+import SetupChecklist from '@/components/SetupChecklist';
 
 type Badge = { label: string; bg: string; color: string; borderColor: string };
 
@@ -172,6 +173,11 @@ export default function DashboardPage() {
             </div>
 
             <DuplicateNotification groups={duplicateGroups} />
+
+            {/* セットアップチェックリスト */}
+            {activeProductionId && production && (
+                <SetupChecklist production={production} productionId={activeProductionId} />
+            )}
 
             {/* KPIサマリー + 予約状況テーブル */}
             <div className="stats-section" style={{ marginBottom: '3rem' }}>

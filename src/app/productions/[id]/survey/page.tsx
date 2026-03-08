@@ -44,7 +44,7 @@ export default function SurveyHubPage({ params }: { params: Promise<{ id: string
     const [templates, setTemplates] = useState<SurveyTemplate[]>([]);
     const [editingTemplate, setEditingTemplate] = useState<SurveyTemplate | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-    const [activeTab, setActiveTab] = useState<TabKey>('report');
+    const [activeTab, setActiveTab] = useState<TabKey>('builder');
     const [responses, setResponses] = useState<SurveyResponse[]>([]);
     const [showPrintEditor, setShowPrintEditor] = useState(false);
     const [troupeName, setTroupeName] = useState<string>('');
