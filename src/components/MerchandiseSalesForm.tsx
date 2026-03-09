@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { ShoppingCart, Check, Trash2, ChevronDown, ChevronUp, Minus, Plus, X } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { ShoppingCart, Check, Trash2, ChevronDown, ChevronUp, Minus, Plus, X, Calculator } from 'lucide-react';
 import { useToast } from '@/components/Toast';
-import { createMerchandiseSaleClient, subscribeMerchandiseSales, cancelMerchandiseSaleClient } from '@/lib/client-firestore/merchandise-sales';
+import { createMerchandiseSaleClient, subscribeMerchandiseSales, cancelMerchandiseSaleClient, partialCancelMerchandiseSaleClient } from '@/lib/client-firestore/merchandise-sales';
+import type { MerchandiseCancellationItem } from '@/types';
 import { formatCurrency } from '@/lib/format';
 import { formatTime } from '@/lib/format';
 import type { MerchandiseProduct, MerchandiseSet, MerchandiseSale, MerchandiseSaleItem } from '@/types';
@@ -17,7 +18,6 @@ interface Props {
     sets: MerchandiseSet[];
     soldBy: string;
     soldByType: 'ORGANIZER' | 'STAFF';
-    inventoryEnabled: boolean;
 }
 
 interface CartItem {
@@ -39,21 +39,31 @@ function calculateSetDiscounts(
     for (const set of sets) {
         if (!set.isActive) continue;
 
-        const itemQuantities = new Map<string, number>();
+        // タイプ指定ありのキー別数量
+        const variantQuantities = new Map<string, number>();
+        // productId別の合計数量（タイプ指定なしのセットアイテム用）
+        const productQuantities = new Map<string, number>();
         for (const item of cartItems) {
-            const key = item.variantId ? `${item.productId}:${item.variantId}` : item.productId;
-            itemQuantities.set(key, (itemQuantities.get(key) || 0) + item.quantity);
+            const vKey = item.variantId ? `${item.productId}:${item.variantId}` : item.productId;
+            variantQuantities.set(vKey, (variantQuantities.get(vKey) || 0) + item.quantity);
+            productQuantities.set(item.productId, (productQuantities.get(item.productId) || 0) + item.quantity);
         }
 
-        let canApply = true;
+        // セットが何回適用できるか計算（各アイテムの available / required の最小値）
+        let timesApplicable = Infinity;
         let regularTotal = 0;
         for (const setItem of set.items) {
-            const key = setItem.variantId ? `${setItem.productId}:${setItem.variantId}` : setItem.productId;
-            const available = itemQuantities.get(key) || 0;
-            if (available < setItem.quantity) {
-                canApply = false;
-                break;
+            let available: number;
+            if (setItem.variantId) {
+                const key = `${setItem.productId}:${setItem.variantId}`;
+                available = variantQuantities.get(key) || 0;
+            } else {
+                available = productQuantities.get(setItem.productId) || 0;
             }
+
+            timesApplicable = Math.min(timesApplicable, Math.floor(available / setItem.quantity));
+            if (timesApplicable === 0) break;
+
             const cartItem = cartItems.find(i =>
                 i.productId === setItem.productId &&
                 (setItem.variantId ? i.variantId === setItem.variantId : true)
@@ -63,11 +73,12 @@ function calculateSetDiscounts(
             }
         }
 
-        if (canApply && regularTotal > set.setPrice) {
+        const discountPerSet = regularTotal - set.setPrice;
+        if (timesApplicable > 0 && discountPerSet > 0) {
             discounts.push({
                 setId: set.id,
                 setName: set.name,
-                discountAmount: regularTotal - set.setPrice,
+                discountAmount: discountPerSet * timesApplicable,
             });
         }
     }
@@ -83,7 +94,6 @@ export default function MerchandiseSalesForm({
     sets,
     soldBy,
     soldByType,
-    inventoryEnabled,
 }: Props) {
     const { showToast } = useToast();
 
@@ -95,14 +105,83 @@ export default function MerchandiseSalesForm({
     const [showSuccessFlash, setShowSuccessFlash] = useState(false);
     const [salesHistory, setSalesHistory] = useState<MerchandiseSale[]>([]);
     const [showHistory, setShowHistory] = useState(false);
-    const [showMobileCart, setShowMobileCart] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-    const [cashReceived, setCashReceived] = useState('');
-    const cashReceivedNum = useMemo(() => {
-        const n = parseInt(cashReceived, 10);
+    const [showCalc, setShowCalc] = useState(false);
+    const [calcInput, setCalcInput] = useState('');
+    const [cancelTarget, setCancelTarget] = useState<MerchandiseSale | null>(null);
+    const [cancelQuantities, setCancelQuantities] = useState<Record<string, number>>({});
+    const [cancelSubmitting, setCancelSubmitting] = useState(false);
+    const cartRef = useRef<HTMLDivElement>(null);
+    const calcPopoverRef = useRef<HTMLDivElement>(null);
+    const [calcPos, setCalcPos] = useState<{ top: number; right: number } | null>(null);
+    const calcInputNum = useMemo(() => {
+        const n = parseInt(calcInput, 10);
         return isNaN(n) ? 0 : n;
-    }, [cashReceived]);
+    }, [calcInput]);
+
+    // Desktop: position calculator to the left of the cart sidebar
+    useEffect(() => {
+        if (!showCalc || !cartRef.current) return;
+        const updatePos = () => {
+            if (!cartRef.current) return;
+            const rect = cartRef.current.getBoundingClientRect();
+            // Place popover to the left of the cart, vertically centered with cart top
+            const popoverWidth = 290;
+            const top = Math.max(8, rect.top);
+            const right = window.innerWidth - rect.left + 12;
+            setCalcPos({ top, right });
+        };
+        updatePos();
+        window.addEventListener('scroll', updatePos, true);
+        window.addEventListener('resize', updatePos);
+        return () => {
+            window.removeEventListener('scroll', updatePos, true);
+            window.removeEventListener('resize', updatePos);
+        };
+    }, [showCalc]);
+
+    // Desktop only: close on click outside
+    useEffect(() => {
+        if (!showCalc) return;
+        // Only attach on desktop (mobile uses overlay backdrop)
+        if (window.innerWidth <= 768) return;
+        const handler = (e: MouseEvent) => {
+            if (calcPopoverRef.current && !calcPopoverRef.current.contains(e.target as Node)) {
+                setShowCalc(false);
+            }
+        };
+        // Use setTimeout to avoid closing immediately on the same click that opened it
+        const timer = setTimeout(() => {
+            document.addEventListener('mousedown', handler);
+        }, 0);
+        return () => {
+            clearTimeout(timer);
+            document.removeEventListener('mousedown', handler);
+        };
+    }, [showCalc]);
+
+    // Desktop: accept keyboard numpad/number input while calc is open
+    useEffect(() => {
+        if (!showCalc) return;
+        const handler = (e: KeyboardEvent) => {
+            if (e.key >= '0' && e.key <= '9') {
+                e.preventDefault();
+                setCalcInput(prev => {
+                    if (prev === '0') return e.key;
+                    return prev + e.key;
+                });
+            } else if (e.key === 'Backspace') {
+                e.preventDefault();
+                setCalcInput(prev => prev.slice(0, -1));
+            } else if (e.key === 'Delete' || e.key === 'Escape') {
+                e.preventDefault();
+                if (e.key === 'Escape') setShowCalc(false);
+                else setCalcInput('');
+            }
+        };
+        document.addEventListener('keydown', handler);
+        return () => document.removeEventListener('keydown', handler);
+    }, [showCalc]);
 
     // Subscribe to sales history
     useEffect(() => {
@@ -216,8 +295,7 @@ export default function MerchandiseSalesForm({
             return prev
                 .map(item => {
                     if (item.productId === productId && item.variantId === variantId) {
-                        const newQty = item.quantity + delta;
-                        return { ...item, quantity: newQty };
+                        return { ...item, quantity: item.quantity + delta };
                     }
                     return item;
                 })
@@ -264,8 +342,8 @@ export default function MerchandiseSalesForm({
             setTimeout(() => setShowSuccessFlash(false), 800);
 
             setCart([]);
-            setCashReceived('');
-            setShowMobileCart(false);
+            setCalcInput('');
+            setShowCalc(false);
             showToast('販売を記録しました', 'success');
         } catch (err) {
             console.error('Sale submission failed:', err);
@@ -275,16 +353,85 @@ export default function MerchandiseSalesForm({
         }
     }, [cart, submitting, productionId, performanceId, userId, sets, soldBy, soldByType, showToast]);
 
-    // Cancel sale
-    const handleCancelSale = useCallback(async (saleId: string) => {
+    // Open cancel dialog
+    const openCancelDialog = useCallback((sale: MerchandiseSale) => {
+        // Initialize cancel quantities: default to max cancelable for each item
+        const initQty: Record<string, number> = {};
+        for (const item of sale.items) {
+            const cancelable = item.quantity - (item.canceledQuantity || 0);
+            if (cancelable > 0) {
+                const key = item.variantId ? `${item.productId}:${item.variantId}` : item.productId;
+                initQty[key] = cancelable;
+            }
+        }
+        setCancelQuantities(initQty);
+        setCancelTarget(sale);
+    }, []);
+
+    // Full cancel (all items)
+    const handleFullCancel = useCallback(async (saleId: string) => {
         try {
             await cancelMerchandiseSaleClient(saleId, soldBy, soldByType);
-            showToast('販売をキャンセルしました', 'success');
+            showToast('全額キャンセルしました', 'success');
+            setCancelTarget(null);
         } catch (err) {
             console.error('Sale cancellation failed:', err);
             showToast('キャンセルに失敗しました', 'error');
         }
     }, [soldBy, soldByType, showToast]);
+
+    // Partial cancel (selected items/quantities)
+    const handlePartialCancel = useCallback(async () => {
+        if (!cancelTarget || cancelSubmitting) return;
+
+        const cancelItems: MerchandiseCancellationItem[] = [];
+        for (const item of cancelTarget.items) {
+            const key = item.variantId ? `${item.productId}:${item.variantId}` : item.productId;
+            const qty = cancelQuantities[key] || 0;
+            if (qty > 0) {
+                cancelItems.push({
+                    productId: item.productId,
+                    variantId: item.variantId,
+                    quantity: qty,
+                });
+            }
+        }
+
+        if (cancelItems.length === 0) {
+            showToast('キャンセルする商品を選択してください', 'warning');
+            return;
+        }
+
+        // 全品・全数キャンセルなら全額キャンセル扱い
+        const isFullCancel = cancelTarget.items.every(item => {
+            const key = item.variantId ? `${item.productId}:${item.variantId}` : item.productId;
+            const cancelQty = cancelQuantities[key] || 0;
+            return cancelQty >= (item.quantity - (item.canceledQuantity || 0));
+        });
+
+        setCancelSubmitting(true);
+        try {
+            if (isFullCancel && !cancelTarget.cancellations?.length) {
+                // まだ一度も部分キャンセルしていない + 全品 → シンプルな全額キャンセル
+                await cancelMerchandiseSaleClient(cancelTarget.id, soldBy, soldByType);
+            } else {
+                await partialCancelMerchandiseSaleClient({
+                    saleId: cancelTarget.id,
+                    cancelItems,
+                    canceledBy: soldBy,
+                    canceledByType: soldByType,
+                    sets,
+                });
+            }
+            showToast(isFullCancel ? '全額キャンセルしました' : '部分キャンセルしました', 'success');
+            setCancelTarget(null);
+        } catch (err) {
+            console.error('Cancellation failed:', err);
+            showToast('キャンセルに失敗しました', 'error');
+        } finally {
+            setCancelSubmitting(false);
+        }
+    }, [cancelTarget, cancelQuantities, cancelSubmitting, soldBy, soldByType, sets, showToast]);
 
     // Format sale time
     const formatSaleTime = (sale: MerchandiseSale): string => {
@@ -299,13 +446,21 @@ export default function MerchandiseSalesForm({
                 const name = item.variantName
                     ? `${item.productName}(${item.variantName})`
                     : item.productName;
-                return item.quantity > 1 ? `${name} x${item.quantity}` : name;
+                const canceled = item.canceledQuantity || 0;
+                const qty = item.quantity;
+                if (canceled > 0 && canceled < qty) {
+                    return `${name} x${qty}(${canceled}取消)`;
+                }
+                if (canceled >= qty) {
+                    return `${name} x${qty}(全取消)`;
+                }
+                return qty > 1 ? `${name} x${qty}` : name;
             })
             .join(', ');
     };
 
-    // Cart content (shared between desktop and mobile)
-    const renderCartContent = () => (
+    // Render cart items list (shared between desktop sidebar and mobile inline)
+    const renderCartItems = () => (
         <>
             {cart.length === 0 ? (
                 <div className={styles.cartEmpty}>
@@ -395,72 +550,223 @@ export default function MerchandiseSalesForm({
                         </div>
                     </div>
 
-                    {/* Submit button */}
-                    <button
-                        type="button"
-                        className={styles.submitBtn}
-                        onClick={() => { setCashReceived(''); setShowConfirmDialog(true); }}
-                        disabled={submitting || cart.length === 0}
-                    >
-                        {submitting ? '処理中...' : `販売確定 ${formatCurrency(totalAmount)}`}
-                    </button>
+                    {/* Submit + Calculator */}
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', alignItems: 'stretch' }}>
+                        <button
+                            type="button"
+                            className={styles.submitBtn}
+                            onClick={handleSubmit}
+                            disabled={submitting || cart.length === 0}
+                            style={{ flex: 1, margin: 0 }}
+                        >
+                            {submitting ? '処理中...' : `販売確定 ${formatCurrency(totalAmount)}`}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => { setCalcInput(''); setShowCalc(!showCalc); }}
+                            style={{
+                                padding: '0 0.75rem',
+                                background: 'var(--card-bg)',
+                                border: '1px solid var(--primary)',
+                                borderRadius: 'var(--border-radius)',
+                                color: 'var(--primary)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.25rem',
+                                fontWeight: 'bold',
+                                fontSize: '0.85rem',
+                                whiteSpace: 'nowrap',
+                            }}
+                            title="お釣り計算"
+                        >
+                            <Calculator size={16} />
+                        </button>
+                    </div>
                 </>
             )}
-
-            {/* Sales history */}
-            <div className={styles.historySection}>
-                <button
-                    type="button"
-                    className={styles.historyToggle}
-                    onClick={() => setShowHistory(!showHistory)}
-                >
-                    <span>販売履歴</span>
-                    {showHistory ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                </button>
-                {showHistory && (
-                    <div className={styles.historyList}>
-                        {salesHistory.length === 0 ? (
-                            <p className={styles.historyEmpty}>まだ販売履歴がありません</p>
-                        ) : (
-                            salesHistory.map(sale => {
-                                const isCanceled = sale.status === 'CANCELED';
-                                return (
-                                    <div
-                                        key={sale.id}
-                                        className={`${styles.historyItem} ${isCanceled ? styles.historyItemCanceled : ''}`}
-                                    >
-                                        <div className={styles.historyItemHeader}>
-                                            <span className={styles.historyTime}>
-                                                {formatSaleTime(sale)}
-                                            </span>
-                                            <span className={styles.historyAmount}>
-                                                {formatCurrency(sale.totalAmount)}
-                                            </span>
-                                        </div>
-                                        <p className={styles.historyItemSummary}>
-                                            {formatSaleItems(sale)}
-                                        </p>
-                                        {isCanceled && (
-                                            <span className={styles.historyCanceledLabel}>キャンセル済み</span>
-                                        )}
-                                        {!isCanceled && (
-                                            <button
-                                                type="button"
-                                                className={styles.historyCancelBtn}
-                                                onClick={() => handleCancelSale(sale.id)}
-                                            >
-                                                キャンセル
-                                            </button>
-                                        )}
-                                    </div>
-                                );
-                            })
-                        )}
-                    </div>
-                )}
-            </div>
         </>
     );
+
+    // Render sales history
+    const renderSalesHistory = () => (
+        <div className={styles.historySection}>
+            <button
+                type="button"
+                className={styles.historyToggle}
+                onClick={() => setShowHistory(!showHistory)}
+            >
+                <span>販売履歴</span>
+                {showHistory ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+            {showHistory && (
+                <div className={styles.historyList}>
+                    {salesHistory.length === 0 ? (
+                        <p className={styles.historyEmpty}>まだ販売履歴がありません</p>
+                    ) : (
+                        salesHistory.map(sale => {
+                            const isCanceled = sale.status === 'CANCELED';
+                            const isPartial = sale.status === 'PARTIALLY_CANCELED';
+                            const hasRemainingItems = sale.items.some(
+                                item => (item.quantity - (item.canceledQuantity || 0)) > 0
+                            );
+                            return (
+                                <div
+                                    key={sale.id}
+                                    className={`${styles.historyItem} ${isCanceled ? styles.historyItemCanceled : ''}`}
+                                >
+                                    <div className={styles.historyItemHeader}>
+                                        <span className={styles.historyTime}>
+                                            {formatSaleTime(sale)}
+                                        </span>
+                                        <div style={{ textAlign: 'right' }}>
+                                            {isPartial ? (
+                                                <>
+                                                    <span className={styles.historyAmount} style={{ textDecoration: 'line-through', color: 'var(--text-muted)', fontSize: '0.75rem', marginRight: '0.35rem' }}>
+                                                        {formatCurrency(sale.totalAmount)}
+                                                    </span>
+                                                    <span className={styles.historyAmount}>
+                                                        {formatCurrency(sale.effectiveAmount)}
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                <span className={styles.historyAmount}>
+                                                    {formatCurrency(sale.totalAmount)}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <p className={styles.historyItemSummary}>
+                                        {formatSaleItems(sale)}
+                                    </p>
+                                    {isCanceled && (
+                                        <span className={styles.historyCanceledLabel}>キャンセル済み</span>
+                                    )}
+                                    {isPartial && (
+                                        <span className={styles.historyCanceledLabel} style={{ background: '#fff3cd', color: '#856404' }}>
+                                            一部キャンセル（返金 {formatCurrency(sale.refundedAmount || 0)}）
+                                        </span>
+                                    )}
+                                    {!isCanceled && hasRemainingItems && (
+                                        <button
+                                            type="button"
+                                            className={styles.historyCancelBtn}
+                                            onClick={() => openCancelDialog(sale)}
+                                        >
+                                            {isPartial ? '追加キャンセル' : 'キャンセル'}
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+            )}
+        </div>
+    );
+
+    // Shared calculator content (used by both desktop popover and mobile overlay)
+    const renderCalcContent = () => {
+        const change = calcInputNum - totalAmount;
+        return (
+            <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>お釣り計算</span>
+                    <button
+                        type="button"
+                        onClick={() => setShowCalc(false)}
+                        style={{
+                            background: '#f5f5f5', border: 'none', fontSize: '1.25rem', cursor: 'pointer',
+                            color: 'var(--text-muted)', width: '28px', height: '28px', display: 'flex',
+                            alignItems: 'center', justifyContent: 'center', borderRadius: '50%', lineHeight: 1, padding: 0,
+                        }}
+                    >
+                        &times;
+                    </button>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '0.35rem' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>合計</span>
+                    <span style={{ fontWeight: '700', color: 'var(--primary)' }}>{formatCurrency(totalAmount)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--slate-500)' }}>預かり</span>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>
+                        {calcInputNum > 0 ? calcInputNum.toLocaleString() : '0'} <span style={{ fontSize: '0.8rem', fontWeight: 'normal' }}>円</span>
+                    </div>
+                </div>
+                {calcInputNum > 0 && (
+                    <div style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        borderTop: '1px solid var(--card-border)', paddingTop: '0.5rem', marginBottom: '0.75rem',
+                    }}>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--slate-500)' }}>{change >= 0 ? 'お釣り' : '不足'}</span>
+                        <div style={{ fontSize: '1.3rem', fontWeight: '900', color: change >= 0 ? 'var(--success)' : 'var(--accent)' }}>
+                            &yen;{Math.abs(change).toLocaleString()}
+                        </div>
+                    </div>
+                )}
+                <div style={{ display: 'flex', gap: '6px', marginBottom: '0.5rem' }}>
+                    {[1000, 5000, 10000].map(amt => (
+                        <button
+                            key={amt}
+                            type="button"
+                            className="btn btn-secondary"
+                            style={{ flex: 1, padding: '0.5rem', fontSize: '0.85rem', background: 'var(--card-bg)' }}
+                            onClick={() => setCalcInput(prev => String((parseInt(prev) || 0) + amt))}
+                        >
+                            +{(amt / 1000).toLocaleString()}千
+                        </button>
+                    ))}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                    {['1','2','3','4','5','6','7','8','9','0','00','C'].map(key => (
+                        <button
+                            key={key}
+                            type="button"
+                            className="btn btn-secondary"
+                            style={{
+                                height: '3.2rem', fontSize: '1.15rem', fontWeight: 'bold',
+                                background: key === 'C' ? 'rgba(139,0,0,0.05)' : 'var(--card-bg)',
+                                color: key === 'C' ? '#d93025' : '#333',
+                                border: '1px solid #ddd', borderRadius: '8px',
+                            }}
+                            onClick={() => {
+                                if (key === 'C') { setCalcInput(''); return; }
+                                setCalcInput(prev => {
+                                    if (key === '00' && (prev === '' || prev === '0')) return '0';
+                                    if (prev === '0' && key !== '00') return key;
+                                    return prev + key;
+                                });
+                            }}
+                        >
+                            {key}
+                        </button>
+                    ))}
+                </div>
+            </>
+        );
+    };
+
+    // Mobile-only calculator overlay (bottom sheet)
+    const renderMobileCalculator = () => {
+        if (!showCalc || totalAmount <= 0) return null;
+        const handleBackdropClick = (e: React.MouseEvent | React.TouchEvent) => {
+            // Only close if tapping directly on the backdrop, not on children
+            if (e.target === e.currentTarget) {
+                setShowCalc(false);
+            }
+        };
+        return (
+            <div
+                className={styles.calcOverlay}
+                onClick={handleBackdropClick}
+            >
+                <div className={styles.calcPanel}>
+                    {renderCalcContent()}
+                </div>
+            </div>
+        );
+    };
 
     return (
         <div className={styles.salesLayout}>
@@ -514,19 +820,27 @@ export default function MerchandiseSalesForm({
                                 {cartQty > 0 && (
                                     <span className={styles.productBadge}>{cartQty}</span>
                                 )}
-                                {inventoryEnabled && !product.hasVariants && (
-                                    <span className={styles.productStock}>
-                                        在庫: {product.stock}
-                                    </span>
-                                )}
                             </button>
                         );
                     })}
                 </div>
+
+                {/* Mobile inline cart (below product grid) */}
+                <div className={styles.mobileCartSection}>
+                    <h3 className={styles.cartTitle}>
+                        <ShoppingCart size={18} />
+                        カート
+                        {totalItems > 0 && (
+                            <span className={styles.cartCount}>{totalItems}</span>
+                        )}
+                    </h3>
+                    {renderCartItems()}
+                    {renderSalesHistory()}
+                </div>
             </div>
 
-            {/* Right: Cart (desktop) */}
-            <div className={styles.cart}>
+            {/* Right: Cart (desktop sidebar) */}
+            <div className={styles.cart} ref={cartRef}>
                 <h3 className={styles.cartTitle}>
                     <ShoppingCart size={18} />
                     カート
@@ -534,29 +848,9 @@ export default function MerchandiseSalesForm({
                         <span className={styles.cartCount}>{totalItems}</span>
                     )}
                 </h3>
-                {renderCartContent()}
+                {renderCartItems()}
+                {renderSalesHistory()}
             </div>
-
-            {/* Mobile floating cart bar */}
-            {totalItems > 0 && (
-                <div className={styles.floatingCartBar}>
-                    <div className={styles.floatingCartInfo}>
-                        <span className={styles.floatingCartTotal}>
-                            {formatCurrency(totalAmount)}
-                        </span>
-                        <span className={styles.floatingCartCount}>
-                            {totalItems}点
-                        </span>
-                    </div>
-                    <button
-                        type="button"
-                        className={styles.floatingCartBtn}
-                        onClick={() => setShowMobileCart(true)}
-                    >
-                        カートを見る
-                    </button>
-                </div>
-            )}
 
             {/* Variant selection sheet */}
             {variantProduct && (
@@ -599,11 +893,6 @@ export default function MerchandiseSalesForm({
                                         onClick={() => setSelectedVariantId(variant.id)}
                                     >
                                         <span className={styles.variantName}>{variant.name}</span>
-                                        {inventoryEnabled && (
-                                            <span className={styles.variantStock}>
-                                                在庫: {variant.stock}
-                                            </span>
-                                        )}
                                     </button>
                                 ))}
                         </div>
@@ -642,166 +931,145 @@ export default function MerchandiseSalesForm({
                 </div>
             )}
 
-            {/* Mobile cart sheet */}
-            {showMobileCart && (
+            {/* Desktop calculator popover (fixed, to the left of cart) */}
+            {showCalc && totalAmount > 0 && calcPos && (
+                <div
+                    ref={calcPopoverRef}
+                    className={styles.calcPopover}
+                    style={{ top: calcPos.top, right: calcPos.right }}
+                >
+                    {renderCalcContent()}
+                </div>
+            )}
+
+            {/* Mobile calculator overlay (bottom sheet, hidden on desktop via CSS) */}
+            {renderMobileCalculator()}
+
+            {/* Cancel dialog (bottom sheet) */}
+            {cancelTarget && (
                 <div
                     className={styles.sheetBackdrop}
-                    onClick={() => setShowMobileCart(false)}
+                    onClick={() => !cancelSubmitting && setCancelTarget(null)}
                 >
                     <div
                         className={styles.sheetPanel}
                         onClick={(e) => e.stopPropagation()}
+                        style={{ maxHeight: '80vh', overflow: 'auto' }}
                     >
                         <div className={styles.sheetHeader}>
-                            <h3 className={styles.sheetTitle}>
-                                <ShoppingCart size={18} />
-                                カート
-                                {totalItems > 0 && (
-                                    <span className={styles.cartCount}>{totalItems}</span>
-                                )}
-                            </h3>
+                            <h3 className={styles.sheetTitle}>キャンセル</h3>
                             <button
                                 type="button"
                                 className={styles.sheetClose}
-                                onClick={() => setShowMobileCart(false)}
-                                aria-label="閉じる"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-                        {renderCartContent()}
-                    </div>
-                </div>
-            )}
-
-            {/* Confirmation Dialog */}
-            {showConfirmDialog && (
-                <div className={styles.sheetBackdrop} onClick={() => setShowConfirmDialog(false)}>
-                    <div className={styles.sheetPanel} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
-                        <div className={styles.sheetHeader}>
-                            <h3 className={styles.sheetTitle}>販売内容の確認</h3>
-                            <button
-                                type="button"
-                                className={styles.sheetClose}
-                                onClick={() => setShowConfirmDialog(false)}
+                                onClick={() => setCancelTarget(null)}
+                                disabled={cancelSubmitting}
                                 aria-label="閉じる"
                             >
                                 <X size={20} />
                             </button>
                         </div>
 
-                        {/* Items summary */}
-                        <div style={{ fontSize: '0.9rem', marginBottom: '1rem' }}>
-                            {cart.map(item => {
-                                const key = `${item.productId}:${item.variantId ?? 'none'}`;
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0 0 1rem 0' }}>
+                            キャンセルする数量を選択してください
+                        </p>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                            {cancelTarget.items.map(item => {
+                                const key = item.variantId ? `${item.productId}:${item.variantId}` : item.productId;
+                                const cancelable = item.quantity - (item.canceledQuantity || 0);
+                                if (cancelable <= 0) return null;
+                                const cancelQty = cancelQuantities[key] || 0;
+
                                 return (
-                                    <div key={key} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.3rem 0', borderBottom: '1px solid var(--card-border)' }}>
-                                        <span>
-                                            {item.productName}
-                                            {item.variantName && <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}> ({item.variantName})</span>}
-                                            {item.quantity > 1 && <span style={{ color: 'var(--text-muted)' }}> x{item.quantity}</span>}
-                                        </span>
-                                        <span style={{ fontWeight: '500' }}>{formatCurrency(item.unitPrice * item.quantity)}</span>
+                                    <div key={key} style={{
+                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                        padding: '0.5rem 0', borderBottom: '1px solid var(--card-border)',
+                                    }}>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontSize: '0.9rem', fontWeight: '500' }}>
+                                                {item.productName}
+                                                {item.variantName && (
+                                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: '0.25rem' }}>
+                                                        ({item.variantName})
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                                {formatCurrency(item.unitPrice)} × 残{cancelable}点
+                                            </div>
+                                        </div>
+                                        <div className={styles.quantityStepper}>
+                                            <button
+                                                type="button"
+                                                className={styles.stepperBtn}
+                                                onClick={() => setCancelQuantities(prev => ({
+                                                    ...prev, [key]: Math.max(0, (prev[key] || 0) - 1)
+                                                }))}
+                                                disabled={cancelQty <= 0}
+                                            >
+                                                <Minus size={14} />
+                                            </button>
+                                            <span className={styles.stepperValue}>{cancelQty}</span>
+                                            <button
+                                                type="button"
+                                                className={styles.stepperBtn}
+                                                onClick={() => setCancelQuantities(prev => ({
+                                                    ...prev, [key]: Math.min(cancelable, (prev[key] || 0) + 1)
+                                                }))}
+                                                disabled={cancelQty >= cancelable}
+                                            >
+                                                <Plus size={14} />
+                                            </button>
+                                        </div>
                                     </div>
                                 );
                             })}
                         </div>
 
-                        {/* Discounts */}
-                        {setDiscounts.length > 0 && (
-                            <div style={{ marginBottom: '0.75rem' }}>
-                                {setDiscounts.map(d => (
-                                    <div key={d.setId} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#059669', padding: '0.2rem 0' }}>
-                                        <span>{d.setName} 割引</span>
-                                        <span>-{formatCurrency(d.discountAmount)}</span>
+                        {/* Refund estimate */}
+                        {(() => {
+                            const totalCancelQty = Object.values(cancelQuantities).reduce((s, q) => s + q, 0);
+                            const itemRefund = cancelTarget.items.reduce((sum, item) => {
+                                const key = item.variantId ? `${item.productId}:${item.variantId}` : item.productId;
+                                return sum + item.unitPrice * (cancelQuantities[key] || 0);
+                            }, 0);
+                            return totalCancelQty > 0 ? (
+                                <div style={{
+                                    padding: '0.75rem 1rem', borderRadius: '8px',
+                                    background: '#fff3e0', marginBottom: '1rem',
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                                        <span style={{ color: 'var(--text-muted)' }}>取消商品合計</span>
+                                        <span style={{ fontWeight: '600' }}>{formatCurrency(itemRefund)}</span>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* Total */}
-                        <div style={{ textAlign: 'center', padding: '1rem 0', borderTop: '2px solid var(--card-border)', borderBottom: '2px solid var(--card-border)', marginBottom: '1rem' }}>
-                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>合計金額</div>
-                            <div style={{ fontSize: '2rem', fontWeight: '900', color: 'var(--primary)' }}>
-                                {formatCurrency(totalAmount)}
-                            </div>
-                        </div>
-
-                        {/* Cash received input */}
-                        <div style={{ marginBottom: '1rem' }}>
-                            <label style={{ fontSize: '0.85rem', fontWeight: '500', display: 'block', marginBottom: '0.5rem' }}>お預かり金額</label>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>¥</span>
-                                <input
-                                    type="text"
-                                    inputMode="numeric"
-                                    className="input"
-                                    placeholder="0"
-                                    value={cashReceived}
-                                    onChange={(e) => setCashReceived(e.target.value.replace(/[^0-9]/g, ''))}
-                                    style={{ fontSize: '1.5rem', textAlign: 'right', fontWeight: '700' }}
-                                    autoFocus
-                                />
-                            </div>
-                            {cashReceivedNum > 0 && (
-                                <div style={{ marginTop: '0.5rem', textAlign: 'right', fontSize: '1.1rem' }}>
-                                    {cashReceivedNum >= totalAmount ? (
-                                        <span style={{ color: '#059669', fontWeight: '700' }}>
-                                            お釣り: {formatCurrency(cashReceivedNum - totalAmount)}
-                                        </span>
-                                    ) : (
-                                        <span style={{ color: '#dc3545', fontWeight: '600' }}>
-                                            不足: {formatCurrency(totalAmount - cashReceivedNum)}
-                                        </span>
-                                    )}
+                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.25rem 0 0 0' }}>
+                                        ※セット割引の再計算により、実際の返金額は変動する場合があります
+                                    </p>
                                 </div>
-                            )}
-                        </div>
+                            ) : null;
+                        })()}
 
-                        {/* Quick amount buttons */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
-                            {[totalAmount, 1000, 2000, 3000, 5000, 10000].filter((v, i, arr) => arr.indexOf(v) === i).map(amount => (
-                                <button
-                                    key={amount}
-                                    type="button"
-                                    onClick={() => setCashReceived(String(amount))}
-                                    style={{
-                                        padding: '0.4rem 0.75rem',
-                                        border: '1px solid var(--card-border)',
-                                        borderRadius: 'var(--border-radius)',
-                                        background: cashReceivedNum === amount ? 'var(--primary)' : 'var(--card-bg)',
-                                        color: cashReceivedNum === amount ? '#fff' : 'var(--foreground)',
-                                        cursor: 'pointer',
-                                        fontSize: '0.85rem',
-                                        fontWeight: '500',
-                                    }}
-                                >
-                                    {amount === totalAmount ? 'ぴったり' : `¥${amount.toLocaleString()}`}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Action buttons */}
-                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <button
                                 type="button"
                                 className="btn btn-secondary"
-                                onClick={() => setShowConfirmDialog(false)}
-                                style={{ flex: 1 }}
+                                onClick={() => setCancelTarget(null)}
+                                disabled={cancelSubmitting}
+                                style={{ flex: 1, padding: '0.75rem' }}
                             >
                                 戻る
                             </button>
                             <button
                                 type="button"
                                 className="btn btn-primary"
-                                onClick={() => {
-                                    setShowConfirmDialog(false);
-                                    handleSubmit();
+                                onClick={handlePartialCancel}
+                                disabled={cancelSubmitting || Object.values(cancelQuantities).every(q => q === 0)}
+                                style={{
+                                    flex: 1, padding: '0.75rem',
+                                    background: '#d32f2f', borderColor: '#d32f2f',
                                 }}
-                                disabled={submitting}
-                                style={{ flex: 2, fontSize: '1.05rem', fontWeight: '700' }}
                             >
-                                {submitting ? '処理中...' : '確定'}
+                                {cancelSubmitting ? '処理中...' : 'キャンセル確定'}
                             </button>
                         </div>
                     </div>

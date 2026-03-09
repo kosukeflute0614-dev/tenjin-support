@@ -342,6 +342,8 @@ export default function CheckinPage({ params }: { params: any }) {
                         expectedSalesOverride: ticketSalesTotal + merchSalesTotal,
                         ticketSales: ticketSalesTotal,
                         merchandiseSales: merchSalesTotal,
+                        inventoryEnabled: production.merchandiseInventoryEnabled || false,
+                        merchProducts: merchProducts,
                     } : {})}
                 />
             ) : activeTab === 'MERCHANDISE' ? (
@@ -353,7 +355,6 @@ export default function CheckinPage({ params }: { params: any }) {
                     sets={production.merchandiseSets || []}
                     soldBy={user.uid}
                     soldByType="ORGANIZER"
-                    inventoryEnabled={production.merchandiseInventoryEnabled || false}
                 />
             ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '1.5rem', alignItems: 'start' }}>

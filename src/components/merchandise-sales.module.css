@@ -15,7 +15,6 @@
 @media (max-width: 768px) {
   .salesLayout {
     grid-template-columns: 1fr;
-    padding-bottom: 5rem;
   }
 
   .cart {
@@ -361,58 +360,66 @@
   cursor: not-allowed;
 }
 
-/* ===== Floating Cart Bar (Mobile) ===== */
-.floatingCartBar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--card-bg);
-  border-top: 1px solid var(--card-border);
-  padding: 0.75rem 1rem;
+/* ===== Mobile Cart Section ===== */
+.mobileCartSection {
   display: none;
-  z-index: 1500;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
-  align-items: center;
-  justify-content: space-between;
+  margin-top: 1rem;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
 }
 
 @media (max-width: 768px) {
-  .floatingCartBar {
-    display: flex;
+  .mobileCartSection {
+    display: block;
   }
 }
 
-.floatingCartBarWithNav {
-  bottom: 64px;
+/* ===== Calculator: Desktop Popover ===== */
+.calcPopover {
+  display: none;
+  position: fixed;
+  width: 280px;
+  background: var(--card-bg);
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  z-index: 200;
+  padding: 0.75rem 1rem;
 }
 
-.floatingCartInfo {
+@media (min-width: 769px) {
+  .calcPopover {
+    display: block;
+  }
+}
+
+/* ===== Calculator: Mobile Overlay (bottom sheet) ===== */
+.calcOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.3);
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  align-items: flex-end;
+  justify-content: center;
 }
 
-.floatingCartTotal {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--primary);
+@media (min-width: 769px) {
+  .calcOverlay {
+    display: none;
+  }
 }
 
-.floatingCartCount {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.floatingCartBtn {
-  padding: 0.5rem 1rem;
-  background: var(--primary);
-  color: #fff;
-  border: none;
-  border-radius: var(--border-radius);
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
+.calcPanel {
+  background: var(--card-bg);
+  border-radius: 16px 16px 0 0;
+  padding: 1rem 1.25rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  width: 100%;
+  max-width: 400px;
+  animation: slideUp 0.2s;
 }
 
 /* ===== Variant Selection Sheet / Modal ===== */

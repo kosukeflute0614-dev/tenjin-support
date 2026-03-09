@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 import { serializeDoc, serializeDocs } from '@/lib/firestore-utils';
-import { toDate } from '@/lib/firestore-utils';
+import { formatDateTime } from '@/lib/format';
 import type { Production, Performance } from '@/types';
 
 export default function MerchandiseSalesPage({ params }: { params: any }) {
@@ -59,52 +59,65 @@ export default function MerchandiseSalesPage({ params }: { params: any }) {
     }
 
     return (
-        <div className="container" style={{ maxWidth: '700px', padding: '2rem 1rem' }}>
-            <Link href={`/productions/${production.id}/merchandise`} className="btn btn-secondary" style={{ marginBottom: '1.5rem', display: 'inline-block', fontSize: '0.85rem' }}>
-                &larr; 物販管理に戻る
-            </Link>
+        <div className="container" style={{ maxWidth: '1000px' }}>
+            <div style={{ marginBottom: '1.25rem' }}>
+                <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
+                    <span>&larr;</span> ダッシュボードに戻る
+                </Link>
+            </div>
+            <div className="page-header" style={{ marginBottom: '2rem' }}>
+                <h2 className="heading-lg" style={{ marginBottom: '0.5rem' }}>物販販売</h2>
+                <p className="text-muted">販売を行う公演回を選択してください。</p>
+            </div>
 
-            <h1 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '0.5rem' }}>物販販売</h1>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>{production.title}</p>
-
-            <h2 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '1rem' }}>公演回を選択</h2>
-
-            {performances.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--card-bg)', border: '1px dashed var(--card-border)', borderRadius: 'var(--border-radius)', color: 'var(--text-muted)' }}>
-                    公演回が登録されていません
+            <div className="card" style={{ padding: 0 }}>
+                <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--card-border)', background: 'var(--secondary)' }}>
+                    <h2 className="heading-md" style={{ marginBottom: 0 }}>{production.title}</h2>
                 </div>
-            ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {performances.map(perf => {
-                        const startDate = perf.startTime ? toDate(perf.startTime) : null;
-                        const dateStr = startDate ? startDate.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' }) : '';
-                        const timeStr = startDate ? startDate.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '';
-
-                        return (
-                            <Link
-                                key={perf.id}
-                                href={`/productions/${production.id}/merchandise/sales/${perf.id}`}
-                                className="card"
-                                style={{
-                                    padding: '1rem 1.25rem',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    textDecoration: 'none',
-                                    transition: 'border-color 0.2s',
-                                }}
-                            >
-                                <div>
-                                    <div style={{ fontSize: '1.1rem', fontWeight: '600', color: 'var(--foreground)' }}>
-                                        {dateStr} {timeStr}
-                                    </div>
+                <div style={{ display: 'grid' }}>
+                    {performances.map((perf) => (
+                        <Link
+                            key={perf.id}
+                            href={`/productions/${production.id}/merchandise/sales/${perf.id}`}
+                            style={{
+                                padding: '1.5rem',
+                                borderBottom: '1px solid var(--card-border)',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                transition: 'background 0.2s',
+                            }}
+                            className="performance-link"
+                        >
+                            <div>
+                                <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--foreground)' }}>
+                                    {formatDateTime(perf.startTime)}
                                 </div>
-                                <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>&rarr;</span>
-                            </Link>
-                        );
-                    })}
+                                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                                    定員: {perf.capacity}名
+                                </div>
+                            </div>
+                            <div style={{ color: 'var(--primary)', fontWeight: 'bold' }}>
+                                販売画面へ &rarr;
+                            </div>
+                        </Link>
+                    ))}
+                    {performances.length === 0 && (
+                        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                            公演回が登録されていません。
+                        </div>
+                    )}
                 </div>
-            )}
+            </div>
+
+            <style>{`
+                .performance-link:hover {
+                    background-color: #f8f9fa;
+                }
+                .performance-link:last-child {
+                    border-bottom: none;
+                }
+            `}</style>
         </div>
     );
 }
