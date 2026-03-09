@@ -209,5 +209,62 @@ service cloud.firestore {
       // update/delete: 既存ドキュメントのオーナーのみ
       allow update, delete: if isSignedIn() && isOwner(resource.data.user_id);
     }
+
+    // ── 物販関連 ──
+
+    // 物販スタッフの権限チェック（merchandiseロール or receptionロール + SIMPLEモード）
+    function isAuthorizedMerchandiseStaff(productionId) {
+      let prodData = get(/databases/$(database)/documents/productions/$(getID(productionId))).data;
+      let token = getStaffTokenFromSession();
+      let role = token != null ? getStaffRole(productionId, token) : null;
+      return isAuthorizedStaff(productionId) && (
+        role == 'merchandise' ||
+        (role == 'reception' && prodData.merchandiseMode == 'SIMPLE')
+      );
+    }
+
+    // 物販商品 (MerchandiseProducts)
+    match /merchandiseProducts/{productId} {
+      allow read, list: if isSignedIn();
+      allow create: if isGoogleUser() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
+    // 物販売上 (MerchandiseSales)
+    match /merchandiseSales/{saleId} {
+      allow read, list: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        isAuthorizedMerchandiseStaff(resource.data.productionId)
+      );
+      allow create: if isSignedIn() && (
+        request.resource.data.userId == request.auth.uid ||
+        isAuthorizedMerchandiseStaff(request.resource.data.productionId)
+      );
+      allow update: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        isAuthorizedMerchandiseStaff(resource.data.productionId)
+      );
+      allow delete: if false;
+    }
+
+    // 物販在庫ログ (MerchandiseInventoryLogs)
+    match /merchandiseInventoryLogs/{logId} {
+      allow read, list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && (
+        request.resource.data.userId == request.auth.uid ||
+        isAuthorizedMerchandiseStaff(request.resource.data.productionId)
+      );
+      allow update, delete: if false;
+    }
+
+    // 物販レジ締め (MerchandiseCashClosings)
+    match /merchandiseCashClosings/{docId} {
+      allow read, list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && (
+        request.resource.data.userId == request.auth.uid ||
+        isAuthorizedMerchandiseStaff(request.resource.data.productionId)
+      );
+      allow update, delete: if false;
+    }
   }
 }
