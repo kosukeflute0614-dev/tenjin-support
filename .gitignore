@@ -58,3 +58,6 @@ seed-duplicates.js
 # Firebase
 .firebase/
 firebase-debug.log
+
+# Claude Code
+.claude/

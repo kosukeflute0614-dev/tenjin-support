@@ -1,5 +1,5 @@
 import { db } from '@/lib/firebase';
-import { collection, doc, getDoc, getDocs, query, where, addDoc, updateDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, addDoc, updateDoc, serverTimestamp, runTransaction, increment } from 'firebase/firestore';
 import { FirestoreReservation } from '@/types';
 import { serializeDocs } from '@/lib/firestore-utils';
 import { calculateBookedCount, validateCapacity, validateTicketInput } from '@/lib/capacity-utils';
@@ -89,6 +89,7 @@ export async function createReservationClient(data: Partial<FirestoreReservation
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         });
+        transaction.update(performanceRef, { bookedCount: increment(totalCount) });
     });
     return newResRef.id;
 }
@@ -103,10 +104,18 @@ export async function cancelReservationClient(reservationId: string, userId: str
     if (!snap.exists()) throw new Error('NotFound');
     if (snap.data().userId !== userId) throw new Error('Unauthorized');
 
+    const resData = snap.data();
+    const ticketCount = (resData.tickets || []).reduce((sum: number, t: any) => sum + (t.count || 0), 0);
+
     await updateDoc(ref, {
         status: 'CANCELED',
         updatedAt: serverTimestamp()
     });
+
+    if (ticketCount > 0 && resData.performanceId) {
+        const performanceRef = doc(db, "performances", resData.performanceId);
+        await updateDoc(performanceRef, { bookedCount: increment(-ticketCount) });
+    }
 }
 
 /**

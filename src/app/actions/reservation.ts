@@ -11,11 +11,12 @@ import {
     query,
     where,
     serverTimestamp,
-    runTransaction
+    runTransaction,
+    increment
 } from "firebase/firestore";
 import { revalidatePath } from "next/cache";
 import { FirestoreReservation, Production } from "@/types";
-import { validateTicketInput, calculateBookedCount, validateCapacity } from '@/lib/capacity-utils';
+import { validateTicketInput, validateCapacity } from '@/lib/capacity-utils';
 import { serializeDoc, serializeDocs, toDate } from "@/lib/firestore-utils";
 import { sendReservationConfirmation } from "@/lib/email";
 
@@ -104,17 +105,8 @@ export async function createReservation(data: FirestoreReservation) {
         if (!performanceSnap.exists()) throw new Error('公演回が見つかりません。');
         const performance = performanceSnap.data();
 
-        // 予約数を集計
-        const qRes = query(
-            collection(db, "reservations"),
-            where("performanceId", "==", data.performanceId),
-            where("productionId", "==", data.productionId)
-        );
-        const resSnapshot = await getDocs(qRes);
-        const bookedCount = calculateBookedCount(
-            resSnapshot.docs.map(d => d.data() as any),
-            data.performanceId
-        );
+        // bookedCountをperformanceドキュメントから取得
+        const bookedCount = performance.bookedCount || 0;
         const check = validateCapacity(performance.capacity, bookedCount, totalCount);
         if (!check.ok) throw new Error(check.error!);
 
@@ -123,6 +115,7 @@ export async function createReservation(data: FirestoreReservation) {
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         });
+        transaction.update(performanceRef, { bookedCount: increment(totalCount) });
     });
     const newId = newResRef.id;
 
@@ -325,10 +318,17 @@ export async function cancelReservation(reservationId: string, userId: string) {
         const resData = resSnap.data();
         if (resData.userId !== userId) throw new Error('Unauthorized');
 
+        const ticketCount = (resData.tickets || []).reduce((sum: number, t: any) => sum + (t.count || 0), 0);
+
         await updateDoc(reservationRef, {
             status: 'CANCELED',
             updatedAt: serverTimestamp(),
         });
+
+        if (ticketCount > 0 && resData.performanceId) {
+            const performanceRef = doc(db, "performances", resData.performanceId);
+            await updateDoc(performanceRef, { bookedCount: increment(-ticketCount) });
+        }
 
         revalidatePath('/');
         revalidatePath('/reservations');
@@ -392,19 +392,11 @@ export async function restoreReservation(reservationId: string, userId: string) 
                 const performanceSnap = await transaction.get(performanceRef);
                 if (performanceSnap.exists()) {
                     const performance = performanceSnap.data();
-                    const qRes = query(
-                        collection(db, "reservations"),
-                        where("performanceId", "==", resData.performanceId),
-                        where("productionId", "==", resData.productionId)
-                    );
-                    const resSnapshot = await getDocs(qRes);
-                    const bookedCount = calculateBookedCount(
-                        resSnapshot.docs.map(d => d.data() as any),
-                        resData.performanceId
-                    );
+                    const bookedCount = performance.bookedCount || 0;
                     const check = validateCapacity(performance.capacity, bookedCount, ticketCount);
                     if (!check.ok) throw new Error(check.error!);
                 }
+                transaction.update(performanceRef, { bookedCount: increment(ticketCount) });
             }
 
             transaction.update(reservationRef, {

@@ -1,5 +1,5 @@
 import { db } from '@/lib/firebase';
-import { collection, doc, getDoc, getDocs, query, where, updateDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, updateDoc, serverTimestamp, runTransaction, increment } from 'firebase/firestore';
 import { Production, Performance, FirestoreReservation } from '@/types';
 
 /**
@@ -82,6 +82,7 @@ export async function createSameDayTicketClient(
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         });
+        transaction.update(performanceRef, { bookedCount: increment(totalQuantity) });
     });
 }
 

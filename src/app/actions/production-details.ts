@@ -56,6 +56,7 @@ export async function addPerformance(formData: FormData, userId: string) {
         productionId,
         startTime,
         capacity,
+        bookedCount: 0,
         receptionEndHours: 1, // Default
         receptionEndMinutes: 0, // Default
         createdAt: serverTimestamp(),

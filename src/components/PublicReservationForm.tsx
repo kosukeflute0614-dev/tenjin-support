@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { createReservation } from '@/app/actions/reservation';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { calculateBookedCount } from '@/lib/capacity-utils';
 import { formatDateTime } from '@/lib/format';
 import { Production, Performance, TicketType, FormFieldConfig } from '@/types';
 import { useToast } from '@/components/Toast';
@@ -53,18 +52,11 @@ export default function PublicReservationForm({ production, promoterId }: Props)
                 const perfSnap = await getDoc(perfRef);
                 if (!perfSnap.exists()) { setRemainingSeats(null); return; }
                 const perf = perfSnap.data();
-                if (!perf.capacity || perf.capacity <= 0) { setRemainingSeats(null); return; }
+                if (!perf.capacity || perf.capacity <= 0) {
+                    setRemainingSeats(null); return;
+                }
 
-                const q = query(
-                    collection(db, "reservations"),
-                    where("performanceId", "==", selectedPerformanceId),
-                    where("productionId", "==", production.id)
-                );
-                const snapshot = await getDocs(q);
-                const bookedCount = calculateBookedCount(
-                    snapshot.docs.map(d => d.data() as any),
-                    selectedPerformanceId
-                );
+                const bookedCount = perf.bookedCount || 0;
                 setRemainingSeats(Math.max(0, perf.capacity - bookedCount));
             } catch (err: any) {
                 console.error("残席取得エラー:", err);

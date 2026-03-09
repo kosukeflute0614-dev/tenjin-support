@@ -1,3 +1,0 @@
-module.exports=[20321,a=>{"use strict";function b(a){return a instanceof Date?a:"string"==typeof a||"number"==typeof a?new Date(a):"function"==typeof a.toDate?a.toDate():new Date(1e3*a.seconds)}function c(a){if(!a)return a;let b="function"==typeof a.data?a.data():a,c=a.id,d=JSON.parse(JSON.stringify(b,(a,b)=>b&&"object"==typeof b&&"number"==typeof b.seconds&&"number"==typeof b.nanoseconds?new Date(1e3*b.seconds).toISOString():b));return c?{id:c,...d}:d}function d(a){return a.map(a=>c(a))}a.s(["serializeDoc",()=>c,"serializeDocs",()=>d,"toDate",()=>b])}];
-
-//# sourceMappingURL=_claude_worktrees_agent-a3a3fc77_src_lib_firestore-utils_ts_dbcb7a1d._.js.map

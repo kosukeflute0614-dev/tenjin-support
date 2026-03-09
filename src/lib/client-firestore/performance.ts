@@ -13,6 +13,7 @@ export async function addPerformanceClient(productionId: string, startTime: stri
         productionId,
         startTime: new Date(startTime),
         capacity,
+        bookedCount: 0,
         userId,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),

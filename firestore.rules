@@ -127,7 +127,9 @@ service cloud.firestore {
     match /performances/{performanceId} {
       allow read: if true;
       allow create: if isGoogleUser();
-      allow update, delete: if isOwner(resource.data.userId);
+      allow update: if isOwner(resource.data.userId)
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bookedCount']));
+      allow delete: if isOwner(resource.data.userId);
     }
 
     // チェックインログ (CheckinLogs)

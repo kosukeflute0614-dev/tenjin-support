@@ -5,8 +5,10 @@ import {
     collection,
     addDoc,
     getDoc,
+    updateDoc,
     doc,
-    serverTimestamp
+    serverTimestamp,
+    increment
 } from "firebase/firestore";
 import { revalidatePath } from 'next/cache'
 import { Production } from "@/types";
@@ -73,6 +75,9 @@ export async function createSameDayTicket(formData: FormData, userId: string) {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
     })
+
+    const performanceRef = doc(db, "performances", performanceId);
+    await updateDoc(performanceRef, { bookedCount: increment(totalQuantity) });
 
     revalidatePath(`/productions/${productionId}/checkin/${performanceId}`)
 }

@@ -139,6 +139,7 @@ export interface Performance {
     productionId: string;
     startTime: FirestoreTimestamp; // Firestore Timestamp or Date
     capacity: number;
+    bookedCount?: number;
     receptionEndHours: number;
     receptionEndMinutes: number;
     userId: string; // Owner ID
