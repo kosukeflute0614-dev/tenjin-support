@@ -67,6 +67,10 @@ export async function fetchProductionDetailsClient(
             ...(userId ? { staffTokens: rawData.staffTokens || {} } : {}),
             userId: rawData.userId || '',
             formFields: rawData.formFields || undefined,
+            // 物販関連
+            merchandiseMode: rawData.merchandiseMode || undefined,
+            merchandiseInventoryEnabled: rawData.merchandiseInventoryEnabled || false,
+            merchandiseSets: rawData.merchandiseSets || undefined,
         } as Production;
 
         // 公演回の取得

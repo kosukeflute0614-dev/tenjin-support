@@ -9,6 +9,7 @@ import {
     doc,
     query,
     where,
+    orderBy,
     onSnapshot
 } from "firebase/firestore";
 import { notFound, useRouter } from 'next/navigation';
@@ -17,9 +18,12 @@ import { formatDateTime } from '@/lib/format';
 import CheckinList from '@/components/CheckinList';
 import SameDayTicketForm from '@/components/SameDayTicketForm';
 import CashCloseForm from '@/components/CashCloseForm';
+import MerchandiseSalesForm from '@/components/MerchandiseSalesForm';
+import BottomNav from '@/components/BottomNav';
 import GlobalReservationSearch from '@/components/GlobalReservationSearch';
 import Link from 'next/link';
-import { Production, Performance, FirestoreReservation } from "@/types";
+import { ClipboardList, Ticket, ShoppingBag, Calculator } from 'lucide-react';
+import { Production, Performance, FirestoreReservation, MerchandiseProduct } from "@/types";
 import { useAuth } from '@/components/AuthProvider';
 import { serializeDoc, serializeDocs } from '@/lib/firestore-utils';
 import { ensureInvitationTicket } from '@/lib/client-firestore';
@@ -36,11 +40,13 @@ export default function CheckinPage({ params }: { params: any }) {
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [showCheckedIn, setShowCheckedIn] = useState(false);
-    const [activeTab, setActiveTab] = useState<'LIST' | 'SAME_DAY' | 'CASH_CLOSE'>('LIST');
+    const [activeTab, setActiveTab] = useState<'LIST' | 'SAME_DAY' | 'MERCHANDISE' | 'CASH_CLOSE'>('LIST');
+    const [merchProducts, setMerchProducts] = useState<MerchandiseProduct[]>([]);
 
     useEffect(() => {
         let unsubscribeReservations: () => void;
         let unsubscribeLogs: () => void;
+        let unsubscribeMerch: () => void;
 
         const fetchData = async () => {
             if (user) {
@@ -147,6 +153,18 @@ export default function CheckinPage({ params }: { params: any }) {
                         console.error("Logs Snapshot error:", err);
                     });
 
+                    // Merchandise products listener (for SIMPLE mode)
+                    if (production.merchandiseMode === 'SIMPLE') {
+                        const merchQuery = query(
+                            collection(db, 'merchandiseProducts'),
+                            where('productionId', '==', productionId),
+                            orderBy('sortOrder')
+                        );
+                        unsubscribeMerch = onSnapshot(merchQuery, (snap) => {
+                            setMerchProducts(serializeDocs<MerchandiseProduct>(snap.docs));
+                        });
+                    }
+
                 } catch (err) {
                     console.error("Fetch error:", err);
                     setIsInitialLoading(false);
@@ -161,6 +179,7 @@ export default function CheckinPage({ params }: { params: any }) {
         return () => {
             if (unsubscribeReservations) unsubscribeReservations();
             if (unsubscribeLogs) unsubscribeLogs();
+            if (unsubscribeMerch) unsubscribeMerch();
         };
     }, [user, loading, params, router]);
 
@@ -219,8 +238,14 @@ export default function CheckinPage({ params }: { params: any }) {
     const perfDateStr = startDate ? startDate.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' }) : '';
     const perfTimeStr = startDate ? startDate.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '';
 
+    // Determine if merchandise tab should show (SIMPLE mode + products exist)
+    const showMerchTab = production.merchandiseMode === 'SIMPLE' && merchProducts.length > 0;
+
+    // Unchecked count for badge
+    const uncheckedCount = stats.total - stats.checkedIn;
+
     return (
-        <div className="container" style={{ paddingBottom: '4rem', maxWidth: '1000px' }}>
+        <div className="container" style={{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom) + 1rem)', maxWidth: activeTab === 'MERCHANDISE' ? '1200px' : '1000px' }}>
             <header style={{
                 marginBottom: '2rem',
                 borderBottom: '1px solid var(--card-border)',
@@ -285,40 +310,25 @@ export default function CheckinPage({ params }: { params: any }) {
                 </div>
             </header>
 
-            {/* タブナビゲーション */}
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                {(['LIST', 'SAME_DAY', 'CASH_CLOSE'] as const).map((tab) => {
-                    const labels = { LIST: '予約リスト', SAME_DAY: '当日券発行', CASH_CLOSE: 'レジ締め' };
-                    return (
-                        <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            style={{
-                                padding: '0.6rem 1.2rem',
-                                borderRadius: '8px',
-                                border: 'none',
-                                fontSize: '0.9rem',
-                                fontWeight: '600',
-                                cursor: 'pointer',
-                                background: activeTab === tab ? 'var(--primary)' : '#e2e8f0',
-                                color: activeTab === tab ? '#fff' : '#4a5568',
-                                whiteSpace: 'nowrap',
-                            }}
-                        >
-                            {labels[tab]}
-                        </button>
-                    );
-                })}
-            </div>
-
+            {/* Tab Content */}
             {activeTab === 'CASH_CLOSE' ? (
-                /* レジ締めタブ */
                 <CashCloseForm
                     productionId={production.id}
                     performanceId={performance.id}
                     userId={user.uid}
                     closedByType="ORGANIZER"
                     closedBy={user.uid}
+                />
+            ) : activeTab === 'MERCHANDISE' ? (
+                <MerchandiseSalesForm
+                    productionId={production.id}
+                    performanceId={performance.id}
+                    userId={user.uid}
+                    products={merchProducts}
+                    sets={production.merchandiseSets || []}
+                    soldBy={user.uid}
+                    soldByType="ORGANIZER"
+                    inventoryEnabled={production.merchandiseInventoryEnabled || false}
                 />
             ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '1.5rem', alignItems: 'start' }}>
@@ -442,6 +452,18 @@ export default function CheckinPage({ params }: { params: any }) {
                 </aside>
             </div>
             )}
+
+            {/* Bottom Navigation */}
+            <BottomNav
+                items={[
+                    { id: 'LIST', label: '一覧', icon: <ClipboardList size={22} />, badge: uncheckedCount > 0 ? uncheckedCount : null },
+                    { id: 'SAME_DAY', label: '当日券', icon: <Ticket size={22} /> },
+                    { id: 'MERCHANDISE', label: '物販', icon: <ShoppingBag size={22} />, visible: showMerchTab },
+                    { id: 'CASH_CLOSE', label: '精算', icon: <Calculator size={22} /> },
+                ]}
+                activeId={activeTab}
+                onSelect={(id) => setActiveTab(id as typeof activeTab)}
+            />
         </div>
     );
 }

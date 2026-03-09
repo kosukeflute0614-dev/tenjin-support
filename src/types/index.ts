@@ -126,6 +126,10 @@ export interface Production {
     staffPasscodeHashed?: string; // Legacy: Common passcode
     formFields?: FormFieldConfig[];
     emailTemplates?: EmailTemplates;
+    // 物販関連
+    merchandiseMode?: 'SIMPLE' | 'INDEPENDENT';
+    merchandiseInventoryEnabled?: boolean;
+    merchandiseSets?: MerchandiseSet[];
     createdAt?: FirestoreTimestamp;
     updatedAt?: FirestoreTimestamp;
 }
@@ -208,4 +212,165 @@ export interface SalesReport {
         checkedInCount: number;
         revenue: number;
     }[];
+}
+
+// ── 物販関連型定義 ──
+
+export interface MerchandiseVariant {
+    id: string;
+    name: string;
+    price: number;
+    stock: number;
+    isActive: boolean;
+}
+
+export interface BulkDiscount {
+    minQuantity: number;
+    discountedPrice: number;
+}
+
+export interface MerchandiseProduct {
+    id: string;
+    productionId: string;
+    userId: string;
+    name: string;
+    category: string | null;
+    price: number;
+    isSellableAlone: boolean;
+    hasVariants: boolean;
+    variants: MerchandiseVariant[];
+    stock: number;
+    bulkDiscount: BulkDiscount | null;
+    sortOrder: number;
+    isActive: boolean;
+    createdAt?: FirestoreTimestamp;
+    updatedAt?: FirestoreTimestamp;
+}
+
+export interface MerchandiseSetItem {
+    productId: string;
+    variantId?: string;
+    quantity: number;
+}
+
+export interface MerchandiseSet {
+    id: string;
+    name: string;
+    items: MerchandiseSetItem[];
+    setPrice: number;
+    isActive: boolean;
+}
+
+export interface MerchandiseSaleItem {
+    productId: string;
+    productName: string;
+    variantId: string | null;
+    variantName: string | null;
+    quantity: number;
+    canceledQuantity: number;
+    unitPrice: number;
+    subtotal: number;
+}
+
+export interface MerchandiseSaleSetDiscount {
+    setId: string;
+    setName: string;
+    discountAmount: number;
+}
+
+export interface MerchandiseSaleBulkDiscount {
+    productId: string;
+    productName: string;
+    discountAmount: number;
+}
+
+export interface MerchandiseCancellationItem {
+    productId: string;
+    variantId: string | null;
+    quantity: number;
+}
+
+export interface MerchandiseCancellationRefundBreakdown {
+    itemRefund: number;
+    discountAdjustment: number;
+}
+
+export interface MerchandiseCancellation {
+    id: string;
+    canceledAt: FirestoreTimestamp;
+    canceledBy: string;
+    canceledByType: 'ORGANIZER' | 'STAFF';
+    reason: string | null;
+    items: MerchandiseCancellationItem[];
+    refundAmount: number;
+    refundBreakdown: MerchandiseCancellationRefundBreakdown;
+}
+
+export interface MerchandiseSale {
+    id: string;
+    localId?: string | null;
+    productionId: string;
+    performanceId: string;
+    userId: string;
+    items: MerchandiseSaleItem[];
+    setDiscounts: MerchandiseSaleSetDiscount[];
+    bulkDiscounts: MerchandiseSaleBulkDiscount[];
+    subtotal: number;
+    totalDiscount: number;
+    totalAmount: number;
+    refundedAmount: number;
+    effectiveAmount: number;
+    status: 'COMPLETED' | 'PARTIALLY_CANCELED' | 'CANCELED';
+    cancellations: MerchandiseCancellation[];
+    canceledAt?: FirestoreTimestamp | null;
+    cancelReason?: string | null;
+    soldBy: string;
+    soldByType: 'ORGANIZER' | 'STAFF';
+    createdAt?: FirestoreTimestamp;
+    updatedAt?: FirestoreTimestamp;
+}
+
+export interface MerchandiseInventoryLog {
+    id: string;
+    productionId: string;
+    userId: string;
+    productId: string;
+    variantId: string | null;
+    type: 'SALE' | 'CANCEL_RESTORE' | 'PARTIAL_CANCEL_RESTORE' | 'MANUAL_ADJUST';
+    quantityChange: number;
+    previousStock: number;
+    newStock: number;
+    saleId: string | null;
+    cancellationId: string | null;
+    remarks: string | null;
+    createdAt?: FirestoreTimestamp;
+}
+
+export interface MerchandiseCashClosing {
+    id: string;
+    productionId: string;
+    performanceId: string;
+    userId: string;
+    closedBy: string;
+    closedByType: 'ORGANIZER' | 'STAFF';
+    changeFloat: number;
+    denominations: CashDenomination[];
+    cashTotal: number;
+    expectedSales: number;
+    actualSales: number;
+    discrepancy: number;
+    inventoryCheck: InventoryCheckItem[] | null;
+    remarks?: string | null;
+    createdAt?: FirestoreTimestamp;
+    updatedAt?: FirestoreTimestamp;
+}
+
+export interface InventoryCheckItem {
+    productId: string;
+    productName: string;
+    variantId: string | null;
+    variantName: string | null;
+    expectedRemaining: number;
+    actualRemaining: number;
+    discrepancy: number;
 }

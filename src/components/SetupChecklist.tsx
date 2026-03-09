@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Production } from '@/types';
-import { Check, ChevronDown, ChevronUp, X, Ticket, MapPin, Mail, FileEdit, Key, ListChecks } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, X, Ticket, MapPin, Mail, FileEdit, Key, ListChecks, ShoppingBag } from 'lucide-react';
 
 interface ChecklistItem {
     id: string;
@@ -89,6 +89,15 @@ export default function SetupChecklist({ production, productionId }: SetupCheckl
             icon: <Key size={18} />,
             href: `/productions/${productionId}/staff`,
             isCompleted: (p) => !!p.staffTokens && Object.keys(p.staffTokens).length > 0,
+        },
+        {
+            id: 'merchandise',
+            label: '物販商品を登録',
+            description: 'グッズ販売の商品と価格を設定できます（任意）',
+            icon: <ShoppingBag size={18} />,
+            href: `/productions/${productionId}/merchandise`,
+            isCompleted: (p) => !!(p.merchandiseMode),
+            priority: 'recommended',
         },
     ];
 

@@ -12,7 +12,7 @@ import { PerformanceStats, DuplicateGroup, SalesReport, Production } from '@/typ
 import { db } from '@/lib/firebase';
 import { doc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { serializeDoc, toDate } from '@/lib/firestore-utils';
-import { Settings, Ticket, Bell, Smartphone, Users, Key, ClipboardList, FileEdit, Wallet, Mail, BarChart3, Calendar } from 'lucide-react';
+import { Settings, Ticket, Bell, Smartphone, Users, Key, ClipboardList, FileEdit, Wallet, Mail, BarChart3, Calendar, ShoppingBag } from 'lucide-react';
 import SetupChecklist from '@/components/SetupChecklist';
 
 type Badge = { label: string; bg: string; color: string; borderColor: string };
@@ -127,6 +127,7 @@ export default function DashboardPage() {
                 { href: prodHref(''), icon: <Settings size={32} color="var(--primary)" />, title: '公演設定', desc: '価格・回・詳細設定' },
                 { href: prodHref('/form-editor'), icon: <FileEdit size={32} color="var(--primary)" />, title: '予約フォーム編集', desc: '予約フォームの項目設定' },
                 { href: prodHref('/email'), icon: <Mail size={32} color="var(--primary)" />, title: 'メール管理', desc: '自動メール・一斉送信の設定' },
+                { href: prodHref('/merchandise'), icon: <ShoppingBag size={32} color="var(--primary)" />, title: '物販管理', desc: '商品登録・在庫管理' },
             ]
         },
         {
@@ -148,6 +149,7 @@ export default function DashboardPage() {
                 { href: '/reception', icon: <Smartphone size={32} color="var(--primary)" />, title: '当日受付', desc: '来場処理・当日券対応' },
                 { href: prodHref('/attendance'), icon: <Users size={32} color="var(--primary)" />, title: '来場状況', desc: 'リアルタイム着券状況の確認' },
                 { href: prodHref('/staff'), icon: <Key size={32} color="var(--primary)" />, title: 'スタッフ管理', desc: '合鍵（スタッフ用URL）の発行と管理', badge: staffBadge },
+                ...(production?.merchandiseMode === 'INDEPENDENT' ? [{ href: prodHref('/merchandise/sales'), icon: <ShoppingBag size={32} color="var(--primary)" />, title: '物販販売', desc: '物販専用レジ画面' }] : []),
             ]
         },
         {
