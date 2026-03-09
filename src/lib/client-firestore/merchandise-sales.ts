@@ -6,6 +6,27 @@ import {
 import { MerchandiseSale, MerchandiseSaleItem, MerchandiseSet } from '@/types';
 import { serializeDocs } from '@/lib/firestore-utils';
 
+// ── 物販売上合計取得 ──
+
+export async function getMerchandiseSalesTotalClient(
+    performanceId: string,
+    productionId: string,
+    userId: string,
+): Promise<number> {
+    const ref = collection(db, 'merchandiseSales');
+    const q = query(
+        ref,
+        where('userId', '==', userId),
+        where('performanceId', '==', performanceId),
+        where('productionId', '==', productionId),
+    );
+    const snapshot = await getDocs(q);
+    const sales = serializeDocs<MerchandiseSale>(snapshot.docs);
+    return sales
+        .filter(s => s.status !== 'CANCELED')
+        .reduce((sum, s) => sum + s.effectiveAmount, 0);
+}
+
 // ── 販売記録 ──
 
 export interface CreateSaleInput {

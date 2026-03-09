@@ -97,6 +97,12 @@ export default function MerchandiseSalesForm({
     const [showHistory, setShowHistory] = useState(false);
     const [showMobileCart, setShowMobileCart] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+    const [cashReceived, setCashReceived] = useState('');
+    const cashReceivedNum = useMemo(() => {
+        const n = parseInt(cashReceived, 10);
+        return isNaN(n) ? 0 : n;
+    }, [cashReceived]);
 
     // Subscribe to sales history
     useEffect(() => {
@@ -258,6 +264,7 @@ export default function MerchandiseSalesForm({
             setTimeout(() => setShowSuccessFlash(false), 800);
 
             setCart([]);
+            setCashReceived('');
             setShowMobileCart(false);
             showToast('販売を記録しました', 'success');
         } catch (err) {
@@ -392,7 +399,7 @@ export default function MerchandiseSalesForm({
                     <button
                         type="button"
                         className={styles.submitBtn}
-                        onClick={handleSubmit}
+                        onClick={() => { setCashReceived(''); setShowConfirmDialog(true); }}
                         disabled={submitting || cart.length === 0}
                     >
                         {submitting ? '処理中...' : `販売確定 ${formatCurrency(totalAmount)}`}
@@ -663,6 +670,140 @@ export default function MerchandiseSalesForm({
                             </button>
                         </div>
                         {renderCartContent()}
+                    </div>
+                </div>
+            )}
+
+            {/* Confirmation Dialog */}
+            {showConfirmDialog && (
+                <div className={styles.sheetBackdrop} onClick={() => setShowConfirmDialog(false)}>
+                    <div className={styles.sheetPanel} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
+                        <div className={styles.sheetHeader}>
+                            <h3 className={styles.sheetTitle}>販売内容の確認</h3>
+                            <button
+                                type="button"
+                                className={styles.sheetClose}
+                                onClick={() => setShowConfirmDialog(false)}
+                                aria-label="閉じる"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Items summary */}
+                        <div style={{ fontSize: '0.9rem', marginBottom: '1rem' }}>
+                            {cart.map(item => {
+                                const key = `${item.productId}:${item.variantId ?? 'none'}`;
+                                return (
+                                    <div key={key} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.3rem 0', borderBottom: '1px solid var(--card-border)' }}>
+                                        <span>
+                                            {item.productName}
+                                            {item.variantName && <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}> ({item.variantName})</span>}
+                                            {item.quantity > 1 && <span style={{ color: 'var(--text-muted)' }}> x{item.quantity}</span>}
+                                        </span>
+                                        <span style={{ fontWeight: '500' }}>{formatCurrency(item.unitPrice * item.quantity)}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Discounts */}
+                        {setDiscounts.length > 0 && (
+                            <div style={{ marginBottom: '0.75rem' }}>
+                                {setDiscounts.map(d => (
+                                    <div key={d.setId} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#059669', padding: '0.2rem 0' }}>
+                                        <span>{d.setName} 割引</span>
+                                        <span>-{formatCurrency(d.discountAmount)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Total */}
+                        <div style={{ textAlign: 'center', padding: '1rem 0', borderTop: '2px solid var(--card-border)', borderBottom: '2px solid var(--card-border)', marginBottom: '1rem' }}>
+                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>合計金額</div>
+                            <div style={{ fontSize: '2rem', fontWeight: '900', color: 'var(--primary)' }}>
+                                {formatCurrency(totalAmount)}
+                            </div>
+                        </div>
+
+                        {/* Cash received input */}
+                        <div style={{ marginBottom: '1rem' }}>
+                            <label style={{ fontSize: '0.85rem', fontWeight: '500', display: 'block', marginBottom: '0.5rem' }}>お預かり金額</label>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>¥</span>
+                                <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    className="input"
+                                    placeholder="0"
+                                    value={cashReceived}
+                                    onChange={(e) => setCashReceived(e.target.value.replace(/[^0-9]/g, ''))}
+                                    style={{ fontSize: '1.5rem', textAlign: 'right', fontWeight: '700' }}
+                                    autoFocus
+                                />
+                            </div>
+                            {cashReceivedNum > 0 && (
+                                <div style={{ marginTop: '0.5rem', textAlign: 'right', fontSize: '1.1rem' }}>
+                                    {cashReceivedNum >= totalAmount ? (
+                                        <span style={{ color: '#059669', fontWeight: '700' }}>
+                                            お釣り: {formatCurrency(cashReceivedNum - totalAmount)}
+                                        </span>
+                                    ) : (
+                                        <span style={{ color: '#dc3545', fontWeight: '600' }}>
+                                            不足: {formatCurrency(totalAmount - cashReceivedNum)}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Quick amount buttons */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+                            {[totalAmount, 1000, 2000, 3000, 5000, 10000].filter((v, i, arr) => arr.indexOf(v) === i).map(amount => (
+                                <button
+                                    key={amount}
+                                    type="button"
+                                    onClick={() => setCashReceived(String(amount))}
+                                    style={{
+                                        padding: '0.4rem 0.75rem',
+                                        border: '1px solid var(--card-border)',
+                                        borderRadius: 'var(--border-radius)',
+                                        background: cashReceivedNum === amount ? 'var(--primary)' : 'var(--card-bg)',
+                                        color: cashReceivedNum === amount ? '#fff' : 'var(--foreground)',
+                                        cursor: 'pointer',
+                                        fontSize: '0.85rem',
+                                        fontWeight: '500',
+                                    }}
+                                >
+                                    {amount === totalAmount ? 'ぴったり' : `¥${amount.toLocaleString()}`}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Action buttons */}
+                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <button
+                                type="button"
+                                className="btn btn-secondary"
+                                onClick={() => setShowConfirmDialog(false)}
+                                style={{ flex: 1 }}
+                            >
+                                戻る
+                            </button>
+                            <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={() => {
+                                    setShowConfirmDialog(false);
+                                    handleSubmit();
+                                }}
+                                disabled={submitting}
+                                style={{ flex: 2, fontSize: '1.05rem', fontWeight: '700' }}
+                            >
+                                {submitting ? '処理中...' : '確定'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

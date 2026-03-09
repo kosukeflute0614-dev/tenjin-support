@@ -32,6 +32,8 @@ interface CashCloseFormProps {
     onComplete?: () => void;
     hideHistory?: boolean;
     expectedSalesOverride?: number;
+    ticketSales?: number;      // チケット売上
+    merchandiseSales?: number; // 物販売上
 }
 
 export default function CashCloseForm({
@@ -43,6 +45,8 @@ export default function CashCloseForm({
     onComplete,
     hideHistory = false,
     expectedSalesOverride,
+    ticketSales,
+    merchandiseSales,
 }: CashCloseFormProps) {
     const [changeFloat, setChangeFloat] = useState('');
     const [counts, setCounts] = useState<Record<number, number>>(
@@ -297,12 +301,35 @@ export default function CashCloseForm({
                 <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem' }}>精算結果</h3>
                 <table style={{ width: '100%', fontSize: '0.95rem' }}>
                     <tbody>
-                        <tr>
-                            <td style={{ padding: '0.5rem 0', color: 'var(--slate-600)' }}>チケット売上合計</td>
-                            <td style={{ padding: '0.5rem 0', textAlign: 'right', fontWeight: '600' }}>
-                                {formatCurrency(expectedSales)}
-                            </td>
-                        </tr>
+                        {ticketSales !== undefined && merchandiseSales !== undefined ? (
+                            <>
+                                <tr>
+                                    <td style={{ padding: '0.35rem 0', color: 'var(--slate-600)', fontSize: '0.9rem' }}>チケット売上</td>
+                                    <td style={{ padding: '0.35rem 0', textAlign: 'right', fontSize: '0.9rem' }}>
+                                        {formatCurrency(ticketSales)}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style={{ padding: '0.35rem 0', color: 'var(--slate-600)', fontSize: '0.9rem' }}>物販売上</td>
+                                    <td style={{ padding: '0.35rem 0', textAlign: 'right', fontSize: '0.9rem' }}>
+                                        {formatCurrency(merchandiseSales)}
+                                    </td>
+                                </tr>
+                                <tr style={{ borderTop: '1px solid var(--card-border)' }}>
+                                    <td style={{ padding: '0.5rem 0', fontWeight: '600' }}>売上合計</td>
+                                    <td style={{ padding: '0.5rem 0', textAlign: 'right', fontWeight: '600' }}>
+                                        {formatCurrency(expectedSales)}
+                                    </td>
+                                </tr>
+                            </>
+                        ) : (
+                            <tr>
+                                <td style={{ padding: '0.5rem 0', color: 'var(--slate-600)' }}>チケット売上合計</td>
+                                <td style={{ padding: '0.5rem 0', textAlign: 'right', fontWeight: '600' }}>
+                                    {formatCurrency(expectedSales)}
+                                </td>
+                            </tr>
+                        )}
                         <tr>
                             <td style={{ padding: '0.5rem 0', color: 'var(--slate-600)' }}>現金実数</td>
                             <td style={{ padding: '0.5rem 0', textAlign: 'right' }}>{formatCurrency(cashTotal)}</td>
