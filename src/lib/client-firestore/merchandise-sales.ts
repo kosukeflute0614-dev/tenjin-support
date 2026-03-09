@@ -1,7 +1,7 @@
 import { db } from '@/lib/firebase';
 import {
     collection, doc, addDoc, updateDoc, getDoc, getDocs, query, where, orderBy, limit,
-    serverTimestamp, onSnapshot, Unsubscribe, Timestamp
+    onSnapshot, Unsubscribe, Timestamp
 } from 'firebase/firestore';
 import { MerchandiseSale, MerchandiseSaleItem, MerchandiseSet, MerchandiseProduct, MerchandiseCancellationItem, MerchandiseCancellation } from '@/types';
 import { serializeDocs } from '@/lib/firestore-utils';
@@ -120,8 +120,8 @@ export async function createMerchandiseSaleClient(input: CreateSaleInput): Promi
         cancelReason: null,
         soldBy,
         soldByType,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
     };
 
     const ref = collection(db, 'merchandiseSales');
@@ -140,11 +140,11 @@ export async function cancelMerchandiseSaleClient(
     const ref = doc(db, 'merchandiseSales', saleId);
     await updateDoc(ref, {
         status: 'CANCELED',
-        canceledAt: serverTimestamp(),
+        canceledAt: Timestamp.now(),
         cancelReason: reason || null,
         effectiveAmount: 0,
-        refundedAmount: 0, // Will be set properly in full implementation
-        updatedAt: serverTimestamp(),
+        refundedAmount: 0,
+        updatedAt: Timestamp.now(),
     });
 }
 
@@ -242,9 +242,9 @@ export async function partialCancelMerchandiseSaleClient(input: PartialCancelInp
         refundedAmount: newRefundedAmount,
         status: isFullCancel ? 'CANCELED' : 'PARTIALLY_CANCELED',
         cancellations: [...(sale.cancellations || []), newCancellation],
-        ...(isFullCancel ? { canceledAt: serverTimestamp() } : {}),
+        ...(isFullCancel ? { canceledAt: Timestamp.now() } : {}),
         cancelReason: reason || sale.cancelReason || null,
-        updatedAt: serverTimestamp(),
+        updatedAt: Timestamp.now(),
     });
 }
 
