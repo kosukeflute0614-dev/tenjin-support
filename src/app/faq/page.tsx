@@ -39,7 +39,7 @@ export default function FaqPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {faqItems.map((item, index) => (
                     <div key={index} style={{
-                        border: '1px solid #eee',
+                        border: '1px solid var(--card-border)',
                         borderRadius: '16px',
                         overflow: 'hidden',
                         backgroundColor: openIndex === index ? '#fcfcfc' : 'white',
@@ -72,7 +72,7 @@ export default function FaqPage() {
                             <div style={{
                                 padding: '0 1.5rem 1.5rem 4rem',
                                 lineHeight: '1.8',
-                                color: '#555'
+                                color: 'var(--slate-600)'
                             }}>
                                 {item.a}
                             </div>

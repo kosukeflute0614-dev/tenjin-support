@@ -1,7 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createReservationClient } from '@/lib/client-firestore';
+import { sendReservationEmail } from '@/app/actions/reservation';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { calculateBookedCount } from '@/lib/capacity-utils';
 import { formatDateTime } from '@/lib/format';
 import { useAuth } from './AuthProvider';
 import { useToast } from '@/components/Toast';
@@ -18,6 +22,7 @@ export default function ReservationForm({ productions }: Props) {
     const { showToast } = useToast();
     const [selectedPerformanceId, setSelectedPerformanceId] = useState<string>("");
     const [ticketCounts, setTicketCounts] = useState<{ [key: string]: number }>({});
+    const [remainingMap, setRemainingMap] = useState<Record<string, number>>({});
 
     // Flatten all performances from all productions
     const allPerformances = productions.flatMap(prod =>
@@ -30,6 +35,26 @@ export default function ReservationForm({ productions }: Props) {
 
     const selectedPerformance = allPerformances.find(p => p.id === selectedPerformanceId);
     const ticketTypes = selectedPerformance ? selectedPerformance.ticketTypes : [];
+
+    useEffect(() => {
+        if (allPerformances.length === 0) return;
+        const fetchAll = async () => {
+            const productionIds = [...new Set(allPerformances.map(p => p.productionId))];
+            const allResDocs: any[] = [];
+            for (const pid of productionIds) {
+                const qRes = query(collection(db, "reservations"), where("productionId", "==", pid));
+                const snapshot = await getDocs(qRes);
+                allResDocs.push(...snapshot.docs.map(d => d.data()));
+            }
+            const map: Record<string, number> = {};
+            for (const perf of allPerformances) {
+                const booked = calculateBookedCount(allResDocs, perf.id);
+                map[perf.id] = Math.max(0, perf.capacity - booked);
+            }
+            setRemainingMap(map);
+        };
+        fetchAll();
+    }, [allPerformances.length]);
 
     const handleTicketChange = (ticketId: string, count: number) => {
         setTicketCounts(prev => ({
@@ -62,12 +87,15 @@ export default function ReservationForm({ productions }: Props) {
             });
 
         try {
-            await createReservationClient({
+            const customerEmail = formData.get('customerEmail') as string;
+            const customerName = formData.get('customerName') as string;
+
+            const newResId = await createReservationClient({
                 performanceId: selectedPerformanceId,
                 productionId: selectedPerformance.productionId,
-                customerName: formData.get('customerName') as string,
+                customerName,
                 customerNameKana: formData.get('customerNameKana') as string,
-                customerEmail: formData.get('customerEmail') as string,
+                customerEmail,
                 checkedInTickets: 0,
                 checkinStatus: 'NOT_ATTENDED',
                 tickets: tickets as any,
@@ -78,6 +106,18 @@ export default function ReservationForm({ productions }: Props) {
                 remarks: formData.get('remarks') as string,
                 userId: user.uid,
             } as any);
+
+            // メールアドレスがあればメール送信（サーバーアクション経由）
+            if (customerEmail) {
+                sendReservationEmail({
+                    customerEmail,
+                    customerName,
+                    productionId: selectedPerformance.productionId,
+                    performanceId: selectedPerformanceId,
+                    tickets: tickets as any,
+                    reservationId: newResId,
+                }).catch(err => console.error('メール送信エラー:', err));
+            }
 
             // 成功時の処理（フォームリセットなど）
             setSelectedPerformanceId("");
@@ -156,7 +196,10 @@ export default function ReservationForm({ productions }: Props) {
                     <option value="">選択してください</option>
                     {allPerformances.map(perf => (
                         <option key={perf.id} value={perf.id}>
-                            【{perf.productionTitle}】 {formatDateTime(perf.startTime)} (残: {perf.capacity})
+                            【{perf.productionTitle}】 {formatDateTime(perf.startTime)}{remainingMap[perf.id] !== undefined
+                                ? ` (残: ${remainingMap[perf.id]})`
+                                : ''
+                            }
                         </option>
                     ))}
                 </select>
@@ -176,7 +219,7 @@ export default function ReservationForm({ productions }: Props) {
                     ) : (
                         <div style={{ display: 'grid', gap: '0.75rem' }}>
                             {ticketTypes.map((ticket: TicketType) => (
-                                <div key={ticket.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', borderBottom: '1px solid #eee' }}>
+                                <div key={ticket.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', borderBottom: '1px solid var(--card-border)' }}>
                                     <div>
                                         <div style={{ fontWeight: 'bold' }}>{ticket.name}</div>
                                         <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>¥{ticket.price.toLocaleString()}</div>
@@ -218,7 +261,7 @@ export default function ReservationForm({ productions }: Props) {
                 type="submit"
                 className="btn btn-primary"
                 style={{ width: '100%', padding: '1rem', fontWeight: 'bold', fontSize: '1.1rem' }}
-                disabled={!selectedPerformanceId || totalTickets === 0}
+                disabled={!selectedPerformanceId || totalTickets === 0 || (remainingMap[selectedPerformanceId] !== undefined && totalTickets > remainingMap[selectedPerformanceId])}
             >
                 予約を登録する
             </button>

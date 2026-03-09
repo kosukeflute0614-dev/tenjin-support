@@ -141,7 +141,7 @@ function QuestionStats({ question: q, index, responses }: {
                 {label}
                 <span style={{
                     marginLeft: '0.5rem', fontSize: '0.7rem', color: 'var(--text-muted)',
-                    padding: '1px 6px', borderRadius: '3px', backgroundColor: '#f0f0f0',
+                    padding: '1px 6px', borderRadius: '3px', backgroundColor: 'var(--secondary)',
                 }}>
                     {typeLabel(q.type)}
                 </span>
@@ -229,7 +229,7 @@ function FreeTextList({ question: q, responses }: { question: SurveyQuestion; re
             <div style={{ display: 'grid', gap: '0.4rem', maxHeight: showAll ? 'none' : '300px', overflowY: 'auto' }}>
                 {display.map((txt, i) => (
                     <div key={i} style={{
-                        padding: '0.5rem 0.75rem', backgroundColor: '#fafafa',
+                        padding: '0.5rem 0.75rem', backgroundColor: 'var(--secondary)',
                         borderRadius: '6px', fontSize: '0.85rem', lineHeight: '1.5',
                         borderLeft: '3px solid var(--primary)',
                     }}>
@@ -395,7 +395,7 @@ function IndividualView({ responses, template }: { responses: SurveyResponse[]; 
                             const ans = current.answers?.[q.id];
                             return (
                                 <div key={q.id} style={{
-                                    padding: '0.65rem 0.85rem', backgroundColor: '#fafafa',
+                                    padding: '0.65rem 0.85rem', backgroundColor: 'var(--secondary)',
                                     borderRadius: '8px', fontSize: '0.85rem',
                                 }}>
                                     <div style={{
@@ -483,7 +483,7 @@ function SubNavButton({ active, onClick, children }: {
         <button onClick={onClick} style={{
             flex: 1, padding: '0.6rem', borderRadius: '8px',
             border: active ? '2px solid var(--primary)' : '2px solid var(--card-border)',
-            backgroundColor: active ? 'rgba(74,78,105,0.06)' : '#fff',
+            backgroundColor: active ? 'rgba(74,78,105,0.06)' : 'var(--card-bg)',
             color: active ? 'var(--text)' : 'var(--text-muted)',
             fontWeight: active ? 'bold' : 'normal',
             fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.15s',
@@ -495,7 +495,7 @@ function SubNavButton({ active, onClick, children }: {
 
 const slideNavBtnStyle = (disabled: boolean): React.CSSProperties => ({
     width: '44px', height: '44px', borderRadius: '50%',
-    border: '1px solid var(--card-border)', backgroundColor: '#fff',
+    border: '1px solid var(--card-border)', backgroundColor: 'var(--card-bg)',
     cursor: disabled ? 'default' : 'pointer',
     opacity: disabled ? 0.3 : 1,
     fontSize: '1.1rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',

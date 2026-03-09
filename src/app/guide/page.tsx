@@ -11,7 +11,7 @@ const sections = [
         content: (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <p>Tenjin-Supportへようこそ。まずは劇団情報の登録から始めましょう。</p>
-                <div style={{ background: '#f8f9fa', padding: '1.5rem', borderRadius: '12px' }}>
+                <div style={{ background: 'var(--secondary)', padding: '1.5rem', borderRadius: '12px' }}>
                     <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', fontWeight: 'bold' }}>1. 団体・劇団名の設定</h3>
                     <p style={{ fontSize: '0.95rem', lineHeight: '1.6' }}>
                         ログイン後のオンボーディング画面、または「団体設定」メニューから、あなたの団体名を入力してください。
@@ -28,14 +28,14 @@ const sections = [
         content: (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <p>公演ごとに、日時やチケットの種類を個別に設定できます。</p>
-                <div style={{ background: '#f8f9fa', padding: '1.5rem', borderRadius: '12px' }}>
+                <div style={{ background: 'var(--secondary)', padding: '1.5rem', borderRadius: '12px' }}>
                     <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', fontWeight: 'bold' }}>2. 公演回の追加</h3>
                     <p style={{ fontSize: '0.95rem', lineHeight: '1.6' }}>
                         「公演一覧」から新しい公演を作成し、各ステージ（日時）を追加します。
                         会場のキャパシティに合わせて、各回の定員を設定してください。
                     </p>
                 </div>
-                <div style={{ background: '#f8f9fa', padding: '1.5rem', borderRadius: '12px' }}>
+                <div style={{ background: 'var(--secondary)', padding: '1.5rem', borderRadius: '12px' }}>
                     <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', fontWeight: 'bold' }}>3. 券種（チケット）の設定</h3>
                     <p style={{ fontSize: '0.95rem', lineHeight: '1.6' }}>
                         「前売り」「当日」「一般」「学生」など、必要な券種を定義します。
@@ -52,14 +52,14 @@ const sections = [
         content: (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <p>スムーズな予約受付のための機能が揃っています。</p>
-                <div style={{ background: '#f8f9fa', padding: '1.5rem', borderRadius: '12px' }}>
+                <div style={{ background: 'var(--secondary)', padding: '1.5rem', borderRadius: '12px' }}>
                     <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', fontWeight: 'bold' }}>4. 予約フォームの公開</h3>
                     <p style={{ fontSize: '0.95rem', lineHeight: '1.6' }}>
                         専用の予約ページURLをコピーして、劇団のHPやSNSで公開しましょう。
                         フォームからの予約は自動的にシステムへ反映されます。
                     </p>
                 </div>
-                <div style={{ background: '#f8f9fa', padding: '1.5rem', borderRadius: '12px' }}>
+                <div style={{ background: 'var(--secondary)', padding: '1.5rem', borderRadius: '12px' }}>
                     <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', fontWeight: 'bold' }}>5. 手動予約の登録</h3>
                     <p style={{ fontSize: '0.95rem', lineHeight: '1.6' }}>
                         関係者席やメールでの直接申し込みがあった場合は、管理画面から手動で予約を追加できます。
@@ -75,14 +75,14 @@ const sections = [
         content: (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <p>劇場ロビーでの混雑を解消し、迅速な受付を実現します。</p>
-                <div style={{ background: '#f8f9fa', padding: '1.5rem', borderRadius: '12px' }}>
+                <div style={{ background: 'var(--secondary)', padding: '1.5rem', borderRadius: '12px' }}>
                     <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', fontWeight: 'bold' }}>6. スピード受付（当日受付）</h3>
                     <p style={{ fontSize: '0.95rem', lineHeight: '1.6' }}>
                         お客様の名前を検索し、タップするだけで入場処理が完了します。
                         一度に複数名での受付や、一部の人数のみの入場にも対応しています。
                     </p>
                 </div>
-                <div style={{ background: '#f8f9fa', padding: '1.5rem', borderRadius: '12px' }}>
+                <div style={{ background: 'var(--secondary)', padding: '1.5rem', borderRadius: '12px' }}>
                     <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', fontWeight: 'bold' }}>7. 当日券の即時発行</h3>
                     <p style={{ fontSize: '0.95rem', lineHeight: '1.6' }}>
                         当日ふらっと来場されたお客様も、その場で名前を入れるだけで即座にチケットを発行し、売上にカウントできます。
@@ -98,7 +98,7 @@ export default function GuidePage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     return (
-        <div style={{ display: 'flex', minHeight: 'calc(100vh - 150px)', background: '#fff' }}>
+        <div style={{ display: 'flex', minHeight: 'calc(100vh - 150px)', background: 'var(--card-bg)' }}>
             {/* サイドバーナビゲーション */}
             <aside style={{
                 width: '280px',
@@ -110,9 +110,9 @@ export default function GuidePage() {
                 left: '0',
                 height: '100%',
                 zIndex: '50',
-                background: '#fff',
+                background: 'var(--card-bg)',
             }} className="guide-sidebar">
-                <h2 style={{ fontSize: '0.75rem', color: '#999', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1.5rem', fontWeight: 'bold' }}>
+                <h2 style={{ fontSize: '0.75rem', color: 'var(--slate-500)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1.5rem', fontWeight: 'bold' }}>
                     Guide Contents
                 </h2>
                 <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -180,11 +180,11 @@ export default function GuidePage() {
                     </h1>
                 </header>
 
-                <div style={{ lineHeight: '1.8', fontSize: '1.05rem', color: '#333' }}>
+                <div style={{ lineHeight: '1.8', fontSize: '1.05rem', color: 'var(--foreground)' }}>
                     {sections.find(s => s.id === activeSection)?.content}
                 </div>
 
-                <div style={{ marginTop: '5rem', paddingTop: '3rem', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ marginTop: '5rem', paddingTop: '3rem', borderTop: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between' }}>
                     {/* ナビゲーションボタン */}
                     {sections.findIndex(s => s.id === activeSection) > 0 && (
                         <button

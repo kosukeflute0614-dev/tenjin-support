@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { fetchProductionSalesReportClient } from '@/lib/client-firestore';
 import { SalesReport } from '@/types';
 import { useAuth } from './AuthProvider';
+import { useToast } from '@/components/Toast';
 import { formatCurrency, formatDateTime } from '@/lib/format';
 import { exportToCSV } from '@/lib/export-utils';
 
@@ -13,29 +14,27 @@ type Props = {
 
 export default function SalesReportView({ productionId }: Props) {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [report, setReport] = useState<SalesReport | null>(null);
     const [loading, setLoading] = useState(true);
-
-    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchReport = async () => {
             if (!user) return;
             setLoading(true);
-            setError(null);
             try {
                 const data = await fetchProductionSalesReportClient(productionId, user.uid);
                 setReport(data);
                 if (!data) {
-                    setError('レポートデータが見つかりませんでした。');
+                    showToast('レポートデータが見つかりませんでした。', 'error');
                 }
             } catch (err: any) {
                 console.error("Failed to fetch sales report:", err);
                 // 権限エラーの場合のメッセージを具体化
                 if (err.code === 'permission-denied') {
-                    setError('閲覧権限がありません。管理者としてログインしているか確認してください。');
+                    showToast('閲覧権限がありません。管理者としてログインしているか確認してください。', 'error');
                 } else {
-                    setError('データの取得中にエラーが発生しました。詳細はブラウザのコンソールを確認してください。');
+                    showToast('データの取得中にエラーが発生しました。詳細はブラウザのコンソールを確認してください。', 'error');
                 }
             } finally {
                 setLoading(false);
@@ -75,7 +74,7 @@ export default function SalesReportView({ productionId }: Props) {
     };
 
     if (loading) return <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>集計中...</div>;
-    if (error || !report) return <div className="card" style={{ padding: '2rem', textAlign: 'center', color: error ? '#e53e3e' : 'inherit' }}>{error || 'レポートの取得に失敗しました。'}</div>;
+    if (!report) return <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>データを取得できませんでした</div>;
 
     return (
         <div style={{ display: 'grid', gap: '2rem' }}>
@@ -103,10 +102,11 @@ export default function SalesReportView({ productionId }: Props) {
                 <div style={{ padding: '1rem 1.5rem', background: '#f8fafc', fontWeight: 'bold', borderBottom: '1px solid var(--card-border)' }}>
                     券種別内訳
                 </div>
-                <div style={{ overflowX: 'auto' }}>
+                {/* Desktop table */}
+                <div className="desktop-only" style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
-                            <tr style={{ borderBottom: '1px solid var(--card-border)', background: '#fff' }}>
+                            <tr style={{ borderBottom: '1px solid var(--card-border)', background: 'var(--card-bg)' }}>
                                 <th style={{ padding: '0.75rem 1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>券種名</th>
                                 <th style={{ padding: '0.75rem 1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>枚数</th>
                                 <th style={{ padding: '0.75rem 1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>金額</th>
@@ -123,6 +123,28 @@ export default function SalesReportView({ productionId }: Props) {
                         </tbody>
                     </table>
                 </div>
+                {/* Mobile cards */}
+                <div className="mobile-only">
+                    <div className="mobile-card-list">
+                        {Object.values(report.ticketTypeBreakdown).map((tt, idx) => (
+                            <div key={idx} className="mobile-card-item">
+                                <div className="mobile-card-header">
+                                    <div className="mobile-card-title">{tt.name}</div>
+                                </div>
+                                <div className="mobile-card-body" style={{ marginBottom: 0 }}>
+                                    <div className="mobile-card-row">
+                                        <span className="mobile-card-row-label">枚数</span>
+                                        <span className="mobile-card-row-value">{tt.count} 枚</span>
+                                    </div>
+                                    <div className="mobile-card-row">
+                                        <span className="mobile-card-row-label">金額</span>
+                                        <span className="mobile-card-row-value" style={{ color: 'var(--success)' }}>{formatCurrency(tt.revenue)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
 
             {/* 公演回別集計 */}
@@ -130,10 +152,11 @@ export default function SalesReportView({ productionId }: Props) {
                 <div style={{ padding: '1rem 1.5rem', background: '#f8fafc', fontWeight: 'bold', borderBottom: '1px solid var(--card-border)' }}>
                     公演回別集計
                 </div>
-                <div style={{ overflowX: 'auto' }}>
+                {/* Desktop table */}
+                <div className="desktop-only" style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
-                            <tr style={{ borderBottom: '1px solid var(--card-border)', background: '#fff' }}>
+                            <tr style={{ borderBottom: '1px solid var(--card-border)', background: 'var(--card-bg)' }}>
                                 <th style={{ padding: '0.75rem 1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>開演時間</th>
                                 <th style={{ padding: '0.75rem 1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>予約枚数</th>
                                 <th style={{ padding: '0.75rem 1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'right' }}>来場人数</th>
@@ -151,6 +174,32 @@ export default function SalesReportView({ productionId }: Props) {
                             ))}
                         </tbody>
                     </table>
+                </div>
+                {/* Mobile cards */}
+                <div className="mobile-only">
+                    <div className="mobile-card-list">
+                        {report.performanceSummaries.map((perf) => (
+                            <div key={perf.id} className="mobile-card-item">
+                                <div className="mobile-card-header">
+                                    <div className="mobile-card-title" style={{ fontSize: '0.9rem' }}>{formatDateTime(perf.startTime)}</div>
+                                </div>
+                                <div className="mobile-card-body" style={{ marginBottom: 0 }}>
+                                    <div className="mobile-card-row">
+                                        <span className="mobile-card-row-label">予約枚数</span>
+                                        <span className="mobile-card-row-value">{perf.bookedCount} 枚</span>
+                                    </div>
+                                    <div className="mobile-card-row">
+                                        <span className="mobile-card-row-label">来場人数</span>
+                                        <span className="mobile-card-row-value">{perf.checkedInCount} 人</span>
+                                    </div>
+                                    <div className="mobile-card-row">
+                                        <span className="mobile-card-row-label">売上 (概算)</span>
+                                        <span className="mobile-card-row-value" style={{ color: 'var(--success)' }}>{formatCurrency(perf.revenue)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>

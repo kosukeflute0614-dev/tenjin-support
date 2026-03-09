@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
-import Breadcrumb from '@/components/Breadcrumb';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, collection, addDoc, updateDoc, query, where, getDocs, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { serializeDoc } from '@/lib/firestore-utils';
@@ -44,10 +44,13 @@ export default function SurveyHubPage({ params }: { params: Promise<{ id: string
     const [templates, setTemplates] = useState<SurveyTemplate[]>([]);
     const [editingTemplate, setEditingTemplate] = useState<SurveyTemplate | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-    const [activeTab, setActiveTab] = useState<TabKey>('report');
+    const [activeTab, setActiveTab] = useState<TabKey>('builder');
     const [responses, setResponses] = useState<SurveyResponse[]>([]);
     const [showPrintEditor, setShowPrintEditor] = useState(false);
     const [troupeName, setTroupeName] = useState<string>('');
+    const [isDirty, setIsDirty] = useState(false);
+
+    useUnsavedChanges(isDirty);
 
     const showToast = (message: string, type: 'success' | 'error' = 'success') => {
         setToast({ message, type });
@@ -163,6 +166,7 @@ export default function SurveyHubPage({ params }: { params: Promise<{ id: string
     const handleQuestionsChange = (questions: SurveyQuestion[]) => {
         if (!editingTemplate) return;
         setEditingTemplate({ ...editingTemplate, questions });
+        setIsDirty(true);
     };
 
     const handleSaveQuestions = async () => {
@@ -174,6 +178,7 @@ export default function SurveyHubPage({ params }: { params: Promise<{ id: string
                 updatedAt: serverTimestamp()
             });
             setTemplates(prev => prev.map(t => t.id === editingTemplate.id ? editingTemplate : t));
+            setIsDirty(false);
             showToast('✅ 設問を保存しました');
         } catch (error) {
             console.error('Failed to save questions:', error);
@@ -214,19 +219,23 @@ export default function SurveyHubPage({ params }: { params: Promise<{ id: string
     // ── ビルダー編集モード (フルスクリーン) ──
     if (editingTemplate) {
         return (
-            <div className="container" style={{ maxWidth: '800px' }}>
+            <div className="container" style={{ maxWidth: '1000px' }}>
                 <div style={{ marginBottom: '1.25rem' }}>
                     <button
-                        onClick={() => setEditingTemplate(null)}
+                        onClick={() => {
+                            if (isDirty && !window.confirm('変更が保存されていません。管理ハブに戻ってもよろしいですか？')) return;
+                            setIsDirty(false);
+                            setEditingTemplate(null);
+                        }}
                         className="btn btn-secondary"
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}
                     >
                         <span>&larr;</span> 管理ハブに戻る
                     </button>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                    <div>
-                        <h2 className="heading-lg" style={{ marginBottom: '0.3rem' }}>🛠️ アンケート・ビルダー</h2>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ flex: '1 1 200px' }}>
+                        <h2 className="heading-lg" style={{ marginBottom: '0.3rem' }}>アンケート・ビルダー</h2>
                         <p className="text-muted" style={{ fontSize: '0.85rem' }}>{editingTemplate.title}</p>
                     </div>
                     <button
@@ -252,12 +261,7 @@ export default function SurveyHubPage({ params }: { params: Promise<{ id: string
     // テンプレートが未作成
     if (templates.length === 0) {
         return (
-            <div className="container" style={{ maxWidth: '800px' }}>
-                <Breadcrumb items={[
-                    { label: 'ダッシュボード', href: '/dashboard' },
-                    { label: production.title, href: `/productions/${id}` },
-                    { label: 'アンケート' }
-                ]} />
+            <div className="container" style={{ maxWidth: '1000px' }}>
                 <div style={{ marginBottom: '1.25rem' }}>
                     <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
                         <span>&larr;</span> ダッシュボードに戻る
@@ -289,12 +293,7 @@ export default function SurveyHubPage({ params }: { params: Promise<{ id: string
 
     // ── 3タブ構成 メインUI ──
     return (
-        <div className="container" style={{ maxWidth: '800px' }}>
-            <Breadcrumb items={[
-                { label: 'ダッシュボード', href: '/dashboard' },
-                { label: production.title, href: `/productions/${id}` },
-                { label: 'アンケート' }
-            ]} />
+        <div className="container" style={{ maxWidth: '1000px' }}>
             <div style={{ marginBottom: '1.25rem' }}>
                 <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
                     <span>&larr;</span> ダッシュボードに戻る
@@ -306,11 +305,12 @@ export default function SurveyHubPage({ params }: { params: Promise<{ id: string
             <div style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 marginBottom: '1rem', padding: '0.75rem 1rem',
-                backgroundColor: '#fff', borderRadius: '10px',
+                backgroundColor: 'var(--card-bg)', borderRadius: '10px',
                 border: '1px solid var(--card-border)',
+                flexWrap: 'wrap', gap: '0.5rem',
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{currentTemplate.title}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: '1 1 200px', minWidth: 0 }}>
+                    <span style={{ fontWeight: 'bold', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentTemplate.title}</span>
                     <span style={{
                         padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold',
                         backgroundColor: currentTemplate.status === 'active' ? '#dcfce7' : '#f3f4f6',
@@ -341,12 +341,18 @@ export default function SurveyHubPage({ params }: { params: Promise<{ id: string
                 {tabs.map(tab => (
                     <button
                         key={tab.key}
-                        onClick={() => setActiveTab(tab.key)}
+                        onClick={() => {
+                            if (isDirty && activeTab === 'builder' && tab.key !== 'builder') {
+                                if (!window.confirm('変更が保存されていません。このタブを離れてもよろしいですか？')) return;
+                                setIsDirty(false);
+                            }
+                            setActiveTab(tab.key);
+                        }}
                         style={{
                             flex: 1, padding: '0.7rem 0.5rem',
                             borderRadius: '8px', border: 'none', cursor: 'pointer',
                             fontSize: '0.85rem', fontWeight: activeTab === tab.key ? 'bold' : 'normal',
-                            backgroundColor: activeTab === tab.key ? '#fff' : 'transparent',
+                            backgroundColor: activeTab === tab.key ? 'var(--card-bg)' : 'transparent',
                             color: activeTab === tab.key ? 'var(--text)' : 'var(--text-muted)',
                             boxShadow: activeTab === tab.key ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
                             transition: 'all 0.2s',
@@ -397,14 +403,14 @@ function BuilderTab({ template, onOpenBuilder, onOpenPrintEditor }: {
 }) {
     return (
         <div className="card" style={{ padding: '2rem', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div style={{ flex: '1 1 200px' }}>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>設問の管理</h3>
                     <p className="text-muted" style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>
                         設問数: {template.questions.length}
                     </p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <button className="btn btn-primary" onClick={onOpenBuilder} style={{ fontSize: '0.9rem' }}>
                         🛠️ ビルダーを開く
                     </button>
@@ -413,7 +419,7 @@ function BuilderTab({ template, onOpenBuilder, onOpenPrintEditor }: {
                         style={{
                             display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
                             padding: '0.5rem 1rem', borderRadius: '8px',
-                            border: '1px solid #d1d5db', backgroundColor: '#f9fafb',
+                            border: '1px solid #d1d5db', backgroundColor: 'var(--secondary)',
                             color: '#374151', fontSize: '0.85rem', cursor: 'pointer',
                             fontWeight: '500', transition: 'all 0.15s',
                         }}
@@ -434,7 +440,7 @@ function BuilderTab({ template, onOpenBuilder, onOpenPrintEditor }: {
                             <div key={q.id} style={{
                                 display: 'flex', alignItems: 'center', gap: '0.5rem',
                                 padding: '0.6rem 0.8rem', borderRadius: '6px',
-                                backgroundColor: '#fafafa', fontSize: '0.85rem',
+                                backgroundColor: 'var(--secondary)', fontSize: '0.85rem',
                             }}>
                                 <span style={{
                                     width: '22px', height: '22px', borderRadius: '50%',
@@ -447,7 +453,7 @@ function BuilderTab({ template, onOpenBuilder, onOpenPrintEditor }: {
                                 <span style={{ flex: 1 }}>{q.label}</span>
                                 <span style={{
                                     fontSize: '0.7rem', color: 'var(--text-muted)',
-                                    padding: '1px 6px', borderRadius: '3px', backgroundColor: '#f0f0f0',
+                                    padding: '1px 6px', borderRadius: '3px', backgroundColor: 'var(--secondary)',
                                 }}>
                                     {typeLabel(q.type)}
                                 </span>
@@ -506,7 +512,7 @@ function ShareTab({ template, surveyUrl, productionTitle, onCopy }: {
 
             {/* 印刷用PDFダウンロード（プレースホルダ） */}
             <div style={{
-                padding: '1.5rem', backgroundColor: '#fcfcfc',
+                padding: '1.5rem', backgroundColor: 'var(--card-bg)',
                 borderRadius: '8px', border: '1px dashed #d1d5db',
             }}>
                 <h4 style={{ fontSize: '0.95rem', fontWeight: 'bold', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -520,7 +526,7 @@ function ShareTab({ template, surveyUrl, productionTitle, onCopy }: {
                     style={{
                         display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
                         padding: '0.6rem 1.2rem', borderRadius: '8px',
-                        border: '1px solid #e5e7eb', backgroundColor: '#f9fafb',
+                        border: '1px solid var(--card-border)', backgroundColor: 'var(--secondary)',
                         color: '#9ca3af', fontSize: '0.85rem', cursor: 'not-allowed',
                     }}
                 >
@@ -548,7 +554,7 @@ function BackLink() {
 function PageHeader({ title }: { title: string }) {
     return (
         <div style={{ marginBottom: '1.5rem' }}>
-            <h2 className="heading-lg" style={{ marginBottom: '0.5rem' }}>📝 アンケート管理ハブ</h2>
+            <h2 className="heading-lg" style={{ marginBottom: '0.5rem' }}>アンケート管理</h2>
             <p className="text-muted" style={{ fontSize: '0.9rem' }}>{title} — アンケートの作成・配布・集計を管理します。</p>
         </div>
     );

@@ -7,7 +7,6 @@ import { serializeDoc } from '@/lib/firestore-utils';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 import { useToast } from '@/components/Toast';
-import Breadcrumb from '@/components/Breadcrumb';
 import { Production } from '@/types';
 import { useRouter } from 'next/navigation';
 import { generateStaffTokenClient, revokeStaffTokenClient, updateStaffTokenPasscodeClient } from '@/lib/client-firestore';
@@ -138,12 +137,7 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
     });
 
     return (
-        <div className="container" style={{ maxWidth: '800px' }}>
-            <Breadcrumb items={[
-                { label: 'ダッシュボード', href: '/dashboard' },
-                { label: production.title, href: `/productions/${id}` },
-                { label: 'スタッフ管理' }
-            ]} />
+        <div className="container" style={{ maxWidth: '1000px' }}>
             <div style={{ marginBottom: '1.25rem' }}>
                 <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
                     <span>&larr;</span> ダッシュボードに戻る
@@ -156,8 +150,8 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
 
             <div className="card" style={{ padding: '2rem', marginBottom: '2rem', border: '1px solid #ffd70033', backgroundColor: '#fffdf0' }}>
                 <h3 className="heading-md" style={{ marginBottom: '1.5rem' }}>新規URLの発行</h3>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
-                    <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                    <div style={{ flex: '1 1 250px' }}>
                         <label className="label">役割（ロール）</label>
                         <select
                             className="input"
@@ -168,7 +162,7 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
                             <option value="reception">受付スタッフ（reception）</option>
                             <option value="monitor">来場状況確認・モニター（monitor）</option>
                         </select>
-                        <p style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.5rem' }}>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
                             {newRole === 'reception' ? '※来場チェックインと当日券発行が可能です。' : '※来場状況の確認のみ可能です（読み取り専用）。'}
                         </p>
                     </div>
@@ -176,7 +170,7 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
                         className="btn btn-primary"
                         onClick={handleGenerateToken}
                         disabled={isProcessing}
-                        style={{ padding: '0.8rem 1.5rem', height: 'fit-content' }}
+                        style={{ padding: '0.8rem 1.5rem', height: 'fit-content', flex: '1 1 auto', maxWidth: '300px' }}
                     >
                         {isProcessing ? '発行中...' : '招待URLを発行'}
                     </button>
@@ -195,8 +189,8 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
                             const passcode = typeof data === 'string' ? '要再発行' : data.passcode;
 
                             return (
-                                <div key={token} style={{ border: '1px solid #eee', borderRadius: '12px', padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                <div key={token} style={{ border: '1px solid var(--card-border)', borderRadius: '12px', padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
+                                    <div style={{ flex: '1 1 250px', minWidth: 0 }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.5rem' }}>
                                             <span style={{
                                                 fontSize: '0.75rem',
@@ -209,8 +203,8 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
                                                 {role.toUpperCase()}
                                             </span>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <span style={{ fontSize: '0.85rem', color: '#666' }}>
-                                                    パスコード: <strong style={{ fontSize: '1rem', color: '#333', backgroundColor: '#eee', padding: '1px 6px', borderRadius: '4px' }}>{passcode}</strong>
+                                                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                                    パスコード: <strong style={{ fontSize: '1rem', color: 'var(--foreground)', backgroundColor: '#eee', padding: '1px 6px', borderRadius: '4px' }}>{passcode}</strong>
                                                 </span>
                                                 {typeof data !== 'string' && (
                                                     <button
@@ -264,11 +258,11 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
                 )}
             </div>
 
-            <div style={{ marginTop: '2.5rem', padding: '1.5rem', backgroundColor: '#f8f9fa', borderRadius: '12px', border: '1px solid #eee' }}>
+            <div style={{ marginTop: '2.5rem', padding: '1.5rem', backgroundColor: 'var(--secondary)', borderRadius: '12px', border: '1px solid var(--card-border)' }}>
                 <h4 style={{ marginBottom: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span>💡</span> 招待URLの使い方
                 </h4>
-                <ul style={{ fontSize: '0.9rem', color: '#555', lineHeight: '1.6', paddingLeft: '1.2rem' }}>
+                <ul style={{ fontSize: '0.9rem', color: 'var(--slate-600)', lineHeight: '1.6', paddingLeft: '1.2rem' }}>
                     <li>発行したURLをコピーして、現場スタッフのLINEやメールに送ってください。</li>
                     <li>スタッフはログイン不要で、即座に受付や制作管理画面にアクセスできます。</li>
                     <li>万が一URLが漏洩したり、公演が終了した場合は、ゴミ箱アイコンからURLを無効化してください。</li>

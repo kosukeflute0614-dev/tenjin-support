@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useToast } from '@/components/Toast';
 
 interface SurveyOption { id: string; label: string }
 interface SubFields {
@@ -30,7 +31,7 @@ export default function PublicSurveyPage({ params }: { params: Promise<{ product
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const [submitError, setSubmitError] = useState<string | null>(null);
+    const { showToast } = useToast();
 
     useEffect(() => {
         const fetchTemplate = async () => {
@@ -109,7 +110,6 @@ export default function PublicSurveyPage({ params }: { params: Promise<{ product
     // ── 送信 ──
     const handleSubmit = async () => {
         if (!template || isSubmitting) return;
-        setSubmitError(null);
 
         if (!validate()) {
             // 最初のエラーまでスクロール
@@ -132,7 +132,7 @@ export default function PublicSurveyPage({ params }: { params: Promise<{ product
             window.scrollTo(0, 0);
         } catch (err: any) {
             console.error('Survey submit error:', err);
-            setSubmitError('送信に失敗しました。しばらく時間を置いてから再度お試しください。');
+            showToast('送信に失敗しました。しばらく時間を置いてから再度お試しください。', 'error');
         } finally {
             setIsSubmitting(false);
         }
@@ -222,20 +222,10 @@ export default function PublicSurveyPage({ params }: { params: Promise<{ product
                 {hasErrors && (
                     <div style={{
                         padding: '0.8rem 1rem', marginTop: '1.5rem',
-                        backgroundColor: '#fff5f5', border: '1px solid #feb2b2',
-                        borderRadius: '8px', color: '#c53030', fontSize: '0.85rem',
+                        backgroundColor: 'rgba(220, 53, 69, 0.08)', border: '1px solid #feb2b2',
+                        borderRadius: '8px', color: 'var(--accent)', fontSize: '0.85rem',
                     }}>
                         ⚠ 未回答の必須項目があります。赤く表示された設問をご確認ください。
-                    </div>
-                )}
-
-                {submitError && (
-                    <div style={{
-                        padding: '0.8rem 1rem', marginTop: '1rem',
-                        backgroundColor: '#fff5f5', border: '1px solid #feb2b2',
-                        borderRadius: '8px', color: '#c53030', fontSize: '0.85rem',
-                    }}>
-                        {submitError}
                     </div>
                 )}
 
@@ -294,7 +284,7 @@ function QuestionBlock({ question: q, index, answer, onAnswer, error, subErrors 
             {isNewsletter && <NewsletterInput question={q} index={index} value={answer} onChange={onAnswer} subErrors={subErrors} />}
 
             {error && (
-                <p style={{ color: '#e53e3e', fontSize: '0.8rem', marginTop: '0.3rem' }}>{error}</p>
+                <p style={{ color: 'var(--accent)', fontSize: '0.8rem', marginTop: '0.3rem' }}>{error}</p>
             )}
         </div>
     );
@@ -394,7 +384,7 @@ function NewsletterInput({ question: q, index, value, onChange, subErrors }: {
             {opted && (
                 <div style={{
                     padding: '1rem', border: '1px solid var(--card-border)',
-                    borderRadius: '8px', background: '#fcfcfc',
+                    borderRadius: '8px', background: 'var(--card-bg)',
                     display: 'grid', gap: '0.75rem',
                 }}>
                     <div>
@@ -406,7 +396,7 @@ function NewsletterInput({ question: q, index, value, onChange, subErrors }: {
                             value={data.name} onChange={e => update({ name: e.target.value })}
                             style={{ marginBottom: 0, borderColor: subErrors?.name ? '#e53e3e' : undefined }} />
                         {subErrors?.name && (
-                            <p style={{ color: '#e53e3e', fontSize: '0.75rem', marginTop: '0.2rem' }}>{subErrors.name}</p>
+                            <p style={{ color: 'var(--accent)', fontSize: '0.75rem', marginTop: '0.2rem' }}>{subErrors.name}</p>
                         )}
                     </div>
                     <div>
@@ -418,7 +408,7 @@ function NewsletterInput({ question: q, index, value, onChange, subErrors }: {
                             value={data.email} onChange={e => update({ email: e.target.value })}
                             style={{ marginBottom: 0, borderColor: subErrors?.email ? '#e53e3e' : undefined }} />
                         {subErrors?.email && (
-                            <p style={{ color: '#e53e3e', fontSize: '0.75rem', marginTop: '0.2rem' }}>{subErrors.email}</p>
+                            <p style={{ color: 'var(--accent)', fontSize: '0.75rem', marginTop: '0.2rem' }}>{subErrors.email}</p>
                         )}
                         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
                             ※配信のご連絡にのみ使用いたします。
@@ -438,7 +428,7 @@ const choiceLabelStyle = (active: boolean): React.CSSProperties => ({
     display: 'flex', alignItems: 'center', gap: '0.6rem',
     padding: '0.75rem 1rem', borderRadius: '8px',
     border: `1.5px solid ${active ? 'var(--primary)' : 'var(--card-border)'}`,
-    backgroundColor: active ? 'rgba(var(--primary-rgb, 74,78,105), 0.05)' : '#fff',
+    backgroundColor: active ? 'rgba(var(--primary-rgb, 74,78,105), 0.05)' : 'var(--card-bg)',
     cursor: 'pointer', transition: 'all 0.15s', userSelect: 'none',
 });
 
@@ -457,7 +447,7 @@ const radioDotStyle: React.CSSProperties = {
 const checkboxStyle = (active: boolean): React.CSSProperties => ({
     width: '18px', height: '18px', borderRadius: '4px',
     border: `2px solid ${active ? 'var(--primary)' : '#ccc'}`,
-    backgroundColor: active ? 'var(--primary)' : '#fff',
+    backgroundColor: active ? 'var(--primary)' : 'var(--card-bg)',
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     flexShrink: 0, transition: 'all 0.15s',
 });

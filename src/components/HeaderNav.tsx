@@ -53,8 +53,8 @@ export default function HeaderNav() {
     const linkHref = hasProduction === false ? '/productions' : '/dashboard';
 
     return (
-        <nav style={{ display: 'flex', alignItems: 'baseline', gap: '1.5rem' }}>
-            <Link href={linkHref} className="nav-link" style={{
+        <nav className="header-nav" style={{ display: 'flex', alignItems: 'baseline', gap: '1.5rem' }}>
+            <Link href={linkHref} className="nav-link header-nav-production" style={{
                 fontWeight: isDashboard ? '600' : 'normal',
                 color: isDashboard ? 'var(--primary)' : 'inherit',
                 textDecoration: 'none',
@@ -68,7 +68,7 @@ export default function HeaderNav() {
             }}>
                 {productionName || '公演一覧'}
             </Link>
-            <div style={{ height: '20px', width: '1px', background: '#e5e7eb', alignSelf: 'center' }}></div>
+            <div className="header-nav-divider" style={{ height: '20px', width: '1px', background: '#e5e7eb', alignSelf: 'center' }}></div>
             <UserMenu />
         </nav>
     );

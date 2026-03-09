@@ -2,8 +2,10 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { NumberStepper } from '@/components/TouchInputs';
 import { formatCurrency } from '@/lib/format';
+import { useToast } from '@/components/Toast';
 import { getPerformancePaidTotalClient, saveCashClosingClient, getCashClosingsClient } from '@/lib/client-firestore/cash-close';
 import { CashClosing } from '@/types';
 import { toDate } from '@/lib/firestore-utils';
@@ -51,8 +53,11 @@ export default function CashCloseForm({
     const [isSaving, setIsSaving] = useState(false);
     const [history, setHistory] = useState<CashClosing[]>([]);
     const [remarks, setRemarks] = useState('');
-    const [error, setError] = useState<string | null>(null);
     const [saved, setSaved] = useState(false);
+    const [isDirty, setIsDirty] = useState(false);
+    const { showToast } = useToast();
+
+    useUnsavedChanges(isDirty);
 
     const changeFloatNum = useMemo(() => {
         const n = parseInt(changeFloat, 10);
@@ -85,7 +90,7 @@ export default function CashCloseForm({
             }
         } catch (err: unknown) {
             console.error('データ取得エラー:', err);
-            setError('データの取得に失敗しました');
+            showToast('データの取得に失敗しました', 'error');
         } finally {
             setIsLoading(false);
         }
@@ -99,7 +104,6 @@ export default function CashCloseForm({
         if (!confirm('レジ締めを確定しますか？')) return;
 
         setIsSaving(true);
-        setError(null);
 
         try {
             await saveCashClosingClient({
@@ -121,6 +125,7 @@ export default function CashCloseForm({
             });
 
             setSaved(true);
+            setIsDirty(false);
             // 履歴を再取得（hideHistory でなければ）
             if (!hideHistory) {
                 const closings = await getCashClosingsClient(performanceId, productionId, userId);
@@ -130,7 +135,7 @@ export default function CashCloseForm({
             if (onComplete) onComplete();
         } catch (err: unknown) {
             console.error('保存エラー:', err);
-            setError('レジ締めの保存に失敗しました');
+            showToast('レジ締めの保存に失敗しました', 'error');
         } finally {
             setIsSaving(false);
         }
@@ -138,6 +143,7 @@ export default function CashCloseForm({
 
     const updateCount = (denomination: number, value: number) => {
         setCounts(prev => ({ ...prev, [denomination]: value }));
+        setIsDirty(true);
     };
 
     if (isLoading) {
@@ -203,7 +209,7 @@ export default function CashCloseForm({
                                 {h.discrepancy === 0 ? '一致' : h.discrepancy > 0 ? `+${formatCurrency(h.discrepancy)}` : formatCurrency(h.discrepancy)}
                             </span>
                         </div>
-                        <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', fontSize: '0.85rem', color: '#555' }}>
+                        <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', fontSize: '0.85rem', color: 'var(--slate-600)' }}>
                             <span>現金: {formatCurrency(h.cashTotal)}</span>
                             <span>準備金: {formatCurrency(h.changeFloat)}</span>
                             <span>売上: {formatCurrency(h.expectedSales)}</span>
@@ -221,12 +227,6 @@ export default function CashCloseForm({
 
     return (
         <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-            {error && (
-                <div style={{ color: 'var(--accent)', background: '#fff5f5', padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.9rem' }}>
-                    {error}
-                </div>
-            )}
-
             {/* 釣り銭準備金 */}
             <div className="card" style={{ padding: '1.25rem', marginBottom: '1rem' }}>
                 <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '0.75rem' }}>釣り銭準備金</h3>
@@ -238,7 +238,7 @@ export default function CashCloseForm({
                         className="input"
                         placeholder="0"
                         value={changeFloat}
-                        onChange={(e) => setChangeFloat(e.target.value.replace(/[^0-9]/g, ''))}
+                        onChange={(e) => { setChangeFloat(e.target.value.replace(/[^0-9]/g, '')); setIsDirty(true); }}
                         style={{ fontSize: '1.2rem', textAlign: 'right', maxWidth: '200px' }}
                     />
                 </div>
@@ -254,9 +254,9 @@ export default function CashCloseForm({
                     {DENOMINATIONS.map((d) => (
                         <div key={d.value} style={{
                             display: 'grid',
-                            gridTemplateColumns: '90px 1fr 100px',
+                            gridTemplateColumns: 'minmax(70px, 90px) 1fr minmax(70px, 100px)',
                             alignItems: 'center',
-                            gap: '0.75rem',
+                            gap: '0.5rem',
                             padding: '0.25rem 0',
                         }}>
                             <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>{d.label}</span>
@@ -267,7 +267,7 @@ export default function CashCloseForm({
                                 onChange={(val) => updateCount(d.value, val)}
                                 label="枚"
                             />
-                            <span style={{ textAlign: 'right', fontSize: '0.9rem', color: '#555', fontVariantNumeric: 'tabular-nums' }}>
+                            <span style={{ textAlign: 'right', fontSize: '0.9rem', color: 'var(--slate-600)', fontVariantNumeric: 'tabular-nums' }}>
                                 {formatCurrency(d.value * (counts[d.value] || 0))}
                             </span>
                         </div>
@@ -298,20 +298,20 @@ export default function CashCloseForm({
                 <table style={{ width: '100%', fontSize: '0.95rem' }}>
                     <tbody>
                         <tr>
-                            <td style={{ padding: '0.5rem 0', color: '#555' }}>チケット売上合計</td>
+                            <td style={{ padding: '0.5rem 0', color: 'var(--slate-600)' }}>チケット売上合計</td>
                             <td style={{ padding: '0.5rem 0', textAlign: 'right', fontWeight: '600' }}>
                                 {formatCurrency(expectedSales)}
                             </td>
                         </tr>
                         <tr>
-                            <td style={{ padding: '0.5rem 0', color: '#555' }}>現金実数</td>
+                            <td style={{ padding: '0.5rem 0', color: 'var(--slate-600)' }}>現金実数</td>
                             <td style={{ padding: '0.5rem 0', textAlign: 'right' }}>{formatCurrency(cashTotal)}</td>
                         </tr>
                         <tr>
-                            <td style={{ padding: '0.5rem 0', color: '#555' }}>釣り銭準備金</td>
+                            <td style={{ padding: '0.5rem 0', color: 'var(--slate-600)' }}>釣り銭準備金</td>
                             <td style={{ padding: '0.5rem 0', textAlign: 'right' }}>-{formatCurrency(changeFloatNum)}</td>
                         </tr>
-                        <tr style={{ borderTop: '1px solid #eee' }}>
+                        <tr style={{ borderTop: '1px solid var(--card-border)' }}>
                             <td style={{ padding: '0.5rem 0', fontWeight: '600' }}>実売上額</td>
                             <td style={{ padding: '0.5rem 0', textAlign: 'right', fontWeight: '600' }}>
                                 {formatCurrency(actualSales)}
@@ -327,7 +327,7 @@ export default function CashCloseForm({
                     textAlign: 'center',
                     background: discrepancy === 0 ? '#e8f5e9' : discrepancy > 0 ? '#e3f2fd' : '#ffebee',
                 }}>
-                    <div style={{ fontSize: '0.85rem', color: '#555', marginBottom: '0.25rem' }}>差額</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--slate-600)', marginBottom: '0.25rem' }}>差額</div>
                     <div style={{
                         fontSize: '1.5rem',
                         fontWeight: '900',
@@ -353,7 +353,7 @@ export default function CashCloseForm({
                     rows={2}
                     placeholder="メモがあれば入力..."
                     value={remarks}
-                    onChange={(e) => setRemarks(e.target.value)}
+                    onChange={(e) => { setRemarks(e.target.value); setIsDirty(true); }}
                     style={{ resize: 'vertical' }}
                 />
             </div>

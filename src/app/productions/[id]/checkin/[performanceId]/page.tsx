@@ -21,8 +21,8 @@ import GlobalReservationSearch from '@/components/GlobalReservationSearch';
 import Link from 'next/link';
 import { Production, Performance, FirestoreReservation } from "@/types";
 import { useAuth } from '@/components/AuthProvider';
-import Breadcrumb from '@/components/Breadcrumb';
 import { serializeDoc, serializeDocs } from '@/lib/firestore-utils';
+import { ensureInvitationTicket } from '@/lib/client-firestore';
 
 export default function CheckinPage({ params }: { params: any }) {
     const { user, loading } = useAuth();
@@ -62,6 +62,9 @@ export default function CheckinPage({ params }: { params: any }) {
                         router.push('/productions');
                         return;
                     }
+
+                    // 既存公演に招待チケットが無ければ自動追加
+                    await ensureInvitationTicket(productionId, user.uid);
 
                     // 2. Get Performance
                     const performanceRef = doc(db, "performances", performanceId);
@@ -217,33 +220,28 @@ export default function CheckinPage({ params }: { params: any }) {
     const perfTimeStr = startDate ? startDate.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '';
 
     return (
-        <div className="container" style={{ paddingBottom: '4rem', maxWidth: '1200px' }}>
-            <Breadcrumb items={[
-                { label: 'ダッシュボード', href: '/dashboard' },
-                { label: data.production.title, href: `/productions/${data.production.id}` },
-                { label: 'チェックイン' }
-            ]} />
+        <div className="container" style={{ paddingBottom: '4rem', maxWidth: '1000px' }}>
             <header style={{
                 marginBottom: '2rem',
-                borderBottom: '1px solid #eee',
+                borderBottom: '1px solid var(--card-border)',
                 padding: '1rem 0',
                 position: 'sticky',
                 top: 0,
-                backgroundColor: '#fff',
+                backgroundColor: 'var(--card-bg)',
                 zIndex: 100
             }}>
                 <Link href="/reception" className="btn btn-secondary" style={{ marginBottom: '1rem', display: 'inline-block', fontSize: '0.85rem', borderRadius: '8px' }}>
                     &larr; 公演回の選択に戻る
                 </Link>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1.5rem' }}>
-                    <div style={{ flex: '1', minWidth: '300px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ flex: '1 1 250px', minWidth: 0 }}>
                         <div style={{ marginBottom: '0.5rem' }}>
                             <span style={{ background: 'var(--secondary)', color: 'var(--primary)', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
                                 主催者
                             </span>
                         </div>
-                        <div style={{ fontSize: '1rem', fontWeight: 'bold', color: '#666', marginBottom: '0.25rem' }}>
+                        <div style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
                             公演：{production.title}
                         </div>
                         <h2 style={{ fontSize: '1.8rem', fontWeight: '900', margin: 0, color: 'var(--primary)', lineHeight: '1.2' }}>
@@ -251,9 +249,9 @@ export default function CheckinPage({ params }: { params: any }) {
                         </h2>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                         {/* 進捗バー */}
-                        <div style={{ width: '180px', backgroundColor: '#fff', padding: '0.75rem', borderRadius: '12px', border: '1px solid #eee', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                        <div style={{ width: '180px', minWidth: '140px', backgroundColor: 'var(--card-bg)', padding: '0.75rem', borderRadius: '12px', border: '1px solid var(--card-border)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.4rem' }}>
                                 <span>来場進捗</span>
                                 <span>{stats.checkedIn}/{stats.total}人</span>
@@ -278,7 +276,7 @@ export default function CheckinPage({ params }: { params: any }) {
                             minWidth: '120px',
                             boxShadow: '0 4px 12px rgba(var(--primary-rgb), 0.1)'
                         }}>
-                            <div style={{ fontSize: '0.65rem', color: '#666', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>当日券 残数</div>
+                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>当日券 残数</div>
                             <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--primary)', lineHeight: '1' }}>
                                 {remainingCount} <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>枚</span>
                             </div>
@@ -288,7 +286,7 @@ export default function CheckinPage({ params }: { params: any }) {
             </header>
 
             {/* タブナビゲーション */}
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 {(['LIST', 'SAME_DAY', 'CASH_CLOSE'] as const).map((tab) => {
                     const labels = { LIST: '予約リスト', SAME_DAY: '当日券発行', CASH_CLOSE: 'レジ締め' };
                     return (
@@ -304,6 +302,7 @@ export default function CheckinPage({ params }: { params: any }) {
                                 cursor: 'pointer',
                                 background: activeTab === tab ? 'var(--primary)' : '#e2e8f0',
                                 color: activeTab === tab ? '#fff' : '#4a5568',
+                                whiteSpace: 'nowrap',
                             }}
                         >
                             {labels[tab]}
@@ -322,7 +321,7 @@ export default function CheckinPage({ params }: { params: any }) {
                     closedBy={user.uid}
                 />
             ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '2rem', alignItems: 'start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '1.5rem', alignItems: 'start' }}>
                 {/* 左カラム: メインコンテンツ */}
                 <div className="card" style={{ padding: '1.5rem', borderRadius: '16px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
                     {activeTab === 'LIST' && (
@@ -330,7 +329,7 @@ export default function CheckinPage({ params }: { params: any }) {
                     <div style={{ marginBottom: '1.5rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                             <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>予約リスト ({filteredReservations.length}件)</h2>
-                            <span style={{ fontSize: '0.8rem', color: '#666' }}>未入場の方を優先表示しています</span>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>未入場の方を優先表示しています</span>
                         </div>
                         <div style={{ position: 'relative' }}>
                             <input
@@ -353,7 +352,7 @@ export default function CheckinPage({ params }: { params: any }) {
                             <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', marginTop: '-0.5rem', fontSize: '1.2rem', color: '#94a3b8' }}>🔍</span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0' }}>
-                            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '0.9rem', color: '#4a5568', fontWeight: '500' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--slate-600)', fontWeight: '500' }}>
                                 <input
                                     type="checkbox"
                                     checked={showCheckedIn}
@@ -374,7 +373,7 @@ export default function CheckinPage({ params }: { params: any }) {
                     )}
                     {activeTab === 'SAME_DAY' && (
                     <>
-                        <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid #f0f0f0', paddingBottom: '0.75rem' }}>
+                        <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.75rem' }}>
                             <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>当日券を発行</h2>
                         </div>
                         <SameDayTicketForm
@@ -392,7 +391,7 @@ export default function CheckinPage({ params }: { params: any }) {
                 <aside style={{ position: 'sticky', top: '7.5rem' }}>
                     <div className="card" style={{ padding: '1.5rem', borderRadius: '16px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
                         <div style={{ marginBottom: '0.75rem' }}>
-                            <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', margin: 0, color: '#666' }}>来場状況</h3>
+                            <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', margin: 0, color: 'var(--text-muted)' }}>来場状況</h3>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.4rem' }}>
                             <span>入場済み</span>
@@ -406,7 +405,7 @@ export default function CheckinPage({ params }: { params: any }) {
                                 transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
                             }} />
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#555' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--slate-600)' }}>
                             <span>当日券残数</span>
                             <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{remainingCount}枚</span>
                         </div>
@@ -431,7 +430,7 @@ export default function CheckinPage({ params }: { params: any }) {
                         </Link>
                     </div>
 
-                    <div style={{ marginTop: '1rem', padding: '1rem', background: '#eef2f1', borderRadius: '12px', fontSize: '0.8rem', color: '#4a5568' }}>
+                    <div style={{ marginTop: '1rem', padding: '1rem', background: '#eef2f1', borderRadius: '12px', fontSize: '0.8rem', color: 'var(--slate-600)' }}>
                         <p style={{ margin: 0, fontWeight: 'bold' }}>ヒント</p>
                         <p style={{ margin: '0.25rem 0 0 0' }}>
                             {activeTab === 'LIST'

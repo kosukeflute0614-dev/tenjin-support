@@ -5,14 +5,12 @@ import {
     collection,
     addDoc,
     getDoc,
-    getDocs,
     doc,
-    query,
-    where,
     serverTimestamp
 } from "firebase/firestore";
 import { revalidatePath } from 'next/cache'
-import { Performance, Production, FirestoreReservation } from "@/types";
+import { Production } from "@/types";
+import { validateTicketInput } from '@/lib/capacity-utils';
 
 export async function createSameDayTicket(formData: FormData, userId: string) {
     if (!userId) throw new Error('Unauthorized')
@@ -35,35 +33,12 @@ export async function createSameDayTicket(formData: FormData, userId: string) {
 
     const totalQuantity = activeTicketCounts.reduce((sum, [_, count]) => sum + count, 0)
 
-    // 1. 公演の残数チェック
-    const performanceRef = doc(db, "performances", performanceId);
-    const performanceSnap = await getDoc(performanceRef);
-    if (!performanceSnap.exists()) throw new Error('公演が見つかりません')
-    const performance = { id: performanceSnap.id, ...performanceSnap.data() } as Performance;
-    if (performance.userId !== userId) throw new Error('Unauthorized'); // Security check
+    // 入力バリデーション
+    const ticketArray = activeTicketCounts.map(([_, count]) => ({ count }));
+    const { error: inputError } = validateTicketInput(ticketArray);
+    if (inputError) throw new Error(inputError);
 
-    const reservationsRef = collection(db, "reservations");
-    const qRes = query(
-        reservationsRef,
-        where("userId", "==", userId)
-    );
-    const resSnapshot = await getDocs(qRes);
-
-    const bookedCount = resSnapshot.docs.reduce((sum, doc) => {
-        const res = doc.data() as FirestoreReservation;
-        if (res.performanceId !== performanceId) return sum; // Filter performanceId in memory
-        if (res.status === 'CANCELED') return sum;
-        const ticketCount = res.tickets?.reduce((tSum: number, t: any) => tSum + (t.count || 0), 0) || 0;
-        return sum + ticketCount;
-    }, 0);
-
-    const remaining = performance.capacity - bookedCount
-
-    if (totalQuantity > remaining) {
-        throw new Error(`枚数が販売可能数（${remaining}枚）を超えています`)
-    }
-
-    // 2. 券種データの取得（Production に埋め込まれている）
+    // 券種データの取得（Production に埋め込まれている）
     const productionRef = doc(db, "productions", productionId);
     const productionSnap = await getDoc(productionRef);
     if (!productionSnap.exists()) throw new Error('プロダクションが見つかりません')
@@ -81,7 +56,7 @@ export async function createSameDayTicket(formData: FormData, userId: string) {
         }
     })
 
-    // 3. 予約の作成 (source: SAME_DAY, checkedInAt: now)
+    // 予約の作成 (source: SAME_DAY, checkedInAt: now)
     await addDoc(collection(db, "reservations"), {
         userId, // Organizer ID
         performanceId,

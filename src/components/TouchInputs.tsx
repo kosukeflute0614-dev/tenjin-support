@@ -69,7 +69,7 @@ export function NumberStepper({
                 flexDirection: 'column',
                 justifyContent: 'center',
                 alignItems: 'center',
-                background: '#fff',
+                background: 'var(--card-bg)',
                 borderTop: '1px solid #ddd',
                 borderBottom: '1px solid #ddd',
                 minWidth: '60px',
@@ -100,7 +100,7 @@ export function NumberStepper({
                         position: 'absolute',
                         bottom: '2px',
                         fontSize: '0.6rem',
-                        color: '#888',
+                        color: 'var(--text-muted)',
                         pointerEvents: 'none'
                     }}>
                         {label}
@@ -143,14 +143,14 @@ export function SoftKeypad({
             display: 'flex',
             flexDirection: 'column',
             gap: '12px',
-            background: '#f8f9fa',
+            background: 'var(--secondary)',
             padding: '16px',
             borderRadius: '16px',
-            border: '1px solid #dee2e6',
+            border: '1px solid var(--card-border)',
             boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
         }}>
             {statusText && (
-                <div style={{ padding: '4px', textAlign: 'right', fontSize: '0.75rem', color: '#888' }}>
+                <div style={{ padding: '4px', textAlign: 'right', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     {statusText}
                 </div>
             )}
@@ -160,7 +160,7 @@ export function SoftKeypad({
                     <button
                         type="button"
                         className="btn btn-secondary"
-                        style={{ flex: 1, padding: '0.6rem', fontSize: '0.9rem', background: '#fff' }}
+                        style={{ flex: 1, padding: '0.6rem', fontSize: '0.9rem', background: 'var(--card-bg)' }}
                         onClick={() => onQuickInput(5000)}
                     >
                         5,000円
@@ -168,7 +168,7 @@ export function SoftKeypad({
                     <button
                         type="button"
                         className="btn btn-secondary"
-                        style={{ flex: 1, padding: '0.6rem', fontSize: '0.9rem', background: '#fff' }}
+                        style={{ flex: 1, padding: '0.6rem', fontSize: '0.9rem', background: 'var(--card-bg)' }}
                         onClick={() => onQuickInput(10000)}
                     >
                         10,000円
@@ -190,7 +190,7 @@ export function SoftKeypad({
                             height: '3.8rem',
                             fontSize: '1.25rem',
                             fontWeight: 'bold',
-                            background: key === 'C' ? '#fff5f5' : '#fff',
+                            background: key === 'C' ? 'rgba(139, 0, 0, 0.05)' : 'var(--card-bg)',
                             color: key === 'C' ? '#d93025' : '#333',
                             border: '1px solid #ddd',
                             borderRadius: '10px',

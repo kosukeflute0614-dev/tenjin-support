@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ReceptionLinkManager from '@/components/ReceptionLinkManager';
 import ActorUrlManager from '@/components/ActorUrlManager';
-import Breadcrumb from '@/components/Breadcrumb';
 import { useAuth } from '@/components/AuthProvider';
 import { Production, Performance } from '@/types';
 import { toDate } from '@/lib/firestore-utils';
@@ -51,12 +50,7 @@ export default function ReceptionPage({ params }: { params: Promise<{ id: string
     const { production, performances } = details;
 
     return (
-        <div className="container" style={{ maxWidth: '800px' }}>
-            <Breadcrumb items={[
-                { label: 'ダッシュボード', href: '/dashboard' },
-                { label: production.title, href: `/productions/${id}` },
-                { label: '受付設定' }
-            ]} />
+        <div className="container" style={{ maxWidth: '1000px' }}>
             <div className="page-header" style={{ marginBottom: '2.5rem' }}>
                 <div style={{ marginBottom: '1.5rem' }}>
                     <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
@@ -64,27 +58,30 @@ export default function ReceptionPage({ params }: { params: Promise<{ id: string
                     </Link>
                 </div>
                 <h2 className="heading-lg" style={{ margin: 0 }}>
-                    予約受付管理: {production.title}
+                    受付設定
                 </h2>
                 <p className="text-muted" style={{ marginTop: '0.5rem' }}>
                     一般のお客様向けの予約フォームの公開と共有設定を行います。
                 </p>
             </div>
 
-            <div style={{ display: 'grid', gap: '2rem' }}>
-                <ReceptionLinkManager
-                    productionId={production.id}
-                    initialStatus={production.receptionStatus}
-                    initialStart={production.receptionStart ? toDate(production.receptionStart).toISOString() : null}
-                    initialEnd={production.receptionEnd ? toDate(production.receptionEnd).toISOString() : null}
-                    initialEndMode={(production as any).receptionEndMode || 'MANUAL'}
-                    initialEndMinutes={(production as any).receptionEndMinutes || 0}
-                    performances={performances}
-                    customId={production.customId}
-                />
+            <ReceptionLinkManager
+                productionId={production.id}
+                initialStatus={production.receptionStatus}
+                initialStart={production.receptionStart ? toDate(production.receptionStart).toISOString() : null}
+                initialEnd={production.receptionEnd ? toDate(production.receptionEnd).toISOString() : null}
+                initialEndMode={(production as any).receptionEndMode || 'MANUAL'}
+                initialEndMinutes={(production as any).receptionEndMinutes || 0}
+                performances={performances}
+                customId={production.customId}
+                production={{
+                    ticketTypes: production.ticketTypes,
+                    venue: production.venue,
+                    emailTemplates: production.emailTemplates,
+                }}
+            />
 
-                <ActorUrlManager production={production} />
-            </div>
+            <ActorUrlManager production={production} />
         </div>
     );
 }

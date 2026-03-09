@@ -9,7 +9,6 @@ import { serializeDoc } from '@/lib/firestore-utils';
 import Link from 'next/link';
 import { Production, Performance } from "@/types";
 import { useAuth } from '@/components/AuthProvider';
-import Breadcrumb from '@/components/Breadcrumb';
 import CashCloseForm from '@/components/CashCloseForm';
 
 export default function CashClosePage({ params }: { params: any }) {
@@ -86,13 +85,8 @@ export default function CashClosePage({ params }: { params: any }) {
     const perfTimeStr = startDate ? startDate.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '';
 
     return (
-        <div className="container" style={{ paddingBottom: '4rem', maxWidth: '700px' }}>
-            <Breadcrumb items={[
-                { label: 'ダッシュボード', href: '/dashboard' },
-                { label: production?.title || '公演', href: `/productions/${production.id}` },
-                { label: 'レジ締め' }
-            ]} />
-            <header style={{ marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: '1px solid #eee' }}>
+        <div className="container" style={{ paddingBottom: '4rem', maxWidth: '1000px' }}>
+            <header style={{ marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--card-border)' }}>
                 <Link
                     href={`/productions/${production.id}/checkin/${performance.id}`}
                     className="btn btn-secondary"
@@ -101,10 +95,10 @@ export default function CashClosePage({ params }: { params: any }) {
                     &larr; チェックインに戻る
                 </Link>
                 <div style={{ marginBottom: '0.5rem' }}>
-                    <span style={{ fontSize: '0.9rem', color: '#666' }}>公演：{production.title}</span>
+                    <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>公演：{production.title}</span>
                 </div>
                 <h2 style={{ fontSize: '1.5rem', fontWeight: '900', margin: 0, color: 'var(--primary)' }}>
-                    レジ締め - {perfDateStr} {perfTimeStr}
+                    レジ締め
                 </h2>
             </header>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { DayPicker } from 'react-day-picker';
 import { format, parse, isValid } from 'date-fns';
 import { ja } from 'date-fns/locale';
@@ -42,11 +42,13 @@ export function SmartMaskedDatePicker({
 
     // hiddenValue が変わるたびに onChange を呼ぶ
     const hiddenValue = inputValue.replace(/ \/ /g, '-').replace(/ /g, '');
+    const onChangeRef = useRef(onChange);
+    onChangeRef.current = onChange;
     useEffect(() => {
-        if (onChange) {
-            onChange(hiddenValue);
+        if (onChangeRef.current) {
+            onChangeRef.current(hiddenValue);
         }
-    }, [hiddenValue, onChange]);
+    }, [hiddenValue]);
 
     // マスキングロジック
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,12 +139,12 @@ export function SmartMaskedDatePicker({
                     top: '100%',
                     left: 0,
                     zIndex: 1000,
-                    backgroundColor: '#fff',
+                    backgroundColor: 'var(--card-bg)',
                     boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
                     borderRadius: '12px',
                     marginTop: '8px',
                     padding: '12px',
-                    border: '1px solid #eee'
+                    border: '1px solid var(--card-border)'
                 }}>
                     <DayPicker
                         mode="single"
@@ -216,11 +218,13 @@ export function SmartMaskedTimeInput({
     }, [defaultValue]);
 
     const hiddenValue = inputValue.replace(/ : /g, ':').replace(/ /g, '');
+    const onChangeRef = useRef(onChange);
+    onChangeRef.current = onChange;
     useEffect(() => {
-        if (onChange) {
-            onChange(hiddenValue);
+        if (onChangeRef.current) {
+            onChangeRef.current(hiddenValue);
         }
-    }, [hiddenValue, onChange]);
+    }, [hiddenValue]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const rawValue = e.target.value.replace(/\D/g, '').slice(0, 4);

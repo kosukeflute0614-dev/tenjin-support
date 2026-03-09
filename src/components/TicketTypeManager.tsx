@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { addTicketTypeClient, updateTicketTypeClient, deleteTicketTypeClient } from '@/lib/client-firestore';
 import { SmartNumberInput } from './SmartInputs';
 import { useAuth } from './AuthProvider';
+import { useToast } from '@/components/Toast';
 import { TicketType } from '@/types';
 import { Ticket } from 'lucide-react';
 
@@ -14,10 +15,9 @@ type Props = {
 
 export default function TicketTypeManager({ productionId, ticketTypes }: Props) {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [editingId, setEditingId] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
-
-    const [error, setError] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
     const handleDeleteClick = (id: string) => {
@@ -35,11 +35,14 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
             await deleteTicketTypeClient(productionId, idToDelete, user.uid);
         } catch (error: any) {
             console.error('Failed to delete ticket type:', error);
-            setError(error.message || '削除に失敗しました。');
+            showToast(error.message || '削除に失敗しました。', 'error');
         } finally {
             setIsProcessing(false);
         }
     };
+
+    // 招待チケットは公演設定の券種・価格ページでは非表示にする
+    const visibleTicketTypes = ticketTypes.filter(tt => tt.isInvitation !== true);
 
     return (
         <section>
@@ -67,7 +70,7 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                         textAlign: 'center',
                         boxShadow: 'var(--shadow-xl)',
                         border: '2px solid var(--primary)',
-                        backgroundColor: '#fff'
+                        backgroundColor: 'var(--card-bg)'
                     }}>
                         <div style={{ color: 'var(--primary)', fontSize: '3rem', marginBottom: '1rem' }}>❓</div>
                         <h4 id="modal-title-ticket-delete" style={{ marginBottom: '1rem', color: 'var(--text)' }}>削除の確認</h4>
@@ -97,46 +100,9 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                 </div>
             )}
 
-            {/* Error Modal */}
-            {error && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    backgroundColor: 'rgba(0,0,0,0.7)',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    zIndex: 2000,
-                    padding: '1rem'
-                }} onKeyDown={(e) => { if (e.key === 'Escape') setError(null); }}>
-                    <div className="card" role="dialog" aria-modal="true" aria-labelledby="modal-title-ticket-error" style={{
-                        width: '100%',
-                        maxWidth: '400px',
-                        padding: '2rem',
-                        textAlign: 'center',
-                        boxShadow: 'var(--shadow-xl)',
-                        border: '2px solid var(--primary)',
-                        backgroundColor: '#fff'
-                    }}>
-                        <div style={{ color: 'var(--primary)', fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
-                        <h4 id="modal-title-ticket-error" style={{ marginBottom: '1rem', color: 'var(--text)' }}>エラー</h4>
-                        <p style={{ marginBottom: '1.5rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>{error}</p>
-                        <button
-                            onClick={() => setError(null)}
-                            className="btn btn-primary"
-                            style={{ width: '100%' }}
-                        >
-                            閉じる
-                        </button>
-                    </div>
-                </div>
-            )}
             <div className="card" style={{ marginBottom: '1.5rem' }}>
                 <ul style={{ listStyle: 'none', padding: 0 }}>
-                    {ticketTypes.map(ticket => (
+                    {visibleTicketTypes.map(ticket => (
                         <li key={ticket.id} style={{ padding: '0.75rem 0', borderBottom: '1px solid var(--card-border)' }}>
                             {editingId === ticket.id ? (
                                 <form onSubmit={async (e) => {
@@ -148,7 +114,7 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                                     const advancePrice = parseInt(formData.get('advancePrice') as string);
                                     const doorPrice = parseInt(formData.get('doorPrice') as string);
                                     if (isNaN(advancePrice) || isNaN(doorPrice) || advancePrice < 0 || doorPrice < 0) {
-                                        setError('料金は0以上の数値で入力してください');
+                                        showToast('料金は0以上の数値で入力してください', 'error');
                                         setIsProcessing(false);
                                         return;
                                     }
@@ -157,7 +123,7 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                                         setEditingId(null);
                                     } catch (error: any) {
                                         console.error('Failed to update ticket type:', error);
-                                        setError(error.message || '更新に失敗しました。');
+                                        showToast(error.message || '更新に失敗しました。', 'error');
                                     } finally {
                                         setIsProcessing(false);
                                     }
@@ -192,8 +158,8 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                                         <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{ticket.name}</span>
                                         <div style={{ display: 'flex', gap: '0.75rem', fontSize: '0.9rem' }}>
-                                            <span style={{ color: '#666' }}>前売: <span style={{ color: '#8b0000', fontWeight: 'bold' }}>¥{(ticket.advancePrice ?? ticket.price ?? 0).toLocaleString()}</span></span>
-                                            <span style={{ color: '#666' }}>当日: <span style={{ color: '#8b0000', fontWeight: 'bold' }}>¥{(ticket.doorPrice ?? ticket.price ?? 0).toLocaleString()}</span></span>
+                                            <span style={{ color: 'var(--text-muted)' }}>前売: <span style={{ color: '#8b0000', fontWeight: 'bold' }}>¥{(ticket.advancePrice ?? ticket.price ?? 0).toLocaleString()}</span></span>
+                                            <span style={{ color: 'var(--text-muted)' }}>当日: <span style={{ color: '#8b0000', fontWeight: 'bold' }}>¥{(ticket.doorPrice ?? ticket.price ?? 0).toLocaleString()}</span></span>
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -217,7 +183,7 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                             )}
                         </li>
                     ))}
-                    {ticketTypes.length === 0 && (
+                    {visibleTicketTypes.length === 0 && (
                         <li style={{ color: 'var(--text-muted)', padding: '1rem 0' }}>券種がまだ登録されていません。</li>
                     )}
                 </ul>
@@ -239,7 +205,7 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                     e.preventDefault();
 
                     if (!user) {
-                        setError("ログイン状態が確認できません。再度ログインしてください。");
+                        showToast("ログイン状態が確認できません。再度ログインしてください。", 'error');
                         return;
                     }
 
@@ -250,7 +216,7 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                     const doorPrice = parseInt(formData.get('doorPrice') as string);
 
                     if (isNaN(advancePrice) || isNaN(doorPrice) || advancePrice < 0 || doorPrice < 0) {
-                        setError('料金は0以上の数値で入力してください');
+                        showToast('料金は0以上の数値で入力してください', 'error');
                         setIsProcessing(false);
                         return;
                     }
@@ -260,14 +226,14 @@ export default function TicketTypeManager({ productionId, ticketTypes }: Props) 
                         (e.target as HTMLFormElement).reset(); // フォームをクリア
                     } catch (error: any) {
                         console.error('Failed to add ticket type:', error);
-                        setError(error.message || '追加に失敗しました。');
+                        showToast(error.message || '追加に失敗しました。', 'error');
                     } finally {
                         setIsProcessing(false);
                     }
                 }} style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'flex-end' }}>
                     <input type="hidden" name="productionId" value={productionId} />
                     <div className="form-group" style={{ margin: 0, flex: 2, minWidth: '200px' }}>
-                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', fontWeight: 600, color: '#444', marginLeft: '4px' }}>名称</label>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)', marginLeft: '4px' }}>名称</label>
                         <input
                             type="text"
                             name="name"

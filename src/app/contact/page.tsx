@@ -41,7 +41,7 @@ export default function ContactPage() {
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                     {/* Name */}
                     <div>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#333' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--foreground)' }}>
                             <User size={16} color="var(--primary)" />
                             お名前 / 団体名
                         </label>
@@ -61,7 +61,7 @@ export default function ContactPage() {
 
                     {/* Email */}
                     <div>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#333' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--foreground)' }}>
                             <Mail size={16} color="var(--primary)" />
                             メールアドレス
                         </label>
@@ -81,7 +81,7 @@ export default function ContactPage() {
 
                     {/* Message */}
                     <div>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#333' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem', color: 'var(--foreground)' }}>
                             <MessageSquare size={16} color="var(--primary)" />
                             お問い合わせ内容
                         </label>

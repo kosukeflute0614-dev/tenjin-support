@@ -13,6 +13,7 @@ import { db } from '@/lib/firebase';
 import { doc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { serializeDoc, toDate } from '@/lib/firestore-utils';
 import { Settings, Ticket, Bell, Smartphone, Users, Key, ClipboardList, FileEdit, Wallet, Mail, BarChart3, Calendar } from 'lucide-react';
+import SetupChecklist from '@/components/SetupChecklist';
 
 type Badge = { label: string; bg: string; color: string; borderColor: string };
 
@@ -98,18 +99,18 @@ export default function DashboardPage() {
 
     // ステータスバッジの計算
     const receptionBadge: Badge | undefined = production?.receptionStatus === 'OPEN'
-        ? { label: '受付中', bg: '#dcfce7', color: '#166534', borderColor: '#bbf7d0' }
+        ? { label: '受付中', bg: '#dcfce7', color: 'var(--success)', borderColor: '#bbf7d0' }
         : production?.receptionStatus === 'CLOSED'
             ? { label: '停止中', bg: '#f1f5f9', color: '#64748b', borderColor: '#e2e8f0' }
             : undefined;
 
     const reservationBadge: Badge | undefined = salesReport && salesReport.totalTickets > 0
-        ? { label: `${salesReport.totalTickets}件`, bg: '#dbeafe', color: '#1e40af', borderColor: '#bfdbfe' }
+        ? { label: `${salesReport.totalTickets}件`, bg: '#dbeafe', color: 'var(--primary)', borderColor: '#bfdbfe' }
         : undefined;
 
     const staffTokenCount = production?.staffTokens ? Object.keys(production.staffTokens).length : 0;
     const staffBadge: Badge | undefined = staffTokenCount > 0
-        ? { label: `${staffTokenCount}名`, bg: '#f3e8ff', color: '#7c3aed', borderColor: '#e9d5ff' }
+        ? { label: `${staffTokenCount}名`, bg: '#f3e8ff', color: 'var(--primary)', borderColor: '#e9d5ff' }
         : undefined;
 
     // href helper
@@ -131,20 +132,20 @@ export default function DashboardPage() {
         {
             id: 'reservation',
             label: '予約・受付',
-            description: '予約の受付から当日対応まで',
+            description: '予約の受付設定と予約の管理',
             borderColor: '#0891b2',
             items: [
                 { href: prodHref('/reception'), icon: <Bell size={32} color="var(--primary)" />, title: '予約受付設定', desc: '受付の開始・停止・期間設定', badge: receptionBadge },
                 { href: '/reservations', icon: <Ticket size={32} color="var(--primary)" />, title: '予約管理', desc: '予約の確認・追加', badge: reservationBadge },
-                { href: '/reception', icon: <Smartphone size={32} color="var(--primary)" />, title: '当日受付', desc: '来場処理・当日券対応' },
             ]
         },
         {
-            id: 'monitoring',
-            label: 'モニタリング・スタッフ',
-            description: '来場状況の確認とスタッフ管理',
+            id: 'operations',
+            label: '当日の運営',
+            description: '公演当日の受付・来場管理・スタッフ体制',
             borderColor: '#d97706',
             items: [
+                { href: '/reception', icon: <Smartphone size={32} color="var(--primary)" />, title: '当日受付', desc: '来場処理・当日券対応' },
                 { href: prodHref('/attendance'), icon: <Users size={32} color="var(--primary)" />, title: '来場状況', desc: 'リアルタイム着券状況の確認' },
                 { href: prodHref('/staff'), icon: <Key size={32} color="var(--primary)" />, title: 'スタッフ管理', desc: '合鍵（スタッフ用URL）の発行と管理', badge: staffBadge },
             ]
@@ -173,6 +174,11 @@ export default function DashboardPage() {
 
             <DuplicateNotification groups={duplicateGroups} />
 
+            {/* セットアップチェックリスト */}
+            {activeProductionId && production && (
+                <SetupChecklist production={production} productionId={activeProductionId} />
+            )}
+
             {/* KPIサマリー + 予約状況テーブル */}
             <div className="stats-section" style={{ marginBottom: '3rem' }}>
                 <h3 className="heading-md" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
@@ -188,7 +194,7 @@ export default function DashboardPage() {
                             padding: '1.25rem 1.5rem',
                             boxShadow: 'var(--shadow-sm)'
                         }}>
-                            <div style={{ fontSize: '0.8rem', color: '#888', fontWeight: 'bold', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Wallet size={16} /> 売上予定金額</div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Wallet size={16} /> 売上予定金額</div>
                             <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--foreground)' }}>{formatCurrency(salesReport.totalRevenue)}</div>
                         </div>
                         <div style={{
@@ -198,8 +204,8 @@ export default function DashboardPage() {
                             padding: '1.25rem 1.5rem',
                             boxShadow: 'var(--shadow-sm)'
                         }}>
-                            <div style={{ fontSize: '0.8rem', color: '#888', fontWeight: 'bold', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Ticket size={16} /> 予約総数</div>
-                            <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--foreground)' }}>{salesReport.totalTickets}<span style={{ fontSize: '0.9rem', fontWeight: 'bold', marginLeft: '0.25rem', color: '#666' }}>枚</span></div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 'bold', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Ticket size={16} /> 予約総数</div>
+                            <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--foreground)' }}>{salesReport.totalTickets}<span style={{ fontSize: '0.9rem', fontWeight: 'bold', marginLeft: '0.25rem', color: 'var(--text-muted)' }}>枚</span></div>
                         </div>
                     </div>
                 )}
@@ -219,13 +225,14 @@ export default function DashboardPage() {
                         overflow: 'hidden',
                         boxShadow: 'var(--shadow-sm)'
                     }}>
-                        <div style={{ overflowX: 'auto' }}>
+                        {/* Desktop table */}
+                        <div className="desktop-only" style={{ overflowX: 'auto' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.95rem', minWidth: '500px' }}>
                                 <thead>
-                                    <tr style={{ borderBottom: '2px solid var(--card-border)', background: '#f8f9fa' }}>
-                                        <th style={{ padding: '0.8rem 1.2rem', color: '#666', fontWeight: 'bold', fontSize: '0.8rem', width: '25%' }}>開演時間</th>
-                                        <th style={{ padding: '0.8rem 1.2rem', color: '#666', fontWeight: 'bold', fontSize: '0.8rem', width: '45%' }}>予約状況 / 定員</th>
-                                        <th style={{ padding: '0.8rem 1.2rem', color: '#666', fontWeight: 'bold', fontSize: '0.8rem', width: '30%' }}>残席</th>
+                                    <tr style={{ borderBottom: '2px solid var(--card-border)', background: 'var(--secondary)' }}>
+                                        <th style={{ padding: '0.8rem 1.2rem', color: 'var(--text-muted)', fontWeight: 'bold', fontSize: '0.8rem', width: '25%' }}>開演時間</th>
+                                        <th style={{ padding: '0.8rem 1.2rem', color: 'var(--text-muted)', fontWeight: 'bold', fontSize: '0.8rem', width: '45%' }}>予約状況 / 定員</th>
+                                        <th style={{ padding: '0.8rem 1.2rem', color: 'var(--text-muted)', fontWeight: 'bold', fontSize: '0.8rem', width: '30%' }}>残席</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -245,8 +252,8 @@ export default function DashboardPage() {
 
                                             return (
                                                 <React.Fragment key={dateKey}>
-                                                    <tr style={{ background: '#fcfcfc', borderBottom: '1px solid var(--card-border)' }}>
-                                                        <td colSpan={3} style={{ padding: '0.6rem 1.2rem', fontWeight: 'bold', color: '#333', fontSize: '0.9rem' }}>
+                                                    <tr style={{ background: 'var(--card-bg)', borderBottom: '1px solid var(--card-border)' }}>
+                                                        <td colSpan={3} style={{ padding: '0.6rem 1.2rem', fontWeight: 'bold', color: 'var(--foreground)', fontSize: '0.9rem' }}>
                                                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}><Calendar size={16} /> {dateKey} ({dayOfWeek})</span>
                                                         </td>
                                                     </tr>
@@ -258,7 +265,7 @@ export default function DashboardPage() {
                                                             <td style={{ padding: '1rem 1.2rem' }}>
                                                                 <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                                                                     <span style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{perf.bookedCount}</span>
-                                                                    <span style={{ fontSize: '0.8rem', color: '#888' }}>/ {perf.capacity} 席</span>
+                                                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>/ {perf.capacity} 席</span>
                                                                 </div>
                                                                 <div
                                                                     role="progressbar"
@@ -283,7 +290,7 @@ export default function DashboardPage() {
                                                                     padding: '4px 10px',
                                                                     borderRadius: '6px',
                                                                     fontSize: '0.9rem',
-                                                                    backgroundColor: perf.remainingCount <= 5 ? 'rgba(139, 0, 0, 0.1)' : '#f8f9fa',
+                                                                    backgroundColor: perf.remainingCount <= 5 ? 'rgba(139, 0, 0, 0.1)' : 'var(--secondary)',
                                                                     color: perf.remainingCount <= 5 ? '#8b0000' : '#444',
                                                                     border: perf.remainingCount <= 5 ? '1px solid rgba(139, 0, 0, 0.2)' : '1px solid #eee'
                                                                 }}>
@@ -298,6 +305,76 @@ export default function DashboardPage() {
                                     })()}
                                 </tbody>
                             </table>
+                        </div>
+
+                        {/* Mobile cards */}
+                        <div className="mobile-only">
+                            <div className="mobile-card-list">
+                                {(() => {
+                                    const grouped = stats.reduce((acc, perf) => {
+                                        const dateKey = formatDate(perf.startTime);
+                                        if (!acc[dateKey]) acc[dateKey] = [];
+                                        acc[dateKey].push(perf);
+                                        return acc;
+                                    }, {} as Record<string, typeof stats>);
+
+                                    const sortedDates = Object.keys(grouped).sort();
+
+                                    return sortedDates.map(dateKey => {
+                                        const dateObj = toDate(grouped[dateKey][0].startTime);
+                                        const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()];
+
+                                        return (
+                                            <React.Fragment key={dateKey}>
+                                                <div className="mobile-card-group-header" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                    <Calendar size={16} /> {dateKey} ({dayOfWeek})
+                                                </div>
+                                                {grouped[dateKey].map(perf => (
+                                                    <div key={perf.id} className="mobile-card-item">
+                                                        <div className="mobile-card-header">
+                                                            <div className="mobile-card-title" style={{ fontSize: '1.2rem' }}>{formatTime(perf.startTime)}</div>
+                                                            <div style={{
+                                                                fontWeight: 'bold',
+                                                                padding: '4px 10px',
+                                                                borderRadius: '6px',
+                                                                fontSize: '0.85rem',
+                                                                backgroundColor: perf.remainingCount <= 5 ? 'rgba(139, 0, 0, 0.1)' : 'var(--secondary)',
+                                                                color: perf.remainingCount <= 5 ? '#8b0000' : '#444',
+                                                                border: perf.remainingCount <= 5 ? '1px solid rgba(139, 0, 0, 0.2)' : '1px solid #eee'
+                                                            }}>
+                                                                あと {perf.remainingCount} 席
+                                                            </div>
+                                                        </div>
+                                                        <div className="mobile-card-body" style={{ marginBottom: 0 }}>
+                                                            <div className="mobile-card-row">
+                                                                <span className="mobile-card-row-label">予約状況</span>
+                                                                <span className="mobile-card-row-value">
+                                                                    {perf.bookedCount} / {perf.capacity} 席
+                                                                </span>
+                                                            </div>
+                                                            <div style={{ width: '100%', height: '6px', backgroundColor: '#eeeff1', borderRadius: '3px', overflow: 'hidden' }}>
+                                                                <div
+                                                                    role="progressbar"
+                                                                    aria-valuenow={Math.round(perf.occupancyRate)}
+                                                                    aria-valuemin={0}
+                                                                    aria-valuemax={100}
+                                                                    aria-label={`予約率 ${Math.round(perf.occupancyRate)}%`}
+                                                                    style={{
+                                                                        height: '100%',
+                                                                        width: `${Math.min(perf.occupancyRate, 100)}%`,
+                                                                        backgroundColor: perf.occupancyRate >= 90 ? '#8b0000' : perf.occupancyRate >= 70 ? '#f9a825' : '#2e7d32',
+                                                                        transition: 'width 0.5s ease-out'
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </React.Fragment>
+                                        );
+                                    });
+                                })()}
+                            </div>
                         </div>
                     </div>
                 )}

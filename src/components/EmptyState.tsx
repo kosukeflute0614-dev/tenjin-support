@@ -28,11 +28,11 @@ export default function EmptyState({ icon, title, description, action }: EmptySt
           <div style={{ width: 48, height: 48 }}>{icon}</div>
         </div>
       )}
-      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#888', margin: '0 0 0.5rem' }}>
+      <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-muted)', margin: '0 0 0.5rem' }}>
         {title}
       </h3>
       {description && (
-        <p style={{ fontSize: '0.9rem', color: '#aaa', margin: '0 0 1.5rem' }}>
+        <p style={{ fontSize: '0.9rem', color: 'var(--slate-500)', margin: '0 0 1.5rem' }}>
           {description}
         </p>
       )}

@@ -38,9 +38,9 @@ export default function ProductionSwitcher({ productions, activeId }: Props) {
                         outline: 'none'
                     }}
                 >
-                    {!activeId && <option value="" disabled style={{ color: '#333' }}>未選択</option>}
+                    {!activeId && <option value="" disabled style={{ color: 'var(--foreground)' }}>未選択</option>}
                     {productions.map(p => (
-                        <option key={p.id} value={p.id} style={{ color: '#333' }}>
+                        <option key={p.id} value={p.id} style={{ color: 'var(--foreground)' }}>
                             {p.title}
                         </option>
                     ))}

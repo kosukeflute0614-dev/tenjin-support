@@ -1,0 +1,1823 @@
+/* ========================================
+   Landing Page Styles - Tenjin-Support
+   ======================================== */
+
+/* Base */
+.landing {
+  overflow-x: hidden;
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* ----------------------------------------
+   Header
+   ---------------------------------------- */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: 1rem 2rem;
+  transition: all 0.3s ease;
+  background-color: transparent;
+}
+
+.headerScrolled {
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+}
+
+.headerInner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.headerLogo {
+  font-family: var(--font-serif);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.headerLogoIcon {
+  font-size: 1.5rem;
+}
+
+.headerNav {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.headerNavLink {
+  font-size: 0.9rem;
+  color: var(--foreground);
+  transition: color 0.2s;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: inherit;
+  padding: 0;
+}
+
+.headerNavLink:hover {
+  color: var(--primary);
+}
+
+.headerCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.5rem;
+  background-color: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.headerCta:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139, 0, 0, 0.3);
+}
+
+.mobileMenuBtn {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--foreground);
+  padding: 0.5rem;
+}
+
+/* ----------------------------------------
+   Hero
+   ---------------------------------------- */
+.hero {
+  position: relative;
+  padding: 8rem 2rem 4rem;
+  min-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(170deg, #ffffff 0%, #fdf5f5 40%, #f9ecec 100%);
+}
+
+.heroInner {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 4rem;
+  align-items: center;
+}
+
+.heroContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.heroBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  background-color: rgba(139, 0, 0, 0.08);
+  color: var(--primary);
+  border-radius: 100px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.heroTitle {
+  font-family: var(--font-serif);
+  font-size: 2.8rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--foreground);
+  letter-spacing: -0.02em;
+}
+
+.heroTitleAccent {
+  color: var(--primary);
+}
+
+.heroSub {
+  font-size: 1.15rem;
+  line-height: 1.8;
+  color: var(--text-muted);
+  max-width: 480px;
+}
+
+.heroActions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.heroCtaPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  background-color: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s;
+  box-shadow: 0 4px 16px rgba(139, 0, 0, 0.25);
+}
+
+.heroCtaPrimary:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(139, 0, 0, 0.35);
+}
+
+.heroCtaSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  background: none;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  font-size: 1rem;
+  color: var(--foreground);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.heroCtaSecondary:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.heroNote {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.heroMock {
+  position: relative;
+}
+
+/* ----------------------------------------
+   Mock Browser Frame
+   ---------------------------------------- */
+.browser {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.browserBar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.browserDots {
+  display: flex;
+  gap: 6px;
+}
+
+.browserDots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: block;
+}
+
+.browserDots span:nth-child(1) { background-color: #ff5f57; }
+.browserDots span:nth-child(2) { background-color: #febc2e; }
+.browserDots span:nth-child(3) { background-color: #28c840; }
+
+.browserUrl {
+  flex: 1;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.browserContent {
+  padding: 1.25rem;
+  min-height: 280px;
+}
+
+/* ----------------------------------------
+   Mock UI Components
+   ---------------------------------------- */
+.mockHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #eee;
+}
+
+.mockTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.mockBadge {
+  font-size: 0.65rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 100px;
+  font-weight: 600;
+}
+
+.mockBadgeGreen {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.mockBadgeBlue {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+
+.mockStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.mockStatCard {
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.mockStatValue {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.mockStatLabel {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.mockStatAccent {
+  color: var(--primary);
+}
+
+.mockProgressBar {
+  height: 8px;
+  background: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.mockProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), #d32f2f);
+  border-radius: 4px;
+  transition: width 1s ease;
+}
+
+.mockProgressLabel {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  display: flex;
+  justify-content: space-between;
+}
+
+.mockTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.mockTable th {
+  text-align: left;
+  padding: 0.5rem;
+  background: #f8f9fa;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mockTable td {
+  padding: 0.5rem;
+  border-bottom: 1px solid #f0f0f0;
+  color: var(--foreground);
+}
+
+.mockStatusDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 0.35rem;
+}
+
+.mockStatusConfirmed { background-color: #2e7d32; }
+.mockStatusPending { background-color: #f9a825; }
+.mockStatusCheckedIn { background-color: #1565c0; }
+
+.mockCheckinItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.mockCheckinName {
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.mockCheckinDetail {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.mockCheckinBtn {
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border: none;
+  cursor: default;
+}
+
+.mockCheckinBtnDone {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.mockCheckinBtnAction {
+  background: var(--primary);
+  color: #fff;
+}
+
+.mockSearchBar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.mockChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  height: 80px;
+  padding: 0.5rem 0;
+}
+
+.mockChartBar {
+  flex: 1;
+  border-radius: 4px 4px 0 0;
+  min-width: 20px;
+  position: relative;
+}
+
+.mockChartLabel {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ----------------------------------------
+   Section Base
+   ---------------------------------------- */
+.section {
+  padding: 5rem 2rem;
+}
+
+.sectionInner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.sectionLabel {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--primary);
+  margin-bottom: 0.75rem;
+}
+
+.sectionTitle {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--foreground);
+}
+
+.sectionSub {
+  font-size: 1.05rem;
+  color: var(--text-muted);
+  max-width: 600px;
+  line-height: 1.8;
+}
+
+.sectionCenter {
+  text-align: center;
+}
+
+.sectionCenter .sectionSub {
+  margin: 0 auto;
+}
+
+/* ----------------------------------------
+   Pain Points
+   ---------------------------------------- */
+.painSection {
+  background: #fff;
+}
+
+.painGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-top: 3rem;
+}
+
+.painCard {
+  display: flex;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: #fafafa;
+  border-radius: 12px;
+  border: 1px solid #f0f0f0;
+  transition: all 0.3s;
+}
+
+.painCard:hover {
+  border-color: #e0d0d0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.painIcon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(139, 0, 0, 0.06);
+  color: var(--primary);
+  border-radius: 12px;
+}
+
+.painContent h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+  color: var(--foreground);
+}
+
+.painContent p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* ----------------------------------------
+   Features Showcase
+   ---------------------------------------- */
+.featuresSection {
+  background: #f8f9fa;
+}
+
+.featureShowcase {
+  margin-top: 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 5rem;
+}
+
+.featureItem {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 4rem;
+  align-items: center;
+}
+
+.featureItemReverse {
+  grid-template-columns: 1.3fr 1fr;
+}
+
+.featureItemReverse .featureText {
+  order: 2;
+}
+
+.featureItemReverse .featureMock {
+  order: 1;
+}
+
+.featureNumber {
+  font-family: var(--font-serif);
+  font-size: 3rem;
+  font-weight: 700;
+  color: rgba(139, 0, 0, 0.1);
+  line-height: 1;
+  margin-bottom: 0.75rem;
+}
+
+.featureTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  color: var(--foreground);
+}
+
+.featureDesc {
+  font-size: 1rem;
+  color: var(--text-muted);
+  line-height: 1.8;
+  margin-bottom: 1rem;
+}
+
+.featurePoints {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.featurePoints li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--foreground);
+}
+
+.featureCheckIcon {
+  color: var(--success);
+  flex-shrink: 0;
+}
+
+/* ----------------------------------------
+   More Features Grid
+   ---------------------------------------- */
+.moreFeaturesSection {
+  background: #fff;
+}
+
+.moreFeaturesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 3rem;
+}
+
+.moreFeatureCard {
+  padding: 2rem 1.5rem;
+  background: #fafafa;
+  border-radius: 12px;
+  border: 1px solid #f0f0f0;
+  text-align: center;
+  transition: all 0.3s;
+}
+
+.moreFeatureCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.moreFeatureIcon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(139, 0, 0, 0.06);
+  color: var(--primary);
+  border-radius: 14px;
+}
+
+.moreFeatureCard h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--foreground);
+}
+
+.moreFeatureCard p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* ----------------------------------------
+   Comparison Table
+   ---------------------------------------- */
+.comparisonSection {
+  background: #f8f9fa;
+}
+
+.comparisonWrapper {
+  margin-top: 3rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.comparisonTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 640px;
+  font-size: 0.9rem;
+}
+
+.comparisonTable thead th {
+  padding: 1rem;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border-bottom: 2px solid #dee2e6;
+  background: transparent;
+}
+
+.comparisonTable thead th:first-child {
+  text-align: left;
+}
+
+.comparisonHighlight {
+  background: rgba(139, 0, 0, 0.04) !important;
+  color: var(--primary);
+  font-size: 0.95rem !important;
+  position: relative;
+}
+
+.comparisonHighlight::after {
+  content: 'おすすめ';
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.6rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 100px;
+  font-weight: 700;
+}
+
+.comparisonTable tbody td {
+  padding: 0.85rem 1rem;
+  text-align: center;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+
+.comparisonTable tbody td:first-child {
+  text-align: left;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.comparisonGood {
+  color: var(--success);
+  font-weight: 700;
+}
+
+.comparisonBad {
+  color: #bbb;
+}
+
+.comparisonBest {
+  background: rgba(139, 0, 0, 0.04);
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* ----------------------------------------
+   Pricing
+   ---------------------------------------- */
+.pricingSection {
+  background: #fff;
+}
+
+.pricingGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+  margin-top: 3rem;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.pricingCard {
+  padding: 2.5rem 2rem;
+  border-radius: 16px;
+  border: 1px solid #e0e0e0;
+  background: #fff;
+  position: relative;
+  transition: all 0.3s;
+}
+
+.pricingCard:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.pricingCardPopular {
+  border-color: var(--primary);
+  box-shadow: 0 4px 20px rgba(139, 0, 0, 0.15);
+}
+
+.pricingPopularBadge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.3rem 1rem;
+  border-radius: 100px;
+}
+
+.pricingName {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--foreground);
+}
+
+.pricingDesc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.pricingPrice {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.pricingCurrency {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.pricingAmount {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--foreground);
+  line-height: 1;
+}
+
+.pricingUnit {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.pricingOriginal {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-decoration: line-through;
+  margin-bottom: 1.5rem;
+}
+
+.pricingFeatures {
+  list-style: none;
+  padding: 0;
+  margin: 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.pricingFeatures li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--foreground);
+}
+
+.pricingCheckIcon {
+  color: var(--success);
+  flex-shrink: 0;
+}
+
+.pricingBtn {
+  width: 100%;
+  padding: 0.85rem;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.pricingBtnPrimary {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  box-shadow: 0 2px 8px rgba(139, 0, 0, 0.2);
+}
+
+.pricingBtnPrimary:hover {
+  background: var(--primary-hover);
+  box-shadow: 0 4px 16px rgba(139, 0, 0, 0.3);
+}
+
+.pricingBtnSecondary {
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+}
+
+.pricingBtnSecondary:hover {
+  background: rgba(139, 0, 0, 0.04);
+}
+
+/* ----------------------------------------
+   How it Works (Steps)
+   ---------------------------------------- */
+.stepsSection {
+  background: #f8f9fa;
+}
+
+.stepsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin-top: 3rem;
+  position: relative;
+}
+
+.stepsGrid::before {
+  content: '';
+  position: absolute;
+  top: 40px;
+  left: 15%;
+  right: 15%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary), #d32f2f);
+  opacity: 0.2;
+}
+
+.step {
+  text-align: center;
+  position: relative;
+}
+
+.stepNumber {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 50%;
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  position: relative;
+  z-index: 1;
+}
+
+.stepIcon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(139, 0, 0, 0.08);
+  color: var(--primary);
+  border-radius: 16px;
+}
+
+.step h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--foreground);
+}
+
+.step p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* ----------------------------------------
+   FAQ
+   ---------------------------------------- */
+.faqSection {
+  background: #fff;
+}
+
+.faqList {
+  margin-top: 3rem;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.faqItem {
+  border-bottom: 1px solid #eee;
+}
+
+.faqQuestion {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground);
+  font-family: inherit;
+  gap: 1rem;
+}
+
+.faqQuestion:hover {
+  color: var(--primary);
+}
+
+.faqIcon {
+  flex-shrink: 0;
+  transition: transform 0.3s;
+  color: var(--text-muted);
+}
+
+.faqIconOpen {
+  transform: rotate(45deg);
+}
+
+.faqAnswer {
+  padding: 0 0 1.25rem;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+/* ----------------------------------------
+   Final CTA
+   ---------------------------------------- */
+.ctaSection {
+  background: linear-gradient(135deg, #1a1a2e 0%, #2d1b1b 100%);
+  color: #fff;
+  padding: 5rem 2rem;
+  text-align: center;
+}
+
+.ctaSection .sectionTitle {
+  color: #fff;
+}
+
+.ctaSection .sectionSub {
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 auto 2rem;
+}
+
+.ctaBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.1rem 2.5rem;
+  background: #fff;
+  color: var(--primary);
+  border: none;
+  border-radius: 12px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.ctaBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.ctaNote {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ----------------------------------------
+   Footer
+   ---------------------------------------- */
+.footer {
+  background: #1a1a2e;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 3rem 2rem 2rem;
+}
+
+.footerInner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footerLogo {
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.footerLinks {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.footerLinks a {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.2s;
+}
+
+.footerLinks a:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.footerCopy {
+  text-align: center;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.8rem;
+}
+
+/* ----------------------------------------
+   Mobile Fixed CTA Bar
+   ---------------------------------------- */
+.mobileCta {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.1);
+}
+
+.mobileCtaBtn {
+  width: 100%;
+  padding: 0.85rem;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* ----------------------------------------
+   Mobile Menu
+   ---------------------------------------- */
+.mobileMenu {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.mobileMenuOpen {
+  display: block;
+}
+
+.mobileMenuPanel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 280px;
+  height: 100%;
+  background: #fff;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  animation: slideInRight 0.3s ease;
+}
+
+.mobileMenuClose {
+  align-self: flex-end;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0.5rem;
+}
+
+.mobileMenuLink {
+  padding: 0.85rem 0;
+  font-size: 1.05rem;
+  color: var(--foreground);
+  border-bottom: 1px solid #f0f0f0;
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.mobileMenuCta {
+  margin-top: 1rem;
+  padding: 0.85rem;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+}
+
+/* ----------------------------------------
+   Animations
+   ---------------------------------------- */
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+/* ----------------------------------------
+   Responsive
+   ---------------------------------------- */
+@media (max-width: 768px) {
+  .hero {
+    padding: 7rem 1.25rem 3rem;
+    min-height: auto;
+  }
+
+  .heroInner {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+    text-align: center;
+  }
+
+  .heroTitle {
+    font-size: 1.8rem;
+  }
+
+  .heroSub {
+    font-size: 1rem;
+    margin: 0 auto;
+  }
+
+  .heroActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .heroCtaPrimary,
+  .heroCtaSecondary {
+    justify-content: center;
+  }
+
+  .heroBadge {
+    margin: 0 auto;
+  }
+
+  .heroNote {
+    text-align: center;
+  }
+
+  .section {
+    padding: 3.5rem 1.25rem;
+  }
+
+  .sectionTitle {
+    font-size: 1.5rem;
+  }
+
+  .painGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .featureItem,
+  .featureItemReverse {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .featureItemReverse .featureText {
+    order: 1;
+  }
+
+  .featureItemReverse .featureMock {
+    order: 2;
+  }
+
+  .moreFeaturesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .pricingGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .stepsGrid {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+
+  .stepsGrid::before {
+    display: none;
+  }
+
+  .headerNav {
+    display: none;
+  }
+
+  .mobileMenuBtn {
+    display: block;
+  }
+
+  .mobileCta {
+    display: block;
+  }
+
+  .footerInner {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .comparisonTable {
+    font-size: 0.8rem;
+  }
+
+  .mockStatsGrid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+  }
+
+  .mockStatValue {
+    font-size: 1.1rem;
+  }
+
+  .browserContent {
+    padding: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroTitle {
+    font-size: 1.5rem;
+  }
+
+  .pricingAmount {
+    font-size: 2.5rem;
+  }
+
+  .footerLinks {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+  }
+}
+
+/* ----------------------------------------
+   Dark Mode — Warm theater palette
+   ---------------------------------------- */
+@media (prefers-color-scheme: dark) {
+  /* Hero */
+  .hero {
+    background: linear-gradient(170deg, #1a1714 0%, #1f1a17 40%, #241c18 100%);
+  }
+
+  .heroBadge {
+    background-color: rgba(201, 64, 64, 0.12);
+  }
+
+  /* Header */
+  .header {
+    color: var(--foreground);
+  }
+
+  .headerScrolled {
+    background-color: rgba(26, 23, 20, 0.95);
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .headerNavLink {
+    color: var(--slate-600);
+  }
+
+  .headerNavLink:hover {
+    color: var(--primary);
+  }
+
+  /* Pain Section */
+  .painSection {
+    background: var(--background);
+  }
+
+  .painCard {
+    background: var(--card-bg);
+    border-color: var(--card-border);
+  }
+
+  .painCard:hover {
+    border-color: var(--slate-300);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .painIcon {
+    background: rgba(201, 64, 64, 0.1);
+  }
+
+  .painContent h3 {
+    color: var(--foreground);
+  }
+
+  .painContent p {
+    color: var(--text-muted);
+  }
+
+  /* Features */
+  .featuresSection {
+    background: var(--slate-100);
+  }
+
+  .featureNumber {
+    color: rgba(201, 64, 64, 0.15);
+  }
+
+  .featureTitle {
+    color: var(--foreground);
+  }
+
+  .featureDesc {
+    color: var(--text-muted);
+  }
+
+  .featurePoints li {
+    color: var(--slate-700);
+  }
+
+  /* Browser mockups */
+  .browser {
+    background: var(--card-bg);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  }
+
+  .browserBar {
+    background: var(--slate-200);
+    border-bottom-color: var(--card-border);
+  }
+
+  .browserUrl {
+    background: var(--slate-100);
+    border-color: var(--card-border);
+    color: var(--text-muted);
+  }
+
+  /* Mock UI components */
+  .mockHeader {
+    border-bottom-color: var(--card-border);
+  }
+
+  .mockTitle {
+    color: var(--foreground);
+  }
+
+  .mockBadgeGreen {
+    background-color: #1e3323;
+    color: #5cb85c;
+  }
+
+  .mockBadgeBlue {
+    background-color: #1a2833;
+    color: #4a9bb5;
+  }
+
+  .mockStatCard {
+    background: var(--slate-200);
+  }
+
+  .mockStatValue {
+    color: var(--foreground);
+  }
+
+  .mockStatLabel {
+    color: var(--text-muted);
+  }
+
+  .mockProgressBar {
+    background: var(--slate-200);
+  }
+
+  .mockProgressLabel {
+    color: var(--text-muted);
+  }
+
+  .mockTable th {
+    background: var(--slate-200);
+    color: var(--text-muted);
+  }
+
+  .mockTable td {
+    border-bottom-color: var(--card-border);
+    color: var(--foreground);
+  }
+
+  .mockCheckinItem {
+    border-bottom-color: var(--card-border);
+  }
+
+  .mockCheckinName {
+    color: var(--foreground);
+  }
+
+  .mockCheckinDetail {
+    color: var(--text-muted);
+  }
+
+  .mockCheckinBtnDone {
+    background: #1e3323;
+    color: #5cb85c;
+  }
+
+  .mockSearchBar {
+    background: var(--slate-200);
+    border-color: var(--card-border);
+    color: var(--text-muted);
+  }
+
+  .mockChartLabel {
+    color: var(--text-muted);
+  }
+
+  /* More Features */
+  .moreFeaturesSection {
+    background: var(--background);
+  }
+
+  .moreFeatureCard {
+    background: var(--card-bg);
+    border-color: var(--card-border);
+  }
+
+  .moreFeatureCard:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+
+  .moreFeatureCard h3 {
+    color: var(--foreground);
+  }
+
+  .moreFeatureCard p {
+    color: var(--text-muted);
+  }
+
+  .moreFeatureIcon {
+    background: rgba(201, 64, 64, 0.1);
+  }
+
+  /* Comparison */
+  .comparisonSection {
+    background: var(--slate-100);
+  }
+
+  .comparisonTable thead th {
+    color: var(--foreground);
+    border-bottom-color: var(--card-border);
+  }
+
+  .comparisonHighlight {
+    background: rgba(201, 64, 64, 0.08) !important;
+    color: var(--primary);
+  }
+
+  .comparisonTable tbody td {
+    border-bottom-color: var(--card-border);
+    color: var(--slate-600);
+  }
+
+  .comparisonTable tbody td:first-child {
+    color: var(--foreground);
+  }
+
+  .comparisonBest {
+    background: rgba(201, 64, 64, 0.08);
+    color: var(--primary);
+  }
+
+  .comparisonGood {
+    color: var(--success);
+  }
+
+  .comparisonBad {
+    color: var(--slate-400);
+  }
+
+  /* Pricing */
+  .pricingSection {
+    background: var(--background);
+  }
+
+  .pricingCard {
+    background: var(--card-bg);
+    border-color: var(--card-border);
+  }
+
+  .pricingCard:hover {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .pricingCardPopular {
+    border-color: var(--primary);
+    box-shadow: 0 4px 20px rgba(201, 64, 64, 0.2);
+  }
+
+  .pricingName {
+    color: var(--foreground);
+  }
+
+  .pricingDesc {
+    color: var(--text-muted);
+  }
+
+  .pricingCurrency,
+  .pricingAmount {
+    color: var(--foreground);
+  }
+
+  .pricingUnit {
+    color: var(--text-muted);
+  }
+
+  .pricingOriginal {
+    color: var(--slate-400);
+  }
+
+  .pricingFeatures li {
+    color: var(--slate-700);
+  }
+
+  .pricingBtnSecondary {
+    color: var(--primary);
+    border-color: var(--primary);
+  }
+
+  .pricingBtnSecondary:hover {
+    background: rgba(201, 64, 64, 0.08);
+  }
+
+  /* Steps */
+  .stepsSection {
+    background: var(--slate-100);
+  }
+
+  .stepsGrid::before {
+    background: linear-gradient(90deg, var(--primary), #d95050);
+    opacity: 0.15;
+  }
+
+  .step h3 {
+    color: var(--foreground);
+  }
+
+  .step p {
+    color: var(--text-muted);
+  }
+
+  /* FAQ */
+  .faqSection {
+    background: var(--background);
+  }
+
+  .faqItem {
+    border-bottom-color: var(--card-border);
+  }
+
+  .faqQuestion {
+    color: var(--foreground);
+  }
+
+  .faqQuestion:hover {
+    color: var(--primary);
+  }
+
+  .faqIcon {
+    color: var(--slate-400);
+  }
+
+  .faqAnswer {
+    color: var(--text-muted);
+  }
+
+  /* CTA */
+  .ctaSection {
+    background: linear-gradient(135deg, #1a1714 0%, #2a1f1c 100%);
+  }
+
+  .ctaBtn {
+    background: var(--foreground);
+    color: var(--primary);
+  }
+
+  .ctaBtn:hover {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  }
+
+  .ctaNote {
+    color: rgba(237, 232, 227, 0.4);
+  }
+
+  /* Footer */
+  .footer {
+    background: #141210;
+  }
+
+  .footerLogo {
+    color: rgba(237, 232, 227, 0.7);
+  }
+
+  .footerLinks a {
+    color: rgba(237, 232, 227, 0.4);
+  }
+
+  .footerLinks a:hover {
+    color: rgba(237, 232, 227, 0.8);
+  }
+
+  .footerCopy {
+    border-top-color: rgba(255, 255, 255, 0.05);
+    color: rgba(237, 232, 227, 0.3);
+  }
+
+  /* Mobile */
+  .mobileCta {
+    background: rgba(26, 23, 20, 0.95);
+    box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .mobileMenuPanel {
+    background: var(--card-bg);
+  }
+
+  .mobileMenuClose {
+    color: var(--text-muted);
+  }
+
+  .mobileMenuLink {
+    color: var(--foreground);
+    border-bottom-color: var(--card-border);
+  }
+
+  .mobileMenuCta {
+    background: var(--primary);
+  }
+
+  /* Section labels */
+  .sectionLabel {
+    color: var(--primary);
+  }
+
+  .sectionTitle {
+    color: var(--foreground);
+  }
+
+  .sectionSub {
+    color: var(--text-muted);
+  }
+
+  /* Hero note */
+  .heroNote {
+    color: var(--text-muted);
+  }
+
+  /* Hero CTA secondary */
+  .heroCtaSecondary {
+    border-color: var(--card-border);
+    color: var(--slate-600);
+  }
+
+  .heroCtaSecondary:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+}

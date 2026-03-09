@@ -5,7 +5,6 @@ import { fetchProductionDetailsClient } from '@/lib/client-firestore';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import AttendanceStatus from '@/components/AttendanceStatus';
-import Breadcrumb from '@/components/Breadcrumb';
 import { useAuth } from '@/components/AuthProvider';
 import { Production, Performance } from '@/types';
 
@@ -50,11 +49,6 @@ export default function AttendancePage({ params }: { params: Promise<{ id: strin
 
     return (
         <div className="container" style={{ maxWidth: '1000px' }}>
-            <Breadcrumb items={[
-                { label: 'ダッシュボード', href: '/dashboard' },
-                { label: production.title, href: `/productions/${id}` },
-                { label: '来場管理' }
-            ]} />
             <div className="page-header" style={{ marginBottom: '2.5rem' }}>
                 <div style={{ marginBottom: '1.5rem' }}>
                     <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
@@ -64,7 +58,7 @@ export default function AttendancePage({ params }: { params: Promise<{ id: strin
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
                         <h2 className="heading-lg" style={{ margin: 0 }}>
-                            来場状況モニタリング: {production.title}
+                            来場状況モニタリング
                         </h2>
                         <p className="text-muted" style={{ marginTop: '0.5rem' }}>
                             現在の来場状況をリアルタイムで確認できます。

@@ -1,0 +1,23 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "cashClosings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "performanceId", "order": "ASCENDING" },
+        { "fieldPath": "productionId", "order": "ASCENDING" },
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "cashClosings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "productionId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ]
+}

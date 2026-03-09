@@ -236,7 +236,7 @@ export default function SurveyBuilder({ questions, onChange }: Props) {
                                                     <span style={{
                                                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                                                         width: '26px', height: '26px', borderRadius: '50%', flexShrink: 0,
-                                                        backgroundColor: '#f0f0f0', fontSize: '0.75rem', fontWeight: 'bold', color: '#666'
+                                                        backgroundColor: 'var(--secondary)', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-muted)'
                                                     }}>{index + 1}</span>
                                                     <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{getTypeIcon(q.type)}</span>
                                                     <span style={{
@@ -245,20 +245,20 @@ export default function SurveyBuilder({ questions, onChange }: Props) {
                                                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                                                     }}>
                                                         {q.label || '質問文を入力…'}
-                                                        {q.required && <span style={{ color: '#e53e3e', marginLeft: '3px' }}>*</span>}
+                                                        {q.required && <span style={{ color: 'var(--accent)', marginLeft: '3px' }}>*</span>}
                                                     </span>
                                                 </div>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
                                                     <motion.span
                                                         animate={{ rotate: isExpanded ? 180 : 0 }}
                                                         transition={{ duration: 0.2 }}
-                                                        style={{ fontSize: '0.7rem', color: '#aaa', display: 'inline-block' }}
+                                                        style={{ fontSize: '0.7rem', color: 'var(--slate-500)', display: 'inline-block' }}
                                                     >▼</motion.span>
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); removeQuestion(q.id); }}
                                                         style={{
                                                             background: 'none', border: '1px solid #e8e8e8', borderRadius: '6px',
-                                                            padding: '0.2rem 0.5rem', fontSize: '0.7rem', color: '#bbb',
+                                                            padding: '0.2rem 0.5rem', fontSize: '0.7rem', color: 'var(--slate-400)',
                                                             cursor: 'pointer', transition: 'all 0.15s'
                                                         }}
                                                         onMouseEnter={e => { e.currentTarget.style.borderColor = '#e53e3e'; e.currentTarget.style.color = '#e53e3e'; }}
@@ -277,7 +277,7 @@ export default function SurveyBuilder({ questions, onChange }: Props) {
                                                         transition={{ duration: 0.18, ease: 'easeInOut' }}
                                                         style={{ overflow: 'hidden' }}
                                                     >
-                                                        <div style={{ padding: '0 1.25rem 1.25rem', borderTop: '1px solid #f0f0f0' }}>
+                                                        <div style={{ padding: '0 clamp(0.75rem, 2vw, 1.25rem) clamp(0.75rem, 2vw, 1.25rem)', borderTop: '1px solid #f0f0f0' }}>
                                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
                                                                 {!isNewsletter && (
                                                                     <>
@@ -288,7 +288,7 @@ export default function SurveyBuilder({ questions, onChange }: Props) {
                                                                             style={{ fontSize: '1rem', fontWeight: '600' }}
                                                                             autoFocus />
                                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                            <span style={{ fontSize: '0.8rem', color: '#888' }}>
+                                                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                                                                                 タイプ: {getTypeIcon(q.type)} {getTypeLabel(q.type)}
                                                                             </span>
                                                                             <ToggleSwitch checked={q.required}
@@ -344,12 +344,12 @@ export default function SurveyBuilder({ questions, onChange }: Props) {
                             {QUESTION_TYPES.map(qt => (
                                 <button key={qt.type} onClick={() => addQuestion(qt.type)}
                                     style={menuItemStyle}
-                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                                    onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--secondary)'}
                                     onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
                                     <span style={{ fontSize: '1.2rem' }}>{qt.icon}</span>
                                     <div>
                                         <div style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>{qt.label}</div>
-                                        <div style={{ fontSize: '0.7rem', color: '#999' }}>{qt.description}</div>
+                                        <div style={{ fontSize: '0.7rem', color: 'var(--slate-500)' }}>{qt.description}</div>
                                     </div>
                                 </button>
                             ))}
@@ -365,9 +365,9 @@ export default function SurveyBuilder({ questions, onChange }: Props) {
                                 <div>
                                     <div style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>
                                         メルマガ・お知らせ希望
-                                        {hasNewsletter && <span style={{ fontSize: '0.7rem', color: '#999', marginLeft: '0.5rem' }}>（追加済み）</span>}
+                                        {hasNewsletter && <span style={{ fontSize: '0.7rem', color: 'var(--slate-500)', marginLeft: '0.5rem' }}>（追加済み）</span>}
                                     </div>
-                                    <div style={{ fontSize: '0.7rem', color: '#999' }}>氏名・メール・配信希望を1ブロックで</div>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--slate-500)' }}>氏名・メール・配信希望を1ブロックで</div>
                                 </div>
                             </button>
                         </motion.div>
@@ -385,7 +385,7 @@ export default function SurveyBuilder({ questions, onChange }: Props) {
 function ToggleSwitch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
     return (
         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', userSelect: 'none' }}>
-            <span style={{ fontSize: '0.8rem', color: '#666' }}>{label}</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{label}</span>
             <span onClick={() => onChange(!checked)} style={{
                 position: 'relative', display: 'inline-block',
                 width: '40px', height: '22px', borderRadius: '11px',
@@ -397,7 +397,7 @@ function ToggleSwitch({ checked, onChange, label }: { checked: boolean; onChange
                     transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                     style={{
                         position: 'absolute', width: '16px', height: '16px', borderRadius: '50%',
-                        backgroundColor: '#fff', top: '3px',
+                        backgroundColor: 'var(--card-bg)', top: '3px',
                         boxShadow: 'var(--shadow-sm)'
                     }} />
             </span>
@@ -454,7 +454,7 @@ function OptionsEditor({ type, options, questionId, onUpdate, onRemove, onAdd }:
                 })}
             </AnimatePresence>
             <button onClick={() => onAdd(questionId)}
-                style={{ background: 'none', border: '1px dashed #ddd', borderRadius: '8px', padding: '0.45rem', cursor: 'pointer', color: '#aaa', fontSize: '0.8rem', transition: 'all 0.15s', marginTop: '0.2rem' }}
+                style={{ background: 'none', border: '1px dashed #ddd', borderRadius: '8px', padding: '0.45rem', cursor: 'pointer', color: 'var(--slate-500)', fontSize: '0.8rem', transition: 'all 0.15s', marginTop: '0.2rem' }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)'; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = '#ddd'; e.currentTarget.style.color = '#aaa'; }}>
                 ＋ 選択肢を追加
@@ -485,7 +485,7 @@ function NewsletterBlockEditor({ question, onUpdate, previewYes, onTogglePreview
                 style={{ fontSize: '1rem', fontWeight: '600' }} autoFocus />
 
             <div style={{
-                backgroundColor: '#fff', border: '1px solid #e8e0cc', borderRadius: '10px',
+                backgroundColor: 'var(--card-bg)', border: '1px solid #e8e0cc', borderRadius: '10px',
                 padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem',
             }}>
                 <div style={{ fontSize: '0.75rem', color: '#b8a070', fontWeight: 'bold', marginBottom: '0.25rem' }}>
@@ -514,33 +514,33 @@ function NewsletterBlockEditor({ question, onUpdate, previewYes, onTogglePreview
                     transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
                     style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <div>
-                        <label style={{ fontSize: '0.75rem', color: '#888', display: 'block', marginBottom: '2px' }}>
-                            {sf.name.label} <span style={{ color: '#e53e3e' }}>*</span>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
+                            {sf.name.label} <span style={{ color: 'var(--accent)' }}>*</span>
                         </label>
-                        <div style={{ border: '1px solid #e0e0e0', borderRadius: '6px', padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: '#ccc', backgroundColor: '#fafafa' }}>
+                        <div style={{ border: '1px solid #e0e0e0', borderRadius: '6px', padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: '#ccc', backgroundColor: 'var(--secondary)' }}>
                             回答者が入力
                         </div>
                     </div>
                     <div>
-                        <label style={{ fontSize: '0.75rem', color: '#888', display: 'block', marginBottom: '2px' }}>
-                            {sf.email.label} <span style={{ color: '#e53e3e' }}>*</span>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
+                            {sf.email.label} <span style={{ color: 'var(--accent)' }}>*</span>
                         </label>
-                        <div style={{ border: '1px solid #e0e0e0', borderRadius: '6px', padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: '#ccc', backgroundColor: '#fafafa' }}>
+                        <div style={{ border: '1px solid #e0e0e0', borderRadius: '6px', padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: '#ccc', backgroundColor: 'var(--secondary)' }}>
                             回答者が入力
                         </div>
                     </div>
                 </motion.div>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: '0.75rem', color: '#888', display: 'block', marginBottom: '2px' }}>名前欄のラベル</label>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <div style={{ flex: '1 1 140px' }}>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>名前欄のラベル</label>
                     <input type="text" className="input" value={sf.name.label}
                         onChange={e => onUpdate({ subFields: { ...sf, name: { ...sf.name, label: e.target.value } } })}
                         style={{ fontSize: '0.85rem' }} />
                 </div>
-                <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: '0.75rem', color: '#888', display: 'block', marginBottom: '2px' }}>メール欄のラベル</label>
+                <div style={{ flex: '1 1 140px' }}>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>メール欄のラベル</label>
                     <input type="text" className="input" value={sf.email.label}
                         onChange={e => onUpdate({ subFields: { ...sf, email: { ...sf.email, label: e.target.value } } })}
                         style={{ fontSize: '0.85rem' }} />
@@ -558,7 +558,7 @@ const reorderBtnStyle = (active: boolean): React.CSSProperties => ({
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     width: '36px', height: '36px', borderRadius: '8px',
     border: `1px solid ${active ? '#ddd' : '#f0f0f0'}`,
-    background: active ? '#fff' : '#fafafa',
+    background: active ? 'var(--card-bg)' : 'var(--secondary)',
     fontSize: '0.75rem',
     cursor: active ? 'pointer' : 'default',
     color: active ? '#666' : '#ddd',
@@ -569,6 +569,6 @@ const reorderBtnStyle = (active: boolean): React.CSSProperties => ({
 const menuItemStyle: React.CSSProperties = {
     display: 'flex', alignItems: 'center', gap: '0.75rem',
     width: '100%', padding: '0.9rem 1.25rem',
-    background: 'none', border: 'none', borderBottom: '1px solid #f0f0f0',
+    background: 'none', border: 'none', borderBottom: '1px solid var(--card-border)',
     cursor: 'pointer', textAlign: 'left', transition: 'background-color 0.15s',
 };

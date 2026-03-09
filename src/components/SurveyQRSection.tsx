@@ -53,7 +53,7 @@ export default function SurveyQRSection({ url, productionTitle, onCopy }: Props)
 
     return (
         <div style={{
-            padding: '1.5rem', backgroundColor: '#fcfcfc',
+            padding: '1.5rem', backgroundColor: 'var(--card-bg)',
             borderRadius: '8px', border: '1px solid var(--card-border)',
         }}>
             <h4 style={{ fontSize: '0.95rem', fontWeight: 'bold', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -63,8 +63,8 @@ export default function SurveyQRSection({ url, productionTitle, onCopy }: Props)
             <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                 {/* QRコード表示 */}
                 <div style={{
-                    backgroundColor: '#fff', padding: '0.75rem', borderRadius: '10px',
-                    border: '1px solid #eee', display: 'inline-block', flexShrink: 0,
+                    backgroundColor: 'var(--card-bg)', padding: '0.75rem', borderRadius: '10px',
+                    border: '1px solid var(--card-border)', display: 'inline-block', flexShrink: 0,
                 }}>
                     <canvas ref={canvasRef} style={{ display: 'block' }} />
                 </div>
@@ -74,7 +74,7 @@ export default function SurveyQRSection({ url, productionTitle, onCopy }: Props)
                     {/* URL表示 + コピー */}
                     <div style={{
                         padding: '0.5rem 0.75rem', backgroundColor: '#f0fdf4',
-                        borderRadius: '6px', fontSize: '0.75rem', color: '#166534',
+                        borderRadius: '6px', fontSize: '0.75rem', color: 'var(--success)',
                         wordBreak: 'break-all', lineHeight: '1.5',
                     }}>
                         🔗 {url}

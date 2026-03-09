@@ -10,3 +10,6 @@ export const PAYMENT_STATUS_LABELS: Record<string, string> = {
     'PAID': '支払い済み',
     'PARTIAL': '一部支払い',
 };
+
+export const INVITATION_TICKET_NAME = '招待';
+export const INVITATION_TICKET_ID_PREFIX = 'invitation_';

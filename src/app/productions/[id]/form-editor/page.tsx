@@ -4,11 +4,11 @@ import { useEffect, useState, useCallback, use } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 import { useToast } from '@/components/Toast';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { serializeDoc } from '@/lib/firestore-utils';
 import { Production, FormFieldConfig } from '@/types';
-import Breadcrumb from '@/components/Breadcrumb';
 import { saveFormFieldsClient } from '@/lib/client-firestore';
 
 const LOCKED_FIELD_IDS = ['customer_name', 'customer_kana', 'customer_email', 'remarks'];
@@ -83,6 +83,9 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
     const [dragBlockId, setDragBlockId] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
+    const [isDirty, setIsDirty] = useState(false);
+
+    useUnsavedChanges(isDirty);
 
     useEffect(() => {
         const fetchProduction = async () => {
@@ -113,9 +116,15 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
         }
     }, [id, user, loading]);
 
+    // フィールド変更をラップしてdirtyフラグを立てる
+    const setFieldsDirty = useCallback((updater: React.SetStateAction<FormField[]>) => {
+        setFields(updater);
+        setIsDirty(true);
+    }, []);
+
     // ブロック単位で移動する
     const moveBlock = useCallback((blockLeaderId: string, direction: -1 | 1) => {
-        setFields(prev => {
+        setFieldsDirty(prev => {
             const next = [...prev];
             const blockIds = BLOCK_GROUPS[blockLeaderId] || [blockLeaderId];
             const blockStartIndex = next.findIndex(f => f.id === blockIds[0]);
@@ -152,30 +161,30 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
     }, []);
 
     const updateFieldLabel = (fieldId: string, label: string) => {
-        setFields(prev => prev.map(f =>
+        setFieldsDirty(prev => prev.map(f =>
             f.id === fieldId ? { ...f, label } : f
         ));
     };
 
     const updateFieldPlaceholder = (fieldId: string, placeholder: string) => {
-        setFields(prev => prev.map(f =>
+        setFieldsDirty(prev => prev.map(f =>
             f.id === fieldId ? { ...f, placeholder } : f
         ));
     };
 
     const toggleRequired = (fieldId: string) => {
-        setFields(prev => prev.map(f =>
+        setFieldsDirty(prev => prev.map(f =>
             f.id === fieldId && !f.locked ? { ...f, required: !f.required } : f
         ));
     };
 
     const removeField = (fieldId: string) => {
-        setFields(prev => prev.filter(f => f.id !== fieldId));
+        setFieldsDirty(prev => prev.filter(f => f.id !== fieldId));
         setEditingId(null);
     };
 
     const updateFieldOptions = (fieldId: string, options: string[]) => {
-        setFields(prev => prev.map(f =>
+        setFieldsDirty(prev => prev.map(f =>
             f.id === fieldId ? { ...f, options } : f
         ));
     };
@@ -184,7 +193,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
         if (templateKey === 'phone') {
             const exists = fields.some(f => f.id === 'customer_phone');
             if (exists) return;
-            setFields(prev => [...prev, {
+            setFieldsDirty(prev => [...prev, {
                 id: 'customer_phone',
                 label: '電話番号',
                 type: 'text',
@@ -198,7 +207,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
         } else if (templateKey === 'newsletter') {
             const exists = fields.some(f => f.templateType === 'newsletter');
             if (exists) return;
-            setFields(prev => [...prev, {
+            setFieldsDirty(prev => [...prev, {
                 id: 'custom_newsletter',
                 label: '次回以降の公演のお知らせを受け取る',
                 type: 'checkbox',
@@ -224,7 +233,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
             isCustom: true,
             options: (addForm.type === 'select' || addForm.type === 'checkbox') ? options : undefined,
         };
-        setFields(prev => [...prev, newField]);
+        setFieldsDirty(prev => [...prev, newField]);
         setAddForm({ label: '', type: 'text', required: false, placeholder: '', options: [''] });
         setAddStep('hidden');
     };
@@ -248,7 +257,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
         const targetLeader = getBlockLeader(targetFieldId);
         if (dragBlockId === targetLeader) return;
 
-        setFields(prev => {
+        setFieldsDirty(prev => {
             const next = [...prev];
             const dragIds = BLOCK_GROUPS[dragBlockId] || [dragBlockId];
             const targetIds = BLOCK_GROUPS[targetLeader] || [targetLeader];
@@ -275,6 +284,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
         try {
             const configs = fields.map(toFormFieldConfig);
             await saveFormFieldsClient(production.id, configs, user.uid);
+            setIsDirty(false);
             setSaveSuccess(true);
             setTimeout(() => setSaveSuccess(false), 3000);
         } catch (err) {
@@ -330,7 +340,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
     const dragHandleStyle: React.CSSProperties = {
         cursor: 'grab',
         padding: 0,
-        color: '#bbb',
+        color: 'var(--slate-400)',
         fontSize: '0.85rem',
         userSelect: 'none',
         display: 'flex',
@@ -339,19 +349,14 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
     };
 
     return (
-        <div className="container" style={{ maxWidth: '1200px' }}>
-            <Breadcrumb items={[
-                { label: 'ダッシュボード', href: '/dashboard' },
-                { label: production.title, href: `/productions/${id}` },
-                { label: 'フォーム編集' }
-            ]} />
+        <div className="container" style={{ maxWidth: '1000px' }}>
             <div style={{ marginBottom: '1.25rem' }}>
                 <Link href="/dashboard" className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem' }}>
                     <span>&larr;</span> ダッシュボードに戻る
                 </Link>
             </div>
             <div style={{ marginBottom: '2rem' }}>
-                <h2 className="heading-lg" style={{ marginBottom: '0.5rem' }}>📝 {production.title} — 予約フォーム編集</h2>
+                <h2 className="heading-lg" style={{ marginBottom: '0.5rem' }}>予約フォーム編集</h2>
                 <p className="text-muted" style={{ fontSize: '0.9rem' }}>予約フォームに表示する項目を設定できます。ドラッグで並び替えが可能です。</p>
             </div>
 
@@ -364,8 +369,8 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                         borderBottom: '1px solid #e5e7eb',
                     }}>
                         <span style={{ fontSize: '1rem' }}>🛠</span>
-                        <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#333', margin: 0 }}>フォーム項目の設定</h3>
-                        <span style={{ fontSize: '0.75rem', color: '#999', marginLeft: 'auto' }}>{fields.filter(f => f.enabled).length} 項目</span>
+                        <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--foreground)', margin: 0 }}>フォーム項目の設定</h3>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)', marginLeft: 'auto' }}>{fields.filter(f => f.enabled).length} 項目</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         {(() => {
@@ -404,7 +409,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                         onDragEnd={handleDragEnd}
                                         style={{
                                             padding: 0,
-                                            background: isDragging ? '#f0f4ff' : '#fff',
+                                            background: isDragging ? 'rgba(139, 0, 0, 0.03)' : 'var(--card-bg)',
                                             border: isDragging ? '2px dashed var(--primary)' : '1px solid #e5e7eb',
                                             borderRadius: '6px',
                                             opacity: isDragging ? 0.7 : 1,
@@ -416,7 +421,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                         <div style={{
                                             display: 'flex', alignItems: 'center', gap: '0.35rem',
                                             padding: '3px 0.6rem',
-                                            background: '#fafafa',
+                                            background: 'var(--secondary)',
                                         }}>
                                             <span style={dragHandleStyle} title="ドラッグで並び替え">⠿</span>
                                             <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -443,9 +448,9 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                             {/* ブロックラベル or 単独フィールドラベル */}
                                             {isMultiBlock && blockLabel ? (
                                                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                                    <span style={{ fontWeight: '600', fontSize: '0.85rem', color: '#444' }}>{blockLabel}</span>
+                                                    <span style={{ fontWeight: '600', fontSize: '0.85rem', color: 'var(--foreground)' }}>{blockLabel}</span>
                                                     <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', background: '#eee', padding: '1px 5px', borderRadius: '3px', lineHeight: '1.4' }}>セット</span>
-                                                    <span style={{ fontSize: '0.7rem', color: '#aaa', marginLeft: '0.1rem' }}>
+                                                    <span style={{ fontSize: '0.7rem', color: 'var(--slate-500)', marginLeft: '0.1rem' }}>
                                                         ({block.fields.map(f => f.label).join(' + ')})
                                                     </span>
                                                 </div>
@@ -453,7 +458,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.35rem' }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', flexWrap: 'wrap' }}>
                                                         {singleField.isSystem && <span style={{ fontSize: '0.8rem' }}>🔒</span>}
-                                                        <span style={{ fontWeight: '600', fontSize: '0.85rem', color: '#444' }}>{singleField.label}</span>
+                                                        <span style={{ fontWeight: '600', fontSize: '0.85rem', color: 'var(--foreground)' }}>{singleField.label}</span>
                                                         {singleField.locked && (
                                                             <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', background: '#eee', padding: '1px 5px', borderRadius: '3px', lineHeight: '1.4' }}>必須・固定</span>
                                                         )}
@@ -461,7 +466,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                                             <span style={{ fontSize: '0.65rem', color: '#1565c0', background: '#e3f2fd', padding: '1px 5px', borderRadius: '3px', lineHeight: '1.4' }}>カスタム</span>
                                                         )}
                                                         {singleField.templateType === 'phone' && (
-                                                            <span style={{ fontSize: '0.65rem', color: '#2e7d32', background: '#e8f5e9', padding: '1px 5px', borderRadius: '3px', lineHeight: '1.4' }}>テンプレート</span>
+                                                            <span style={{ fontSize: '0.65rem', color: 'var(--success)', background: 'rgba(46, 125, 50, 0.1)', padding: '1px 5px', borderRadius: '3px', lineHeight: '1.4' }}>テンプレート</span>
                                                         )}
                                                         {singleField.templateType === 'newsletter' && (
                                                             <span style={{ fontSize: '0.65rem', color: '#e65100', background: '#fff3e0', padding: '1px 5px', borderRadius: '3px', lineHeight: '1.4' }}>テンプレート</span>
@@ -469,7 +474,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                                         {singleField.required && !singleField.locked && (
                                                             <span style={{ fontSize: '0.65rem', color: '#fff', background: 'var(--primary)', padding: '1px 5px', borderRadius: '3px', lineHeight: '1.4' }}>必須</span>
                                                         )}
-                                                        <span style={{ fontSize: '0.75rem', color: '#aaa' }}>
+                                                        <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)' }}>
                                                             {fieldTypeLabel(singleField.type)}
                                                         </span>
                                                     </div>
@@ -479,8 +484,8 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                                                 <button
                                                                     onClick={() => setEditingId(editingId === singleField.id ? null : singleField.id)}
                                                                     style={{
-                                                                        border: '1px solid #ddd', background: editingId === singleField.id ? '#f0f0f0' : '#fff',
-                                                                        borderRadius: '4px', padding: '0.2rem 0.5rem', cursor: 'pointer', fontSize: '0.75rem', color: '#555',
+                                                                        border: '1px solid #ddd', background: editingId === singleField.id ? 'var(--secondary)' : 'var(--card-bg)',
+                                                                        borderRadius: '4px', padding: '0.2rem 0.5rem', cursor: 'pointer', fontSize: '0.75rem', color: 'var(--slate-600)',
                                                                     }}
                                                                 >
                                                                     {editingId === singleField.id ? '閉じる' : '設定'}
@@ -489,7 +494,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                                             <button
                                                                 onClick={() => removeField(singleField.id)}
                                                                 style={{
-                                                                    border: '1px solid #f5c6c6', background: '#fff',
+                                                                    border: '1px solid #f5c6c6', background: 'var(--card-bg)',
                                                                     borderRadius: '4px', padding: '0.2rem 0.5rem', cursor: 'pointer', fontSize: '0.75rem', color: 'var(--accent)',
                                                                 }}
                                                             >
@@ -505,14 +510,14 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                         {singleField && singleField.templateType === 'phone' && editingId === singleField.id && (
                                             <div style={{
                                                 padding: '0.75rem',
-                                                borderTop: '1px solid #eee',
+                                                borderTop: '1px solid var(--card-border)',
                                                 display: 'flex',
                                                 flexDirection: 'column',
                                                 gap: '0.75rem',
                                             }}>
-                                                <div style={{ fontSize: '0.85rem', color: '#555', background: '#f5f5f5', padding: '0.6rem 0.85rem', borderRadius: '6px' }}>
+                                                <div style={{ fontSize: '0.85rem', color: 'var(--slate-600)', background: '#f5f5f5', padding: '0.6rem 0.85rem', borderRadius: '6px' }}>
                                                     <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>入力バリデーション</div>
-                                                    <div style={{ color: '#888' }}>半角数字のみ（ハイフンなし）で入力を受け付けます。</div>
+                                                    <div style={{ color: 'var(--text-muted)' }}>半角数字のみ（ハイフンなし）で入力を受け付けます。</div>
                                                 </div>
                                                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.85rem' }}>
                                                     <input
@@ -529,7 +534,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                         {singleField && singleField.isCustom && !singleField.templateType && editingId === singleField.id && (
                                             <div style={{
                                                 padding: '0.75rem',
-                                                borderTop: '1px solid #eee',
+                                                borderTop: '1px solid var(--card-border)',
                                                 display: 'flex',
                                                 flexDirection: 'column',
                                                 gap: '0.75rem',
@@ -562,7 +567,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxWidth: '350px' }}>
                                                             {(singleField.options || []).map((opt, i) => (
                                                                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                                                    <span style={{ fontSize: '0.8rem', color: '#aaa', width: '1.5rem', textAlign: 'center', flexShrink: 0 }}>{i + 1}.</span>
+                                                                    <span style={{ fontSize: '0.8rem', color: 'var(--slate-500)', width: '1.5rem', textAlign: 'center', flexShrink: 0 }}>{i + 1}.</span>
                                                                     <input
                                                                         type="text"
                                                                         className="input"
@@ -594,7 +599,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                                                 onClick={() => updateFieldOptions(singleField.id, [...(singleField.options || []), ''])}
                                                                 style={{
                                                                     border: '1px dashed #ccc', background: 'none', cursor: 'pointer',
-                                                                    borderRadius: '4px', padding: '0.3rem 0.6rem', fontSize: '0.8rem', color: '#888',
+                                                                    borderRadius: '4px', padding: '0.3rem 0.6rem', fontSize: '0.8rem', color: 'var(--text-muted)',
                                                                     marginTop: '0.15rem',
                                                                 }}
                                                             >
@@ -630,7 +635,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                     background: 'none',
                                     cursor: 'pointer',
                                     fontSize: '0.9rem',
-                                    color: '#888',
+                                    color: 'var(--text-muted)',
                                     fontWeight: '500',
                                     transition: 'all 0.15s',
                                 }}
@@ -659,7 +664,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                         style={{
                                             display: 'flex', alignItems: 'center', gap: '0.75rem',
                                             padding: '0.85rem 1rem', border: '1px solid #e0e0e0', borderRadius: '8px',
-                                            background: fields.some(f => f.id === 'customer_phone') ? '#f5f5f5' : '#fff',
+                                            background: fields.some(f => f.id === 'customer_phone') ? 'var(--secondary)' : 'var(--card-bg)',
                                             cursor: fields.some(f => f.id === 'customer_phone') ? 'not-allowed' : 'pointer',
                                             textAlign: 'left', width: '100%', transition: 'border-color 0.15s',
                                             opacity: fields.some(f => f.id === 'customer_phone') ? 0.5 : 1,
@@ -672,7 +677,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                         <span style={{ fontSize: '1.3rem' }}>📞</span>
                                         <div>
                                             <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>電話番号</div>
-                                            <div style={{ fontSize: '0.8rem', color: '#888' }}>
+                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                                                 {fields.some(f => f.id === 'customer_phone') ? '追加済み' : 'テキスト入力 — 任意項目として追加'}
                                             </div>
                                         </div>
@@ -685,7 +690,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                         style={{
                                             display: 'flex', alignItems: 'center', gap: '0.75rem',
                                             padding: '0.85rem 1rem', border: '1px solid #e0e0e0', borderRadius: '8px',
-                                            background: fields.some(f => f.templateType === 'newsletter') ? '#f5f5f5' : '#fff',
+                                            background: fields.some(f => f.templateType === 'newsletter') ? 'var(--secondary)' : 'var(--card-bg)',
                                             cursor: fields.some(f => f.templateType === 'newsletter') ? 'not-allowed' : 'pointer',
                                             textAlign: 'left', width: '100%', transition: 'border-color 0.15s',
                                             opacity: fields.some(f => f.templateType === 'newsletter') ? 0.5 : 1,
@@ -698,7 +703,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                         <span style={{ fontSize: '1.3rem' }}>📬</span>
                                         <div>
                                             <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>公演お知らせ受取</div>
-                                            <div style={{ fontSize: '0.8rem', color: '#888' }}>
+                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                                                 {fields.some(f => f.templateType === 'newsletter') ? '追加済み' : 'チェックボックス —「次回以降の公演のお知らせを受け取る」'}
                                             </div>
                                         </div>
@@ -713,7 +718,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                         style={{
                                             display: 'flex', alignItems: 'center', gap: '0.75rem',
                                             padding: '0.85rem 1rem', border: '1px solid #e0e0e0', borderRadius: '8px',
-                                            background: '#fff', cursor: 'pointer', textAlign: 'left', width: '100%',
+                                            background: 'var(--card-bg)', cursor: 'pointer', textAlign: 'left', width: '100%',
                                             transition: 'border-color 0.15s',
                                         }}
                                         onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; }}
@@ -722,7 +727,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                         <span style={{ fontSize: '1.3rem' }}>✏️</span>
                                         <div>
                                             <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>自由に質問を設定</div>
-                                            <div style={{ fontSize: '0.8rem', color: '#888' }}>ラベル・タイプ・プレースホルダーを自由に設定</div>
+                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ラベル・タイプ・プレースホルダーを自由に設定</div>
                                         </div>
                                     </button>
                                 </div>
@@ -794,7 +799,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxWidth: '350px' }}>
                                                 {addForm.options.map((opt, i) => (
                                                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                                        <span style={{ fontSize: '0.8rem', color: '#aaa', width: '1.5rem', textAlign: 'center', flexShrink: 0 }}>{i + 1}.</span>
+                                                        <span style={{ fontSize: '0.8rem', color: 'var(--slate-500)', width: '1.5rem', textAlign: 'center', flexShrink: 0 }}>{i + 1}.</span>
                                                         <input
                                                             type="text"
                                                             className="input"
@@ -819,7 +824,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                                     onClick={addOption}
                                                     style={{
                                                         border: '1px dashed #ccc', background: 'none', cursor: 'pointer',
-                                                        borderRadius: '4px', padding: '0.3rem 0.6rem', fontSize: '0.8rem', color: '#888',
+                                                        borderRadius: '4px', padding: '0.3rem 0.6rem', fontSize: '0.8rem', color: 'var(--text-muted)',
                                                         marginTop: '0.15rem',
                                                     }}
                                                 >
@@ -887,8 +892,8 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                         borderBottom: '1px solid #e5e7eb',
                     }}>
                         <span style={{ fontSize: '1rem' }}>👁</span>
-                        <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#333', margin: 0 }}>プレビュー</h3>
-                        <span style={{ fontSize: '0.75rem', color: '#999', marginLeft: 'auto' }}>実際の表示</span>
+                        <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--foreground)', margin: 0 }}>プレビュー</h3>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)', marginLeft: 'auto' }}>実際の表示</span>
                     </div>
                     <div className="card" style={{
                         padding: 0,
@@ -897,11 +902,11 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                     }}>
                         <div style={{
                             padding: '1rem 1.25rem',
-                            borderBottom: '1px solid #eee',
-                            background: '#fafafa',
+                            borderBottom: '1px solid var(--card-border)',
+                            background: 'var(--secondary)',
                             textAlign: 'center',
                         }}>
-                            <div style={{ fontSize: '0.65rem', color: '#999', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                            <div style={{ fontSize: '0.65rem', color: 'var(--slate-500)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
                                 TICKET RESERVATION
                             </div>
                             <div style={{ fontWeight: 'bold', fontSize: '1rem', color: 'var(--foreground)' }}>
@@ -924,8 +929,8 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                             <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold', fontSize: '0.85rem' }}>
                                                 お名前 <span style={{ color: 'var(--primary)', fontSize: '0.75rem' }}>（必須）</span>
                                             </label>
-                                            <input type="text" className="input" disabled placeholder="例: 山田 太郎" style={{ width: '100%', fontSize: '0.85rem', background: '#fff', marginBottom: '0.4rem' }} />
-                                            <input type="text" className="input" disabled placeholder="ふりがな (例: やまだ たろう)" style={{ width: '100%', fontSize: '0.8rem', background: '#fff' }} />
+                                            <input type="text" className="input" disabled placeholder="例: 山田 太郎" style={{ width: '100%', fontSize: '0.85rem', background: 'var(--card-bg)', marginBottom: '0.4rem' }} />
+                                            <input type="text" className="input" disabled placeholder="ふりがな (例: やまだ たろう)" style={{ width: '100%', fontSize: '0.8rem', background: 'var(--card-bg)' }} />
                                         </div>
                                     );
                                 }
@@ -939,7 +944,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                             <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold', fontSize: '0.85rem' }}>
                                                 メールアドレス <span style={{ color: 'var(--primary)', fontSize: '0.75rem' }}>（必須）</span>
                                             </label>
-                                            <input type="email" className="input" disabled placeholder="例: example@mail.com" style={{ width: '100%', fontSize: '0.85rem', background: '#fff' }} />
+                                            <input type="email" className="input" disabled placeholder="例: example@mail.com" style={{ width: '100%', fontSize: '0.85rem', background: 'var(--card-bg)' }} />
                                             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                                                 ※予約完了メールが送信されますので、正確に入力してください。
                                             </div>
@@ -955,7 +960,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                                 <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold', fontSize: '0.85rem' }}>
                                                     観劇日時 <span style={{ color: 'var(--primary)', fontSize: '0.75rem' }}>（必須）</span>
                                                 </label>
-                                                <select className="input" disabled style={{ width: '100%', fontSize: '0.85rem', background: '#fff' }}>
+                                                <select className="input" disabled style={{ width: '100%', fontSize: '0.85rem', background: 'var(--card-bg)' }}>
                                                     <option>日時を選択してください</option>
                                                 </select>
                                             </div>
@@ -967,7 +972,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                                     padding: '0.75rem',
                                                     border: '1px solid var(--card-border, #dee2e6)',
                                                     borderRadius: '8px',
-                                                    background: '#fcfcfc',
+                                                    background: 'var(--card-bg)',
                                                 }}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.3rem 0' }}>
                                                         <div>
@@ -994,7 +999,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                             <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold', fontSize: '0.85rem' }}>
                                                 備考 <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>（任意）</span>
                                             </label>
-                                            <textarea className="input" disabled rows={2} placeholder="車椅子でのご来場など、伝えたいことがあればご記入ください。" style={{ width: '100%', fontSize: '0.85rem', resize: 'none', background: '#fff' }} />
+                                            <textarea className="input" disabled rows={2} placeholder="車椅子でのご来場など、伝えたいことがあればご記入ください。" style={{ width: '100%', fontSize: '0.85rem', resize: 'none', background: 'var(--card-bg)' }} />
                                         </div>
                                     );
                                 }
@@ -1010,7 +1015,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                             <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold', fontSize: '0.85rem' }}>
                                                 {field.label} {reqLabel}
                                             </label>
-                                            <input type="tel" className="input" disabled placeholder={field.placeholder || '09012345678'} style={{ width: '100%', fontSize: '0.85rem', background: '#fff' }} />
+                                            <input type="tel" className="input" disabled placeholder={field.placeholder || '09012345678'} style={{ width: '100%', fontSize: '0.85rem', background: 'var(--card-bg)' }} />
                                             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                                                 ※半角数字のみ・ハイフンなしで入力してください
                                             </div>
@@ -1052,7 +1057,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                             <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold', fontSize: '0.85rem' }}>
                                                 {field.label} {reqLabel}
                                             </label>
-                                            <select className="input" disabled style={{ width: '100%', fontSize: '0.85rem', background: '#fff' }}>
+                                            <select className="input" disabled style={{ width: '100%', fontSize: '0.85rem', background: 'var(--card-bg)' }}>
                                                 <option>選択してください</option>
                                                 {field.options?.map((opt, i) => <option key={i}>{opt}</option>)}
                                             </select>
@@ -1066,7 +1071,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                             <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold', fontSize: '0.85rem' }}>
                                                 {field.label} {reqLabel}
                                             </label>
-                                            <textarea className="input" disabled rows={2} placeholder={field.placeholder || ''} style={{ width: '100%', fontSize: '0.85rem', resize: 'none', background: '#fff' }} />
+                                            <textarea className="input" disabled rows={2} placeholder={field.placeholder || ''} style={{ width: '100%', fontSize: '0.85rem', resize: 'none', background: 'var(--card-bg)' }} />
                                         </div>
                                     );
                                 }
@@ -1077,7 +1082,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                         <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 'bold', fontSize: '0.85rem' }}>
                                             {field.label} {reqLabel}
                                         </label>
-                                        <input type="text" className="input" disabled placeholder={field.placeholder || ''} style={{ width: '100%', fontSize: '0.85rem', background: '#fff' }} />
+                                        <input type="text" className="input" disabled placeholder={field.placeholder || ''} style={{ width: '100%', fontSize: '0.85rem', background: 'var(--card-bg)' }} />
                                     </div>
                                 );
                             })}

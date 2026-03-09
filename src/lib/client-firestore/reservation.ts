@@ -1,7 +1,8 @@
 import { db } from '@/lib/firebase';
-import { collection, doc, getDoc, getDocs, query, where, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, addDoc, updateDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
 import { FirestoreReservation } from '@/types';
 import { serializeDocs } from '@/lib/firestore-utils';
+import { calculateBookedCount, validateCapacity, validateTicketInput } from '@/lib/capacity-utils';
 
 /**
  * スタッフ用トークンを用いて予約情報を更新する（ロール制限付き）
@@ -52,13 +53,44 @@ export async function getReservationsByToken(
  * 予約を作成する（クライアント側）
  */
 export async function createReservationClient(data: Partial<FirestoreReservation>) {
-    const reservationsRef = collection(db, "reservations");
-    const newDoc = await addDoc(reservationsRef, {
-        ...data,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+    const tickets = (data as any).tickets || [];
+    const { totalCount, error: inputError } = validateTicketInput(tickets);
+    if (inputError) throw new Error(inputError);
+
+    const performanceId = data.performanceId;
+    if (!performanceId) throw new Error('公演回が指定されていません。');
+
+    const newResRef = doc(collection(db, "reservations"));
+    await runTransaction(db, async (transaction) => {
+        // トランザクション内で残席チェック（アトミック）
+        const performanceRef = doc(db, "performances", performanceId);
+        const performanceSnap = await transaction.get(performanceRef);
+        if (!performanceSnap.exists()) throw new Error('公演回が見つかりません。');
+        const performance = performanceSnap.data();
+
+        // トランザクション外でクエリ（Firestore制約: transaction.get はドキュメント参照のみ）
+        // ただし楽観的ロックとして、トランザクション内のperformanceドキュメントを読むことで
+        // 競合検知が可能
+        const qRes = query(
+            collection(db, "reservations"),
+            where("performanceId", "==", performanceId),
+            where("productionId", "==", data.productionId)
+        );
+        const resSnapshot = await getDocs(qRes);
+        const bookedCount = calculateBookedCount(
+            resSnapshot.docs.map(d => d.data() as any),
+            performanceId
+        );
+        const check = validateCapacity(performance.capacity, bookedCount, totalCount);
+        if (!check.ok) throw new Error(check.error!);
+
+        transaction.set(newResRef, {
+            ...data,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        });
     });
-    return newDoc.id;
+    return newResRef.id;
 }
 
 /**

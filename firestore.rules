@@ -148,6 +148,13 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // 一斉送信ログ (BroadcastLogs)
+    match /broadcastLogs/{logId} {
+      allow create: if isGoogleUser() && request.resource.data.userId == request.auth.uid;
+      allow read, list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
     // ── アンケート関連 ──
 
     // 将来の「限定共有URL」対応を見据えた閲覧権限判定

@@ -11,10 +11,11 @@ import {
     query,
     where,
     serverTimestamp,
-    orderBy
+    runTransaction
 } from "firebase/firestore";
 import { revalidatePath } from "next/cache";
 import { FirestoreReservation, Production } from "@/types";
+import { validateTicketInput, calculateBookedCount, validateCapacity } from '@/lib/capacity-utils';
 import { serializeDoc, serializeDocs, toDate } from "@/lib/firestore-utils";
 import { sendReservationConfirmation } from "@/lib/email";
 
@@ -88,47 +89,114 @@ export async function getBookingOptions(activeProductionId?: string, userId?: st
 }
 
 export async function createReservation(data: FirestoreReservation) {
-    try {
-        const reservationsRef = collection(db, "reservations");
-        const newDoc = await addDoc(reservationsRef, {
+    // 入力バリデーション
+    const { totalCount, error: inputError } = validateTicketInput(data.tickets || []);
+    if (inputError) throw new Error(inputError);
+
+    if (!data.performanceId) throw new Error('公演回が指定されていません。');
+
+    // トランザクション内で残席チェック + 予約作成（アトミック）
+    const newResRef = doc(collection(db, "reservations"));
+    await runTransaction(db, async (transaction) => {
+        // performanceドキュメントを読み取り（楽観的ロック）
+        const performanceRef = doc(db, "performances", data.performanceId);
+        const performanceSnap = await transaction.get(performanceRef);
+        if (!performanceSnap.exists()) throw new Error('公演回が見つかりません。');
+        const performance = performanceSnap.data();
+
+        // 予約数を集計
+        const qRes = query(
+            collection(db, "reservations"),
+            where("performanceId", "==", data.performanceId),
+            where("productionId", "==", data.productionId)
+        );
+        const resSnapshot = await getDocs(qRes);
+        const bookedCount = calculateBookedCount(
+            resSnapshot.docs.map(d => d.data() as any),
+            data.performanceId
+        );
+        const check = validateCapacity(performance.capacity, bookedCount, totalCount);
+        if (!check.ok) throw new Error(check.error!);
+
+        transaction.set(newResRef, {
             ...data,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         });
+    });
+    const newId = newResRef.id;
 
-        // 管理画面のリスト等を更新するために必要
-        revalidatePath('/reservations');
-        revalidatePath('/');
+    // Transaction 外: revalidatePath + メール送信（既存ロジック維持）
+    revalidatePath('/reservations');
+    revalidatePath('/');
 
-        // 予約完了メール送信（メール失敗で予約を失敗させない）
-        if (data.customerEmail) {
-            try {
-                const [productionSnap, performanceSnap] = await Promise.all([
-                    getDoc(doc(db, "productions", data.productionId)),
-                    getDoc(doc(db, "performances", data.performanceId)),
-                ]);
-
-                const production = productionSnap.exists() ? productionSnap.data() as Production : null;
-                const performanceData = performanceSnap.exists() ? performanceSnap.data() : null;
-
-                if (production && performanceData) {
-                    await sendReservationConfirmation({
-                        reservation: data,
-                        reservationId: newDoc.id,
-                        productionTitle: production.title,
-                        performanceStartTime: performanceData.startTime,
-                        ticketTypes: production.ticketTypes || [],
-                    });
-                }
-            } catch (emailError) {
-                console.error("メール送信エラー（予約自体は成功）:", emailError);
+    if (data.customerEmail) {
+        try {
+            const [productionSnap, performanceSnap] = await Promise.all([
+                getDoc(doc(db, "productions", data.productionId)),
+                getDoc(doc(db, "performances", data.performanceId)),
+            ]);
+            const production = productionSnap.exists() ? productionSnap.data() as Production : null;
+            const performanceData = performanceSnap.exists() ? performanceSnap.data() : null;
+            if (production && performanceData) {
+                await sendReservationConfirmation({
+                    reservation: data,
+                    reservationId: newId,
+                    productionTitle: production.title,
+                    performanceStartTime: performanceData.startTime,
+                    ticketTypes: production.ticketTypes || [],
+                    venue: production.venue,
+                    organizerEmail: production.organizerEmail,
+                    template: production.emailTemplates?.confirmation || null,
+                    confirmationEnabled: production.emailTemplates?.confirmationEnabled,
+                    ccToOrganizer: production.emailTemplates?.ccToOrganizer,
+                });
             }
+        } catch (emailError) {
+            console.error("メール送信エラー（予約自体は成功）:", emailError);
         }
+    }
 
-        return { success: true, id: newDoc.id };
-    } catch (error) {
-        console.error("Error creating reservation in Firestore:", error);
-        throw new Error("予約の作成に失敗しました。");
+    return { success: true, id: newId };
+}
+
+/**
+ * 予約作成後にメール送信のみ行うサーバーアクション
+ * （クライアント側で予約を作成した後に呼び出す）
+ */
+export async function sendReservationEmail(reservationData: {
+    customerEmail?: string | null;
+    customerName: string;
+    productionId: string;
+    performanceId: string;
+    tickets: { ticketTypeId: string; count: number; price: number }[];
+    reservationId: string;
+}) {
+    if (!reservationData.customerEmail) return;
+
+    try {
+        const [productionSnap, performanceSnap] = await Promise.all([
+            getDoc(doc(db, "productions", reservationData.productionId)),
+            getDoc(doc(db, "performances", reservationData.performanceId)),
+        ]);
+        const production = productionSnap.exists() ? productionSnap.data() as Production : null;
+        const performanceData = performanceSnap.exists() ? performanceSnap.data() : null;
+        if (production && performanceData) {
+            await sendReservationConfirmation({
+                reservation: reservationData as any,
+                reservationId: reservationData.reservationId,
+                productionTitle: production.title,
+                performanceStartTime: performanceData.startTime,
+                ticketTypes: production.ticketTypes || [],
+                venue: production.venue,
+                organizerEmail: production.organizerEmail,
+                template: production.emailTemplates?.confirmation || null,
+                confirmationEnabled: production.emailTemplates?.confirmationEnabled,
+                ccToOrganizer: production.emailTemplates?.ccToOrganizer,
+            });
+        }
+    } catch (emailError) {
+        console.error("メール送信エラー:", emailError);
     }
 }
 
@@ -192,7 +260,7 @@ export async function createPublicReservation(formData: FormData): Promise<void>
     formData.forEach((value, key) => {
         if (key.startsWith('ticket_')) {
             const count = parseInt(value as string);
-            if (count > 0) {
+            if (!isNaN(count) && count > 0) {
                 data.tickets.push({
                     ticketTypeId: key.replace('ticket_', ''),
                     count: count
@@ -201,9 +269,9 @@ export async function createPublicReservation(formData: FormData): Promise<void>
         }
     });
 
-    if (data.tickets.length === 0) {
-        throw new Error("券種を1枚以上選択してください。");
-    }
+    // 入力バリデーション
+    const { error: ticketError } = validateTicketInput(data.tickets);
+    if (ticketError) throw new Error(ticketError);
 
     await createReservation(data as FirestoreReservation);
 }
@@ -265,9 +333,9 @@ export async function cancelReservation(reservationId: string, userId: string) {
         revalidatePath('/');
         revalidatePath('/reservations');
         return { success: true };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error canceling reservation in Firestore:", error);
-        throw new Error("予約のキャンセルに失敗しました。");
+        throw new Error(`予約のキャンセルに失敗しました: ${error?.message || error}`);
     }
 }
 
@@ -307,14 +375,42 @@ export async function restoreReservation(reservationId: string, userId: string) 
     if (!userId) throw new Error('Unauthorized');
     try {
         const reservationRef = doc(db, "reservations", reservationId);
-        const resSnap = await getDoc(reservationRef);
-        if (!resSnap.exists()) throw new Error('Reservation not found');
-        const resData = resSnap.data();
-        if (resData.userId !== userId) throw new Error('Unauthorized');
 
-        await updateDoc(reservationRef, {
-            status: 'CONFIRMED',
-            updatedAt: serverTimestamp(),
+        // トランザクション内で最新データ確認 + 残席チェック + 書き込み
+        await runTransaction(db, async (transaction) => {
+            const resSnap = await transaction.get(reservationRef);
+            if (!resSnap.exists()) throw new Error('Reservation not found');
+            const resData = resSnap.data();
+            if (resData.userId !== userId) throw new Error('Unauthorized');
+
+            // 復元時に残席チェック
+            const ticketCount = (resData.tickets || []).reduce(
+                (sum: number, t: any) => sum + (t.count || 0), 0
+            );
+            if (ticketCount > 0 && resData.performanceId) {
+                const performanceRef = doc(db, "performances", resData.performanceId);
+                const performanceSnap = await transaction.get(performanceRef);
+                if (performanceSnap.exists()) {
+                    const performance = performanceSnap.data();
+                    const qRes = query(
+                        collection(db, "reservations"),
+                        where("performanceId", "==", resData.performanceId),
+                        where("productionId", "==", resData.productionId)
+                    );
+                    const resSnapshot = await getDocs(qRes);
+                    const bookedCount = calculateBookedCount(
+                        resSnapshot.docs.map(d => d.data() as any),
+                        resData.performanceId
+                    );
+                    const check = validateCapacity(performance.capacity, bookedCount, ticketCount);
+                    if (!check.ok) throw new Error(check.error!);
+                }
+            }
+
+            transaction.update(reservationRef, {
+                status: 'CONFIRMED',
+                updatedAt: serverTimestamp(),
+            });
         });
 
         revalidatePath('/');
@@ -322,7 +418,7 @@ export async function restoreReservation(reservationId: string, userId: string) 
         return { success: true };
     } catch (error) {
         console.error("Error restoring reservation in Firestore:", error);
-        throw new Error("復元に失敗しました。");
+        throw error;
     }
 }
 

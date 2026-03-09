@@ -1,5 +1,5 @@
 import { db } from '@/lib/firebase';
-import { collection, doc, getDocs, query, where, updateDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, updateDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
 import { Production, Performance, FirestoreReservation } from '@/types';
 
 /**
@@ -14,52 +14,57 @@ export async function createSameDayTicketClient(
 ) {
     if (!userId) throw new Error('Unauthorized');
 
+    const totalQuantity = Object.values(breakdown).reduce((sum, count) => sum + count, 0);
+
+    // プロダクション情報の取得（券種情報はトランザクション外で取得可能）
+    const productionRef = doc(db, "productions", productionId);
+    const productionSnap = await getDoc(productionRef);
+    if (!productionSnap.exists()) throw new Error('プロダクションが見つかりません');
+    const production = productionSnap.data() as Production;
+
+    let totalAmount = 0;
+    const ticketDatas = Object.entries(breakdown)
+        .filter(([_, count]) => count > 0)
+        .map(([id, count]) => {
+            const tt = production.ticketTypes.find(t => t.id === id);
+            if (!tt) throw new Error('券種が見つかりません');
+            totalAmount += (tt.doorPrice ?? tt.price) * count;
+            return {
+                ticketTypeId: id,
+                count,
+                price: tt.doorPrice ?? tt.price
+            };
+        });
+
+    // トランザクション内で残席チェック + 予約作成（アトミック）
+    const newResRef = doc(collection(db, "reservations"));
     await runTransaction(db, async (transaction) => {
-        // 1. 公演の残数チェック
+        // トランザクション内でperformanceを読み取り（楽観的ロック）
         const performanceRef = doc(db, "performances", performanceId);
         const performanceSnap = await transaction.get(performanceRef);
         if (!performanceSnap.exists()) throw new Error('公演が見つかりません');
         const performance = performanceSnap.data() as Performance;
 
+        // 予約数を集計
         const reservationsRef = collection(db, "reservations");
-        const qRes = query(reservationsRef, where("userId", "==", userId));
-        const resSnapshot = await getDocs(qRes); // Transaction 外で取得してメモリでフィルタ（Firestore の制限）
+        const qRes = query(
+            reservationsRef,
+            where("productionId", "==", productionId),
+            where("performanceId", "==", performanceId)
+        );
+        const resSnapshot = await getDocs(qRes);
 
         const bookedCount = resSnapshot.docs.reduce((sum, d) => {
             const res = d.data() as FirestoreReservation;
-            if (res.performanceId !== performanceId || res.status === 'CANCELED') return sum;
+            if (res.status === 'CANCELED') return sum;
             return sum + (res.tickets?.reduce((tSum: number, t: any) => tSum + (t.count || 0), 0) || 0);
         }, 0);
 
-        const totalQuantity = Object.values(breakdown).reduce((sum, count) => sum + count, 0);
         const remaining = performance.capacity - bookedCount;
-
         if (totalQuantity > remaining) {
             throw new Error(`枚数が販売可能数（${remaining}枚）を超えています`);
         }
 
-        // 2. プロダクション情報の取得
-        const productionRef = doc(db, "productions", productionId);
-        const productionSnap = await transaction.get(productionRef);
-        if (!productionSnap.exists()) throw new Error('プロダクションが見つかりません');
-        const production = productionSnap.data() as Production;
-
-        let totalAmount = 0;
-        const ticketDatas = Object.entries(breakdown)
-            .filter(([_, count]) => count > 0)
-            .map(([id, count]) => {
-                const tt = production.ticketTypes.find(t => t.id === id);
-                if (!tt) throw new Error('券種が見つかりません');
-                totalAmount += (tt.doorPrice ?? tt.price) * count;
-                return {
-                    ticketTypeId: id,
-                    count,
-                    price: tt.doorPrice ?? tt.price
-                };
-            });
-
-        // 3. 予約の作成
-        const newResRef = doc(collection(db, "reservations"));
         transaction.set(newResRef, {
             userId,
             productionId,

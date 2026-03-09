@@ -8,6 +8,7 @@ export interface TicketType {
     advancePrice: number;
     doorPrice: number;
     isPublic: boolean;
+    isInvitation?: boolean;
     organizationId?: string;
 }
 
@@ -83,10 +84,26 @@ export interface Membership {
     updatedAt: FirestoreTimestamp;
 }
 
+export interface EmailTemplateData {
+    subject: string;
+    body: string;
+    timing?: string;
+}
+
+export interface EmailTemplates {
+    confirmation?: EmailTemplateData;
+    confirmationEnabled?: boolean;
+    reminder?: EmailTemplateData;
+    reminderEnabled?: boolean;
+    ccToOrganizer?: boolean;
+}
+
 export interface Production {
     id: string;
     title: string;
     description?: string | null;
+    venue?: string;         // 会場名
+    organizerEmail?: string; // 主催者メールアドレス
     organizationId: string; // Legacy: will be replaced by troupeId
     troupeId?: string;      // New: Reference to Troupe.id
     customId?: string;      // New: URL slug for this production
@@ -108,6 +125,7 @@ export interface Production {
     };
     staffPasscodeHashed?: string; // Legacy: Common passcode
     formFields?: FormFieldConfig[];
+    emailTemplates?: EmailTemplates;
     createdAt?: FirestoreTimestamp;
     updatedAt?: FirestoreTimestamp;
 }
