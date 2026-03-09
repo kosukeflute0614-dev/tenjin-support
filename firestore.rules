@@ -234,35 +234,43 @@ service cloud.firestore {
     match /merchandiseSales/{saleId} {
       allow read, list: if isSignedIn() && (
         resource.data.userId == request.auth.uid ||
-        isAuthorizedMerchandiseStaff(resource.data.productionId)
+        get(/databases/$(database)/documents/productions/$(resource.data.productionId)).data.userId == request.auth.uid ||
+        isAuthorizedStaff(resource.data.productionId)
       );
       allow create: if isSignedIn() && (
         request.resource.data.userId == request.auth.uid ||
-        isAuthorizedMerchandiseStaff(request.resource.data.productionId)
+        isAuthorizedStaff(request.resource.data.productionId)
       );
       allow update: if isSignedIn() && (
         resource.data.userId == request.auth.uid ||
-        isAuthorizedMerchandiseStaff(resource.data.productionId)
+        get(/databases/$(database)/documents/productions/$(resource.data.productionId)).data.userId == request.auth.uid ||
+        isAuthorizedStaff(resource.data.productionId)
       );
       allow delete: if false;
     }
 
     // 物販在庫ログ (MerchandiseInventoryLogs)
     match /merchandiseInventoryLogs/{logId} {
-      allow read, list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read, list: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        isAuthorizedStaff(resource.data.productionId)
+      );
       allow create: if isSignedIn() && (
         request.resource.data.userId == request.auth.uid ||
-        isAuthorizedMerchandiseStaff(request.resource.data.productionId)
+        isAuthorizedStaff(request.resource.data.productionId)
       );
       allow update, delete: if false;
     }
 
     // 物販レジ締め (MerchandiseCashClosings)
     match /merchandiseCashClosings/{docId} {
-      allow read, list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read, list: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        isAuthorizedStaff(resource.data.productionId)
+      );
       allow create: if isSignedIn() && (
         request.resource.data.userId == request.auth.uid ||
-        isAuthorizedMerchandiseStaff(request.resource.data.productionId)
+        isAuthorizedStaff(request.resource.data.productionId)
       );
       allow update, delete: if false;
     }
