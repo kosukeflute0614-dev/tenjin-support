@@ -83,74 +83,139 @@ export default function CheckinList({
 
     let lastGroup = ""
 
+    let lastGroupMobile = ""
+
     return (
         <div className="card" style={{ padding: 0, overflow: 'visible' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                    <tr style={{ background: 'var(--secondary)', textAlign: 'left', fontSize: '0.85rem' }}>
-                        <th style={{ padding: '1rem' }}>お名前</th>
-                        <th style={{ padding: '1rem' }}>内容</th>
-                        <th style={{ padding: '1rem' }}>状況</th>
-                        <th style={{ padding: '1rem', textAlign: 'right' }}>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
+            {/* Desktop table */}
+            <div className="desktop-only">
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                        <tr style={{ background: 'var(--secondary)', textAlign: 'left', fontSize: '0.85rem' }}>
+                            <th style={{ padding: '1rem' }}>お名前</th>
+                            <th style={{ padding: '1rem' }}>内容</th>
+                            <th style={{ padding: '1rem' }}>状況</th>
+                            <th style={{ padding: '1rem', textAlign: 'right' }}>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {sorted.map((res) => {
+                            const kana = res.customerNameKana || res.customerName || ""
+                            const group = getKanaGroup(kana)
+                            const showHeader = group !== lastGroup
+                            lastGroup = group
+
+                            const totalTickets = (res.tickets || []).reduce((sum: number, t: any) => sum + (t.count || 0), 0)
+
+                            return (
+                                <Fragment key={res.id}>
+                                    {showHeader && (
+                                        <tr style={{ background: 'var(--secondary)' }}>
+                                            <td colSpan={4} style={{ padding: '0.5rem 1rem', fontWeight: 'bold', borderBottom: '1px solid var(--card-border)', fontSize: '0.85rem', color: 'var(--primary)' }}>
+                                                {group}
+                                            </td>
+                                        </tr>
+                                    )}
+                                    <tr style={{ borderBottom: '1px solid var(--card-border)', background: (res.checkinStatus === 'CHECKED_IN') ? '#f0fff4' : 'transparent' }}>
+                                        <td style={{ padding: '1rem' }}>
+                                            <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
+                                                {res.customerName}
+                                                {hasInvitationTickets(res) && <InvitationBadge />}
+                                            </div>
+                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{res.customerNameKana}</div>
+                                        </td>
+                                        <td style={{ padding: '1rem' }}>
+                                            <div style={{ fontSize: '0.85rem' }}>
+                                                {res.tickets?.map((t: any) => `${t.ticketType?.name || '不明な券種'}×${t.count}`).join(', ') || 'チケットなし'}
+                                            </div>
+                                        </td>
+                                        <td style={{ padding: '1rem' }}>
+                                            <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                                                <CheckinBadge status={res.checkinStatus} />
+                                                {res.checkinStatus !== 'NOT_CHECKED_IN' && (
+                                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                                        ({res.checkedInTickets}/{totalTickets}人)
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                            <button
+                                                className={res.checkinStatus === 'CHECKED_IN' ? "btn btn-secondary" : "btn btn-primary"}
+                                                style={{ padding: '0.5rem 1.2rem', fontSize: '0.85rem' }}
+                                                disabled={isPending}
+                                                onClick={() => setSelectedRes(res)}
+                                            >
+                                                {res.checkinStatus === 'CHECKED_IN' ? '詳細/ログ' : '受付する'}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </Fragment>
+                            )
+                        })}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="mobile-only">
+                <div className="mobile-card-list">
                     {sorted.map((res) => {
                         const kana = res.customerNameKana || res.customerName || ""
                         const group = getKanaGroup(kana)
-                        const showHeader = group !== lastGroup
-                        lastGroup = group
+                        const showGroupHeader = group !== lastGroupMobile
+                        lastGroupMobile = group
 
                         const totalTickets = (res.tickets || []).reduce((sum: number, t: any) => sum + (t.count || 0), 0)
 
                         return (
                             <Fragment key={res.id}>
-                                {showHeader && (
-                                    <tr style={{ background: 'var(--secondary)' }}>
-                                        <td colSpan={4} style={{ padding: '0.5rem 1rem', fontWeight: 'bold', borderBottom: '1px solid var(--card-border)', fontSize: '0.85rem', color: 'var(--primary)' }}>
-                                            {group}
-                                        </td>
-                                    </tr>
+                                {showGroupHeader && (
+                                    <div className="mobile-card-group-header">{group}</div>
                                 )}
-                                <tr style={{ borderBottom: '1px solid var(--card-border)', background: (res.checkinStatus === 'CHECKED_IN') ? '#f0fff4' : 'transparent' }}>
-                                    <td style={{ padding: '1rem' }}>
-                                        <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>
-                                            {res.customerName}
-                                            {hasInvitationTickets(res) && <InvitationBadge />}
+                                <div className={`mobile-card-item${res.checkinStatus === 'CHECKED_IN' ? ' is-checked-in' : ''}`}>
+                                    <div className="mobile-card-header">
+                                        <div>
+                                            <div className="mobile-card-title" style={{ display: 'flex', alignItems: 'center' }}>
+                                                {res.customerName}
+                                                {hasInvitationTickets(res) && <InvitationBadge />}
+                                            </div>
+                                            <div className="mobile-card-subtitle">{res.customerNameKana}</div>
                                         </div>
-                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{res.customerNameKana}</div>
-                                    </td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <div style={{ fontSize: '0.85rem' }}>
-                                            {res.tickets?.map((t: any) => `${t.ticketType?.name || '不明な券種'}×${t.count}`).join(', ') || 'チケットなし'}
+                                        <CheckinBadge status={res.checkinStatus} />
+                                    </div>
+                                    <div className="mobile-card-body">
+                                        <div className="mobile-card-row">
+                                            <span className="mobile-card-row-label">内容</span>
+                                            <span className="mobile-card-row-value" style={{ fontSize: '0.85rem' }}>
+                                                {res.tickets?.map((t: any) => `${t.ticketType?.name || '不明な券種'}×${t.count}`).join(', ') || 'チケットなし'}
+                                            </span>
                                         </div>
-                                    </td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                                            <CheckinBadge status={res.checkinStatus} />
-                                            {res.checkinStatus !== 'NOT_CHECKED_IN' && (
-                                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                                    ({res.checkedInTickets}/{totalTickets}人)
+                                        {res.checkinStatus !== 'NOT_CHECKED_IN' && (
+                                            <div className="mobile-card-row">
+                                                <span className="mobile-card-row-label">入場状況</span>
+                                                <span className="mobile-card-row-value">
+                                                    {res.checkedInTickets}/{totalTickets}人
                                                 </span>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="mobile-card-footer">
                                         <button
                                             className={res.checkinStatus === 'CHECKED_IN' ? "btn btn-secondary" : "btn btn-primary"}
-                                            style={{ padding: '0.5rem 1.2rem', fontSize: '0.85rem' }}
+                                            style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem' }}
                                             disabled={isPending}
                                             onClick={() => setSelectedRes(res)}
                                         >
                                             {res.checkinStatus === 'CHECKED_IN' ? '詳細/ログ' : '受付する'}
                                         </button>
-                                    </td>
-                                </tr>
+                                    </div>
+                                </div>
                             </Fragment>
                         )
                     })}
-                </tbody>
-            </table>
+                </div>
+            </div>
 
             {selectedRes && (
                 <DetailModal
@@ -454,7 +519,7 @@ function DetailModal({
                                                 <div
                                                     ref={keypadRef}
                                                     style={{
-                                                        position: 'absolute', right: '0', top: '45px', width: '280px', background: 'var(--card-bg)',
+                                                        position: 'absolute', right: '0', top: '45px', width: 'min(280px, calc(100vw - 2rem))', background: 'var(--card-bg)',
                                                         border: '1px solid #ddd', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
                                                         zIndex: 100, padding: '0.75rem 1rem'
                                                     }}
@@ -828,7 +893,7 @@ function DetailModal({
                                                         position: 'absolute',
                                                         right: '0',
                                                         top: '45px',
-                                                        width: '280px',
+                                                        width: 'min(280px, calc(100vw - 2rem))',
                                                         background: 'var(--card-bg)',
                                                         border: '1px solid #ddd',
                                                         borderRadius: '12px',

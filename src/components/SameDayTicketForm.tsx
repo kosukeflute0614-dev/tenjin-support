@@ -181,7 +181,7 @@ export default function SameDayTicketForm({
                             <div
                                 ref={keypadRef}
                                 style={{
-                                    position: 'absolute', right: '0', bottom: '100%', marginBottom: '10px', width: '280px', background: 'var(--card-bg)',
+                                    position: 'absolute', right: '0', bottom: '100%', marginBottom: '10px', width: 'min(280px, calc(100vw - 2rem))', background: 'var(--card-bg)',
                                     border: '1px solid #ddd', borderRadius: '12px', boxShadow: 'var(--shadow-lg)',
                                     zIndex: 100, padding: '0.75rem 1rem'
                                 }}

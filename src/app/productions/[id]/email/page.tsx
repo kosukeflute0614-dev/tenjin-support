@@ -435,21 +435,24 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                 marginBottom: '2rem',
                 borderBottom: '1px solid #e0e0e0',
                 paddingBottom: '2px',
+                overflowX: 'auto',
+                WebkitOverflowScrolling: 'touch',
             }}>
                 {tabs.map((tab) => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         style={{
-                            padding: '0.75rem 1.25rem',
+                            padding: '0.75rem 1rem',
                             border: 'none',
                             background: 'none',
                             cursor: 'pointer',
-                            fontSize: '0.95rem',
+                            fontSize: '0.9rem',
                             fontWeight: activeTab === tab.id ? '700' : '500',
                             color: activeTab === tab.id ? 'var(--primary)' : '#666',
                             borderBottom: activeTab === tab.id ? '3px solid var(--primary)' : '3px solid transparent',
                             transition: 'all 0.2s',
+                            whiteSpace: 'nowrap',
                         }}
                     >
                         {tab.icon} {tab.label}
@@ -825,7 +828,8 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
             {activeTab === 'HISTORY' && (
                 <div className="card" style={{ padding: '1.5rem' }}>
                     <h3 style={{ fontSize: '1.05rem', fontWeight: 'bold', marginBottom: '1rem' }}>📋 送信履歴</h3>
-                    <div style={{ overflowX: 'auto' }}>
+                    {/* Desktop table */}
+                    <div className="desktop-only" style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem', minWidth: '600px' }}>
                             <thead>
                                 <tr style={{ borderBottom: '2px solid var(--card-border)', background: 'var(--secondary)' }}>
@@ -870,6 +874,47 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                                 )}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Mobile cards */}
+                    <div className="mobile-only">
+                        {history.length === 0 ? (
+                            <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>📭</div>
+                                <p style={{ margin: 0 }}>まだ送信履歴はありません</p>
+                                <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem' }}>
+                                    「一斉送信」タブからメールを送信すると、ここに履歴が表示されます。
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="mobile-card-list">
+                                {history.map(log => (
+                                    <div key={log.id} className="mobile-card-item">
+                                        <div className="mobile-card-header">
+                                            <div>
+                                                <div className="mobile-card-title" style={{ fontSize: '0.9rem' }}>{log.subject}</div>
+                                                <div className="mobile-card-subtitle">{formatSentAt(log.sentAt)}</div>
+                                            </div>
+                                            {log.errorCount === 0 ? (
+                                                <span style={{ color: 'var(--success)', fontWeight: '600', fontSize: '0.8rem' }}>完了</span>
+                                            ) : (
+                                                <span style={{ color: '#e65100', fontWeight: '600', fontSize: '0.8rem' }}>エラー ({log.errorCount}件)</span>
+                                            )}
+                                        </div>
+                                        <div className="mobile-card-body" style={{ marginBottom: 0 }}>
+                                            <div className="mobile-card-row">
+                                                <span className="mobile-card-row-label">送信対象</span>
+                                                <span className="mobile-card-row-value">{TARGET_LABELS[log.target] || log.target}</span>
+                                            </div>
+                                            <div className="mobile-card-row">
+                                                <span className="mobile-card-row-label">送信件数</span>
+                                                <span className="mobile-card-row-value">{log.sentCount} / {log.totalTargets}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

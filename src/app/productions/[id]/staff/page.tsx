@@ -150,8 +150,8 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
 
             <div className="card" style={{ padding: '2rem', marginBottom: '2rem', border: '1px solid #ffd70033', backgroundColor: '#fffdf0' }}>
                 <h3 className="heading-md" style={{ marginBottom: '1.5rem' }}>新規URLの発行</h3>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
-                    <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                    <div style={{ flex: '1 1 250px' }}>
                         <label className="label">役割（ロール）</label>
                         <select
                             className="input"
@@ -170,7 +170,7 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
                         className="btn btn-primary"
                         onClick={handleGenerateToken}
                         disabled={isProcessing}
-                        style={{ padding: '0.8rem 1.5rem', height: 'fit-content' }}
+                        style={{ padding: '0.8rem 1.5rem', height: 'fit-content', flex: '1 1 auto', maxWidth: '300px' }}
                     >
                         {isProcessing ? '発行中...' : '招待URLを発行'}
                     </button>
@@ -189,8 +189,8 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
                             const passcode = typeof data === 'string' ? '要再発行' : data.passcode;
 
                             return (
-                                <div key={token} style={{ border: '1px solid var(--card-border)', borderRadius: '12px', padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                <div key={token} style={{ border: '1px solid var(--card-border)', borderRadius: '12px', padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
+                                    <div style={{ flex: '1 1 250px', minWidth: 0 }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.5rem' }}>
                                             <span style={{
                                                 fontSize: '0.75rem',

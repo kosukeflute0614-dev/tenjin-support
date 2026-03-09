@@ -16,8 +16,8 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
   return (
     <>
       <header className="global-header">
-        <div className="container header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 0' }}>
-          <Link href="/" className="logo" style={{ fontSize: '1.5rem', fontWeight: 'bold', textDecoration: 'none', color: 'inherit' }}>Tenjin-Support</Link>
+        <div className="container header-container">
+          <Link href="/" className="logo" style={{ fontWeight: 'bold', textDecoration: 'none', color: 'inherit' }}>Tenjin-Support</Link>
           <HeaderNav />
         </div>
       </header>

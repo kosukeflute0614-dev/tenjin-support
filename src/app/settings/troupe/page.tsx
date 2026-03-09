@@ -85,6 +85,7 @@ export default function TroupeSettingsPage() {
                             type="submit"
                             className="btn btn-primary"
                             disabled={isSaving || !troupeName.trim() || troupeName === profile?.troupeName}
+                            style={{ width: '100%', maxWidth: '300px' }}
                         >
                             {isSaving ? '保存中...' : '設定を保存する'}
                         </button>

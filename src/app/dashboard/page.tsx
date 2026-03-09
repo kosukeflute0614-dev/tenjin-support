@@ -225,7 +225,8 @@ export default function DashboardPage() {
                         overflow: 'hidden',
                         boxShadow: 'var(--shadow-sm)'
                     }}>
-                        <div style={{ overflowX: 'auto' }}>
+                        {/* Desktop table */}
+                        <div className="desktop-only" style={{ overflowX: 'auto' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.95rem', minWidth: '500px' }}>
                                 <thead>
                                     <tr style={{ borderBottom: '2px solid var(--card-border)', background: 'var(--secondary)' }}>
@@ -304,6 +305,76 @@ export default function DashboardPage() {
                                     })()}
                                 </tbody>
                             </table>
+                        </div>
+
+                        {/* Mobile cards */}
+                        <div className="mobile-only">
+                            <div className="mobile-card-list">
+                                {(() => {
+                                    const grouped = stats.reduce((acc, perf) => {
+                                        const dateKey = formatDate(perf.startTime);
+                                        if (!acc[dateKey]) acc[dateKey] = [];
+                                        acc[dateKey].push(perf);
+                                        return acc;
+                                    }, {} as Record<string, typeof stats>);
+
+                                    const sortedDates = Object.keys(grouped).sort();
+
+                                    return sortedDates.map(dateKey => {
+                                        const dateObj = toDate(grouped[dateKey][0].startTime);
+                                        const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()];
+
+                                        return (
+                                            <React.Fragment key={dateKey}>
+                                                <div className="mobile-card-group-header" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                    <Calendar size={16} /> {dateKey} ({dayOfWeek})
+                                                </div>
+                                                {grouped[dateKey].map(perf => (
+                                                    <div key={perf.id} className="mobile-card-item">
+                                                        <div className="mobile-card-header">
+                                                            <div className="mobile-card-title" style={{ fontSize: '1.2rem' }}>{formatTime(perf.startTime)}</div>
+                                                            <div style={{
+                                                                fontWeight: 'bold',
+                                                                padding: '4px 10px',
+                                                                borderRadius: '6px',
+                                                                fontSize: '0.85rem',
+                                                                backgroundColor: perf.remainingCount <= 5 ? 'rgba(139, 0, 0, 0.1)' : 'var(--secondary)',
+                                                                color: perf.remainingCount <= 5 ? '#8b0000' : '#444',
+                                                                border: perf.remainingCount <= 5 ? '1px solid rgba(139, 0, 0, 0.2)' : '1px solid #eee'
+                                                            }}>
+                                                                あと {perf.remainingCount} 席
+                                                            </div>
+                                                        </div>
+                                                        <div className="mobile-card-body" style={{ marginBottom: 0 }}>
+                                                            <div className="mobile-card-row">
+                                                                <span className="mobile-card-row-label">予約状況</span>
+                                                                <span className="mobile-card-row-value">
+                                                                    {perf.bookedCount} / {perf.capacity} 席
+                                                                </span>
+                                                            </div>
+                                                            <div style={{ width: '100%', height: '6px', backgroundColor: '#eeeff1', borderRadius: '3px', overflow: 'hidden' }}>
+                                                                <div
+                                                                    role="progressbar"
+                                                                    aria-valuenow={Math.round(perf.occupancyRate)}
+                                                                    aria-valuemin={0}
+                                                                    aria-valuemax={100}
+                                                                    aria-label={`予約率 ${Math.round(perf.occupancyRate)}%`}
+                                                                    style={{
+                                                                        height: '100%',
+                                                                        width: `${Math.min(perf.occupancyRate, 100)}%`,
+                                                                        backgroundColor: perf.occupancyRate >= 90 ? '#8b0000' : perf.occupancyRate >= 70 ? '#f9a825' : '#2e7d32',
+                                                                        transition: 'width 0.5s ease-out'
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </React.Fragment>
+                                        );
+                                    });
+                                })()}
+                            </div>
                         </div>
                     </div>
                 )}

@@ -100,6 +100,19 @@
   }
 }
 
+/* Mobile toast adaptation */
+@media (max-width: 480px) {
+  .container {
+    top: 0.5rem;
+    right: 0.5rem;
+  }
+
+  .toast {
+    min-width: auto;
+    max-width: calc(100vw - 1.5rem);
+  }
+}
+
 /* Dark mode toast colors */
 @media (prefers-color-scheme: dark) {
   .success {

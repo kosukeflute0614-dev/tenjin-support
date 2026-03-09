@@ -426,14 +426,14 @@ export default function PublicReservationForm({ production, promoterId }: Props)
     // --- ステップ表示 ---
 
     const stepIndicator = (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 'clamp(0.5rem, 2vw, 1rem)', marginBottom: '2rem' }}>
             {[
                 { key: 'input', label: '入力', num: 1 },
                 { key: 'confirm', label: '確認', num: 2 },
                 { key: 'success', label: '完了', num: 3 },
             ].map(s => (
                 <div key={s.key} style={{
-                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                    display: 'flex', alignItems: 'center', gap: '0.4rem',
                     color: step === s.key ? 'var(--primary)' : '#ccc',
                     fontWeight: step === s.key ? 'bold' : 'normal'
                 }}>
@@ -442,7 +442,7 @@ export default function PublicReservationForm({ production, promoterId }: Props)
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         backgroundColor: step === s.key ? 'var(--primary)' : '#eee',
                         color: step === s.key ? 'white' : '#999',
-                        fontSize: '0.85rem', fontWeight: 'bold'
+                        fontSize: '0.85rem', fontWeight: 'bold', flexShrink: 0,
                     }}>{s.num}</span>
                     <span style={{ fontSize: '0.9rem' }}>{s.label}</span>
                 </div>
@@ -538,7 +538,7 @@ export default function PublicReservationForm({ production, promoterId }: Props)
                     ))}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '1rem' }}>
                     <button
                         type="button"
                         onClick={() => setStep('input')}
@@ -583,7 +583,7 @@ export default function PublicReservationForm({ production, promoterId }: Props)
                 <button
                     type="submit"
                     className="btn btn-primary"
-                    style={{ width: '100%', padding: '1.2rem', fontWeight: 'bold', fontSize: '1.2rem' }}
+                    style={{ width: '100%', padding: '1.2rem', fontWeight: 'bold', fontSize: '1.2rem', minHeight: '48px' }}
                     disabled={!selectedPerformanceId || totalTickets === 0 || isSubmitting || (remainingSeats !== null && totalTickets > remainingSeats)}
                 >
                     予約する

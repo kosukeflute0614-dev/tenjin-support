@@ -95,7 +95,7 @@ export default function UserMenu() {
                 </button>
 
                 {isOpen && (
-                    <div style={{
+                    <div className="user-menu-dropdown" style={{
                         position: 'absolute',
                         top: '100%',
                         right: 0,

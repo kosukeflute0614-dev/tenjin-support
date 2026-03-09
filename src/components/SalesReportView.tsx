@@ -102,7 +102,8 @@ export default function SalesReportView({ productionId }: Props) {
                 <div style={{ padding: '1rem 1.5rem', background: '#f8fafc', fontWeight: 'bold', borderBottom: '1px solid var(--card-border)' }}>
                     券種別内訳
                 </div>
-                <div style={{ overflowX: 'auto' }}>
+                {/* Desktop table */}
+                <div className="desktop-only" style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
                             <tr style={{ borderBottom: '1px solid var(--card-border)', background: 'var(--card-bg)' }}>
@@ -122,6 +123,28 @@ export default function SalesReportView({ productionId }: Props) {
                         </tbody>
                     </table>
                 </div>
+                {/* Mobile cards */}
+                <div className="mobile-only">
+                    <div className="mobile-card-list">
+                        {Object.values(report.ticketTypeBreakdown).map((tt, idx) => (
+                            <div key={idx} className="mobile-card-item">
+                                <div className="mobile-card-header">
+                                    <div className="mobile-card-title">{tt.name}</div>
+                                </div>
+                                <div className="mobile-card-body" style={{ marginBottom: 0 }}>
+                                    <div className="mobile-card-row">
+                                        <span className="mobile-card-row-label">枚数</span>
+                                        <span className="mobile-card-row-value">{tt.count} 枚</span>
+                                    </div>
+                                    <div className="mobile-card-row">
+                                        <span className="mobile-card-row-label">金額</span>
+                                        <span className="mobile-card-row-value" style={{ color: 'var(--success)' }}>{formatCurrency(tt.revenue)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
 
             {/* 公演回別集計 */}
@@ -129,7 +152,8 @@ export default function SalesReportView({ productionId }: Props) {
                 <div style={{ padding: '1rem 1.5rem', background: '#f8fafc', fontWeight: 'bold', borderBottom: '1px solid var(--card-border)' }}>
                     公演回別集計
                 </div>
-                <div style={{ overflowX: 'auto' }}>
+                {/* Desktop table */}
+                <div className="desktop-only" style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
                             <tr style={{ borderBottom: '1px solid var(--card-border)', background: 'var(--card-bg)' }}>
@@ -150,6 +174,32 @@ export default function SalesReportView({ productionId }: Props) {
                             ))}
                         </tbody>
                     </table>
+                </div>
+                {/* Mobile cards */}
+                <div className="mobile-only">
+                    <div className="mobile-card-list">
+                        {report.performanceSummaries.map((perf) => (
+                            <div key={perf.id} className="mobile-card-item">
+                                <div className="mobile-card-header">
+                                    <div className="mobile-card-title" style={{ fontSize: '0.9rem' }}>{formatDateTime(perf.startTime)}</div>
+                                </div>
+                                <div className="mobile-card-body" style={{ marginBottom: 0 }}>
+                                    <div className="mobile-card-row">
+                                        <span className="mobile-card-row-label">予約枚数</span>
+                                        <span className="mobile-card-row-value">{perf.bookedCount} 枚</span>
+                                    </div>
+                                    <div className="mobile-card-row">
+                                        <span className="mobile-card-row-label">来場人数</span>
+                                        <span className="mobile-card-row-value">{perf.checkedInCount} 人</span>
+                                    </div>
+                                    <div className="mobile-card-row">
+                                        <span className="mobile-card-row-label">売上 (概算)</span>
+                                        <span className="mobile-card-row-value" style={{ color: 'var(--success)' }}>{formatCurrency(perf.revenue)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>

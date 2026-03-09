@@ -414,24 +414,241 @@ p a, li a, span a, td a {
   max-width: min(800px, calc(100vw - 2rem));
 }
 
-/* Responsive utilities */
-@media (max-width: 480px) {
-  .container { padding: 0 0.75rem; }
-  .heading-lg { font-size: 1.5rem; }
-  .heading-md { font-size: 1.2rem; }
-  .btn { padding: 0.6rem 1rem; font-size: 0.9rem; }
+/* ── Responsive Foundation ── */
+
+/* iOS zoom prevention - all inputs must be 16px+ */
+input, select, textarea {
+  font-size: 16px !important;
 }
 
+/* Desktop large (1280px+) */
+@media (min-width: 1280px) {
+  .container { max-width: 1400px; }
+}
+
+/* Tablet (768px) */
 @media (max-width: 768px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .heading-lg {
+    font-size: 1.5rem;
+  }
+
+  .heading-md {
+    font-size: 1.25rem;
+  }
+
   .menu-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 1rem;
   }
-  .menu-card { min-height: 150px; }
+
+  .menu-card {
+    min-height: 150px;
+  }
+
+  /* Header mobile adaptation */
+  .global-header {
+    padding: 0.5rem 0;
+    margin-bottom: 1rem;
+  }
+
+  .header-container {
+    gap: 0.5rem;
+  }
+
+  .logo {
+    font-size: 1.2rem !important;
+  }
+
+  .header-nav-production {
+    display: none;
+  }
+
+  .header-nav-divider {
+    display: none;
+  }
+
+  /* Footer mobile */
+  .global-footer {
+    margin-top: 3rem;
+    padding: 2rem 1rem 3rem;
+  }
+
+  /* Form inputs full width on tablet */
+  .input, .form-group input, .form-group select, .form-group textarea {
+    max-width: 100%;
+  }
+
+  /* Form group label+input stacking */
+  .form-group {
+    margin-bottom: 1rem;
+  }
 }
 
-@media (min-width: 1280px) {
-  .container { max-width: 1400px; }
+/* Smartphone (480px) */
+@media (max-width: 480px) {
+  .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .heading-lg {
+    font-size: 1.3rem;
+  }
+
+  .heading-md {
+    font-size: 1.1rem;
+  }
+
+  .card {
+    padding: 1rem;
+  }
+
+  .btn {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  /* Header smartphone */
+  .logo {
+    font-size: 1.1rem !important;
+  }
+
+  .global-header {
+    padding: 0.25rem 0;
+    margin-bottom: 0.75rem;
+  }
+
+  /* UserMenu dropdown: prevent viewport overflow */
+  .user-menu-dropdown {
+    right: -0.5rem !important;
+    max-width: calc(100vw - 1.5rem);
+  }
+
+  /* Footer smartphone */
+  .global-footer {
+    margin-top: 2rem;
+    padding: 1.5rem 0.75rem 2.5rem;
+  }
+
+  .footer-content {
+    font-size: 0.75rem;
+  }
+
+  /* Full-width buttons on smartphone */
+  .btn-primary, .btn-secondary {
+    min-height: 44px;
+  }
+}
+
+/* Desktop/Mobile toggle classes */
+.desktop-only {
+  display: block;
+}
+.mobile-only {
+  display: none;
+}
+
+/* Mobile card list styles */
+.mobile-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.mobile-card-item {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--border-radius);
+  padding: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.mobile-card-item.is-canceled {
+  opacity: 0.6;
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.mobile-card-item.is-checked-in {
+  background-color: #f0fff4;
+}
+
+.mobile-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.mobile-card-title {
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.mobile-card-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.mobile-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.mobile-card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.mobile-card-row-label {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.mobile-card-row-value {
+  font-weight: 600;
+}
+
+.mobile-card-footer {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--card-border);
+}
+
+.mobile-card-group-header {
+  font-weight: bold;
+  font-size: 0.85rem;
+  color: var(--primary);
+  padding: 0.5rem 0.25rem;
+  border-bottom: 1px solid var(--card-border);
+}
+
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+  .mobile-only {
+    display: block !important;
+  }
+
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 /* Dark mode — Warm theater-inspired palette */
@@ -606,6 +823,25 @@ p a, li a, span a, td a {
   /* Logo stays crimson */
   .logo {
     color: var(--primary);
+  }
+
+  /* Mobile card dark mode */
+  .mobile-card-item {
+    background-color: var(--card-bg);
+    border-color: var(--card-border);
+  }
+
+  .mobile-card-item.is-canceled {
+    background-color: rgba(255, 255, 255, 0.03);
+  }
+
+  .mobile-card-item.is-checked-in {
+    background-color: rgba(46, 125, 50, 0.1);
+  }
+
+  .mobile-card-group-header {
+    color: var(--primary);
+    border-bottom-color: var(--card-border);
   }
 }
 

@@ -254,9 +254,9 @@ export default function CashCloseForm({
                     {DENOMINATIONS.map((d) => (
                         <div key={d.value} style={{
                             display: 'grid',
-                            gridTemplateColumns: '90px 1fr 100px',
+                            gridTemplateColumns: 'minmax(70px, 90px) 1fr minmax(70px, 100px)',
                             alignItems: 'center',
-                            gap: '0.75rem',
+                            gap: '0.5rem',
                             padding: '0.25rem 0',
                         }}>
                             <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>{d.label}</span>

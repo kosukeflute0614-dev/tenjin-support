@@ -234,8 +234,8 @@ export default function CheckinPage({ params }: { params: any }) {
                     &larr; 公演回の選択に戻る
                 </Link>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1.5rem' }}>
-                    <div style={{ flex: '1', minWidth: '300px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ flex: '1 1 250px', minWidth: 0 }}>
                         <div style={{ marginBottom: '0.5rem' }}>
                             <span style={{ background: 'var(--secondary)', color: 'var(--primary)', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
                                 主催者
@@ -249,9 +249,9 @@ export default function CheckinPage({ params }: { params: any }) {
                         </h2>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                         {/* 進捗バー */}
-                        <div style={{ width: '180px', backgroundColor: 'var(--card-bg)', padding: '0.75rem', borderRadius: '12px', border: '1px solid var(--card-border)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                        <div style={{ width: '180px', minWidth: '140px', backgroundColor: 'var(--card-bg)', padding: '0.75rem', borderRadius: '12px', border: '1px solid var(--card-border)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.4rem' }}>
                                 <span>来場進捗</span>
                                 <span>{stats.checkedIn}/{stats.total}人</span>
@@ -286,7 +286,7 @@ export default function CheckinPage({ params }: { params: any }) {
             </header>
 
             {/* タブナビゲーション */}
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 {(['LIST', 'SAME_DAY', 'CASH_CLOSE'] as const).map((tab) => {
                     const labels = { LIST: '予約リスト', SAME_DAY: '当日券発行', CASH_CLOSE: 'レジ締め' };
                     return (
@@ -302,6 +302,7 @@ export default function CheckinPage({ params }: { params: any }) {
                                 cursor: 'pointer',
                                 background: activeTab === tab ? 'var(--primary)' : '#e2e8f0',
                                 color: activeTab === tab ? '#fff' : '#4a5568',
+                                whiteSpace: 'nowrap',
                             }}
                         >
                             {labels[tab]}
@@ -320,7 +321,7 @@ export default function CheckinPage({ params }: { params: any }) {
                     closedBy={user.uid}
                 />
             ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '2rem', alignItems: 'start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '1.5rem', alignItems: 'start' }}>
                 {/* 左カラム: メインコンテンツ */}
                 <div className="card" style={{ padding: '1.5rem', borderRadius: '16px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
                     {activeTab === 'LIST' && (

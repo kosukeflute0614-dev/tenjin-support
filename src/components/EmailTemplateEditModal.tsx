@@ -206,7 +206,7 @@ export default function EmailTemplateEditModal({
                             onInput={() => setIsDirty(true)}
                             onPaste={(e) => { e.preventDefault(); document.execCommand('insertText', false, e.clipboardData.getData('text/plain')); }}
                             style={{
-                                width: '100%', minHeight: '350px', padding: '0.75rem',
+                                width: '100%', minHeight: 'min(350px, 40vh)', padding: '0.75rem',
                                 border: '1px solid #ccc', borderRadius: '6px', fontSize: '0.9rem', lineHeight: '1.8',
                                 fontFamily: 'inherit', outline: 'none', overflowY: 'auto',
                                 whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: 'var(--card-bg)',
@@ -219,6 +219,7 @@ export default function EmailTemplateEditModal({
                 <div style={{
                     padding: '1rem 1.5rem', borderTop: '1px solid var(--card-border)',
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--secondary)',
+                    flexWrap: 'wrap', gap: '0.75rem',
                 }}>
                     <div>
                         {onReset && (
@@ -238,9 +239,9 @@ export default function EmailTemplateEditModal({
                             </button>
                         )}
                     </div>
-                    <div style={{ display: 'flex', gap: '0.75rem' }}>
-                        <button className="btn btn-secondary" onClick={onClose} style={{ padding: '0.6rem 1.5rem' }}>キャンセル</button>
-                        <button className="btn btn-primary" onClick={handleSave} style={{ padding: '0.6rem 1.5rem' }}>保存する</button>
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', flex: '1 1 auto', justifyContent: 'flex-end' }}>
+                        <button className="btn btn-secondary" onClick={onClose} style={{ padding: '0.6rem 1.5rem', flex: '1 1 auto', maxWidth: '200px' }}>キャンセル</button>
+                        <button className="btn btn-primary" onClick={handleSave} style={{ padding: '0.6rem 1.5rem', flex: '1 1 auto', maxWidth: '200px' }}>保存する</button>
                     </div>
                 </div>
 

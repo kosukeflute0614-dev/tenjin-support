@@ -45,7 +45,7 @@ export default function GlobalReservationSearch({ productionId }: { productionId
     }
 
     return (
-        <div className="card" style={{ position: 'absolute', top: '100%', right: 0, zIndex: 100, width: '400px', padding: '1rem', boxShadow: '0 10px 30px rgba(0,0,0,0.15)', marginTop: '0.5rem' }}>
+        <div className="card" style={{ position: 'absolute', top: '100%', right: 0, zIndex: 100, width: 'min(400px, calc(100vw - 2rem))', padding: '1rem', boxShadow: '0 10px 30px rgba(0,0,0,0.15)', marginTop: '0.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>全公演回 検索</span>
                 <button onClick={() => { setEnabled(false); setQuery(''); setResults([]); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>&times;</button>

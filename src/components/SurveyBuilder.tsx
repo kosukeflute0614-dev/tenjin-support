@@ -277,7 +277,7 @@ export default function SurveyBuilder({ questions, onChange }: Props) {
                                                         transition={{ duration: 0.18, ease: 'easeInOut' }}
                                                         style={{ overflow: 'hidden' }}
                                                     >
-                                                        <div style={{ padding: '0 1.25rem 1.25rem', borderTop: '1px solid #f0f0f0' }}>
+                                                        <div style={{ padding: '0 clamp(0.75rem, 2vw, 1.25rem) clamp(0.75rem, 2vw, 1.25rem)', borderTop: '1px solid #f0f0f0' }}>
                                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
                                                                 {!isNewsletter && (
                                                                     <>
@@ -532,14 +532,14 @@ function NewsletterBlockEditor({ question, onUpdate, previewYes, onTogglePreview
                 </motion.div>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <div style={{ flex: '1 1 140px' }}>
                     <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>名前欄のラベル</label>
                     <input type="text" className="input" value={sf.name.label}
                         onChange={e => onUpdate({ subFields: { ...sf, name: { ...sf.name, label: e.target.value } } })}
                         style={{ fontSize: '0.85rem' }} />
                 </div>
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: '1 1 140px' }}>
                     <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>メール欄のラベル</label>
                     <input type="text" className="input" value={sf.email.label}
                         onChange={e => onUpdate({ subFields: { ...sf, email: { ...sf.email, label: e.target.value } } })}

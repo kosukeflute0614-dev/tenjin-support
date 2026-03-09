@@ -1,0 +1,16 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/settings/layout,_N_T_/settings/troupe/layout,_N_T_/settings/troupe/page,_N_T_/settings/troupe"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/settings/troupe/__PAGE__",
+    "/settings/troupe",
+    "/settings",
+    "/_index",
+    "/_head"
+  ]
+}

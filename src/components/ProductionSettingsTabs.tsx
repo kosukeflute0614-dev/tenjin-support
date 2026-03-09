@@ -123,15 +123,18 @@ export default function ProductionSettingsTabs({
                 gap: '0.5rem',
                 marginBottom: '2rem',
                 borderBottom: '1px solid #e0e0e0',
-                paddingBottom: '2px'
+                paddingBottom: '2px',
+                overflowX: 'auto',
+                WebkitOverflowScrolling: 'touch',
             }}>
                 {tabs.map((tab) => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as TabType)}
                         style={{
-                            padding: '1rem 1.5rem',
-                            fontSize: '1rem',
+                            padding: '0.75rem 1rem',
+                            fontSize: '0.95rem',
+                            whiteSpace: 'nowrap',
                             fontWeight: activeTab === tab.id ? 'bold' : 'normal',
                             color: activeTab === tab.id ? 'var(--primary)' : '#666',
                             background: 'none',
@@ -167,7 +170,7 @@ export default function ProductionSettingsTabs({
                 )}
 
                 {activeTab === 'basic' && (
-                    <div className="card" style={{ padding: '2rem', border: 'none', boxShadow: 'var(--shadow-md)' }}>
+                    <div className="card" style={{ padding: 'clamp(1rem, 3vw, 2rem)', border: 'none', boxShadow: 'var(--shadow-md)' }}>
                         <h3 className="heading-md">公演基本情報</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1.5rem' }}>
                             <div className="form-group">
@@ -217,7 +220,7 @@ export default function ProductionSettingsTabs({
                                     onClick={handleSaveBasicInfo}
                                     disabled={isSavingBasic || !hasBasicChanges || !title.trim()}
                                     className="btn btn-primary"
-                                    style={{ padding: '0.6rem 2rem' }}
+                                    style={{ padding: '0.6rem 2rem', width: '100%', maxWidth: '300px' }}
                                 >
                                     {isSavingBasic ? '保存中...' : '基本情報を保存'}
                                 </button>
@@ -229,14 +232,14 @@ export default function ProductionSettingsTabs({
                             </div>
                             <div className="form-group" style={{ borderTop: '1px solid var(--card-border)', paddingTop: '1.5rem', marginTop: '0.5rem' }}>
                                 <label className="label">予約フォームのカスタムID (URLスラッグ)</label>
-                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                                     <input
                                         type="text"
                                         className="input"
                                         value={customId}
                                         onChange={(e) => setCustomId(e.target.value)}
                                         placeholder="例: winter-performance-2026"
-                                        style={{ flex: 1, marginBottom: 0 }}
+                                        style={{ flex: '1 1 200px', marginBottom: 0 }}
                                     />
                                     <button
                                         onClick={handleSaveCustomId}

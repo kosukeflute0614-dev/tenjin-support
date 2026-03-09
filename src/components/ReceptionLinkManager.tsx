@@ -483,18 +483,18 @@ export default function ReceptionLinkManager({
 
             {/* Status Hero Section */}
             <div className="card" style={{
-                padding: '2rem 2.5rem',
+                padding: 'clamp(1rem, 3vw, 2rem) clamp(1rem, 3vw, 2.5rem)',
                 borderLeft: `5px solid ${display.color}`,
                 marginBottom: '1.5rem',
                 background: display.bg,
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-                    <div>
+                    <div style={{ flex: '1 1 200px' }}>
                         <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>
                             現在の予約受付ステータス
                         </div>
                         <div style={{
-                            fontSize: '1.75rem', fontWeight: 'bold', color: display.color, lineHeight: 1.2,
+                            fontSize: 'clamp(1.25rem, 4vw, 1.75rem)', fontWeight: 'bold', color: display.color, lineHeight: 1.2,
                         }}>
                             {display.label}
                         </div>
@@ -776,12 +776,12 @@ export default function ReceptionLinkManager({
                         <button onClick={handleCopy} className={`btn ${copied ? 'btn-success' : 'btn-secondary'}`} style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', minWidth: '80px' }}>{copied ? 'コピー済' : 'コピー'}</button>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-                        <button onClick={handleOpen} className="btn btn-primary" style={{ flex: 1, padding: '1rem', fontWeight: 'bold' }}>予約フォームを開く ↗</button>
+                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                        <button onClick={handleOpen} className="btn btn-primary" style={{ flex: '1 1 200px', padding: '1rem', fontWeight: 'bold' }}>予約フォームを開く ↗</button>
                         <button
                             onClick={() => setShowQRCode(!showQRCode)}
                             className="btn btn-secondary"
-                            style={{ padding: '1rem', fontWeight: 'bold', minWidth: '140px' }}
+                            style={{ padding: '1rem', fontWeight: 'bold', flex: '1 1 140px' }}
                         >
                             {showQRCode ? 'QRコードを閉じる' : 'QRコードを表示'}
                         </button>
@@ -821,11 +821,11 @@ export default function ReceptionLinkManager({
                                 チラシやポスター等にご自由にお使いください。
                             </p>
 
-                            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                                <button onClick={downloadPNG} className="btn btn-primary" style={{ padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                                <button onClick={downloadPNG} className="btn btn-primary" style={{ padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flex: '1 1 180px', justifyContent: 'center' }}>
                                     <span>📥</span> PNG画像として保存
                                 </button>
-                                <button onClick={downloadSVG} className="btn btn-secondary" style={{ padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <button onClick={downloadSVG} className="btn btn-secondary" style={{ padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flex: '1 1 180px', justifyContent: 'center' }}>
                                     <span>📐</span> SVG形式として保存
                                 </button>
                             </div>

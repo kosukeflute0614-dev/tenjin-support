@@ -233,8 +233,8 @@ export default function SurveyHubPage({ params }: { params: Promise<{ id: string
                         <span>&larr;</span> 管理ハブに戻る
                     </button>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                    <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ flex: '1 1 200px' }}>
                         <h2 className="heading-lg" style={{ marginBottom: '0.3rem' }}>アンケート・ビルダー</h2>
                         <p className="text-muted" style={{ fontSize: '0.85rem' }}>{editingTemplate.title}</p>
                     </div>
@@ -307,9 +307,10 @@ export default function SurveyHubPage({ params }: { params: Promise<{ id: string
                 marginBottom: '1rem', padding: '0.75rem 1rem',
                 backgroundColor: 'var(--card-bg)', borderRadius: '10px',
                 border: '1px solid var(--card-border)',
+                flexWrap: 'wrap', gap: '0.5rem',
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{currentTemplate.title}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: '1 1 200px', minWidth: 0 }}>
+                    <span style={{ fontWeight: 'bold', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentTemplate.title}</span>
                     <span style={{
                         padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold',
                         backgroundColor: currentTemplate.status === 'active' ? '#dcfce7' : '#f3f4f6',
@@ -402,14 +403,14 @@ function BuilderTab({ template, onOpenBuilder, onOpenPrintEditor }: {
 }) {
     return (
         <div className="card" style={{ padding: '2rem', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div style={{ flex: '1 1 200px' }}>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>設問の管理</h3>
                     <p className="text-muted" style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>
                         設問数: {template.questions.length}
                     </p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <button className="btn btn-primary" onClick={onOpenBuilder} style={{ fontSize: '0.9rem' }}>
                         🛠️ ビルダーを開く
                     </button>

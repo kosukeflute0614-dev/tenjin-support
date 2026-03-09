@@ -1,0 +1,472 @@
+{
+  "node": {
+    "0026a4bdff0f494b0ac75d2816d9802a1eabb509e8": {
+      "workers": {
+        "app/_not-found/page": {
+          "moduleId": 19144,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/book/[productionId]/page": {
+          "moduleId": 63702,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/book/[productionId]/success/page": {
+          "moduleId": 90908,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/book/[productionId]/survey/page": {
+          "moduleId": 76396,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/contact/page": {
+          "moduleId": 43690,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/dashboard/page": {
+          "moduleId": 31615,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/faq/page": {
+          "moduleId": 66433,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/guide/page": {
+          "moduleId": 55731,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/onboarding/page": {
+          "moduleId": 38400,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/page": {
+          "moduleId": 32579,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/productions/[id]/attendance/page": {
+          "moduleId": 30799,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/productions/[id]/cashclose-report/page": {
+          "moduleId": 8173,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/productions/[id]/cashclose/[performanceId]/page": {
+          "moduleId": 10047,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/productions/[id]/checkin/[performanceId]/page": {
+          "moduleId": 10299,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/productions/[id]/email/page": {
+          "moduleId": 14775,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/productions/[id]/form-editor/page": {
+          "moduleId": 56949,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/productions/[id]/page": {
+          "moduleId": 2899,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/productions/[id]/reception/page": {
+          "moduleId": 9097,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/productions/[id]/report/page": {
+          "moduleId": 15922,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/productions/[id]/staff/page": {
+          "moduleId": 8336,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/productions/[id]/survey/page": {
+          "moduleId": 86295,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/productions/new/page": {
+          "moduleId": 2181,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/productions/page": {
+          "moduleId": 52278,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/reception/page": {
+          "moduleId": 82525,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/reservations/new/page": {
+          "moduleId": 99999,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/reservations/page": {
+          "moduleId": 93360,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/settings/troupe/page": {
+          "moduleId": 57817,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/staff/[id]/page": {
+          "moduleId": 32732,
+          "async": false,
+          "exportedName": "getActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        }
+      },
+      "layer": {
+        "app/_not-found/page": "action-browser",
+        "app/book/[productionId]/page": "action-browser",
+        "app/book/[productionId]/success/page": "action-browser",
+        "app/book/[productionId]/survey/page": "action-browser",
+        "app/contact/page": "action-browser",
+        "app/dashboard/page": "action-browser",
+        "app/faq/page": "action-browser",
+        "app/guide/page": "action-browser",
+        "app/onboarding/page": "action-browser",
+        "app/page": "action-browser",
+        "app/productions/[id]/attendance/page": "action-browser",
+        "app/productions/[id]/cashclose-report/page": "action-browser",
+        "app/productions/[id]/cashclose/[performanceId]/page": "action-browser",
+        "app/productions/[id]/checkin/[performanceId]/page": "action-browser",
+        "app/productions/[id]/email/page": "action-browser",
+        "app/productions/[id]/form-editor/page": "action-browser",
+        "app/productions/[id]/page": "action-browser",
+        "app/productions/[id]/reception/page": "action-browser",
+        "app/productions/[id]/report/page": "action-browser",
+        "app/productions/[id]/staff/page": "action-browser",
+        "app/productions/[id]/survey/page": "action-browser",
+        "app/productions/new/page": "action-browser",
+        "app/productions/page": "action-browser",
+        "app/reception/page": "action-browser",
+        "app/reservations/new/page": "action-browser",
+        "app/reservations/page": "action-browser",
+        "app/settings/troupe/page": "action-browser",
+        "app/staff/[id]/page": "action-browser"
+      },
+      "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts",
+      "exportedName": "getActiveProductionId"
+    },
+    "40855abf7273274f914d696c549961fa823aac822a": {
+      "workers": {
+        "app/book/[productionId]/page": {
+          "moduleId": 63702,
+          "async": false,
+          "exportedName": "hashPasscodeSecure",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts"
+        },
+        "app/dashboard/page": {
+          "moduleId": 31615,
+          "async": false,
+          "exportedName": "hashPasscodeSecure",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts"
+        },
+        "app/productions/[id]/attendance/page": {
+          "moduleId": 30799,
+          "async": false,
+          "exportedName": "hashPasscodeSecure",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts"
+        },
+        "app/productions/[id]/checkin/[performanceId]/page": {
+          "moduleId": 10299,
+          "async": false,
+          "exportedName": "hashPasscodeSecure",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts"
+        },
+        "app/productions/[id]/form-editor/page": {
+          "moduleId": 56949,
+          "async": false,
+          "exportedName": "hashPasscodeSecure",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts"
+        },
+        "app/productions/[id]/page": {
+          "moduleId": 2899,
+          "async": false,
+          "exportedName": "hashPasscodeSecure",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts"
+        },
+        "app/productions/[id]/reception/page": {
+          "moduleId": 9097,
+          "async": false,
+          "exportedName": "hashPasscodeSecure",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts"
+        },
+        "app/productions/[id]/report/page": {
+          "moduleId": 15922,
+          "async": false,
+          "exportedName": "hashPasscodeSecure",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts"
+        },
+        "app/productions/[id]/staff/page": {
+          "moduleId": 8336,
+          "async": false,
+          "exportedName": "hashPasscodeSecure",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts"
+        },
+        "app/productions/[id]/survey/page": {
+          "moduleId": 86295,
+          "async": false,
+          "exportedName": "hashPasscodeSecure",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts"
+        },
+        "app/productions/new/page": {
+          "moduleId": 2181,
+          "async": false,
+          "exportedName": "hashPasscodeSecure",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts"
+        },
+        "app/productions/page": {
+          "moduleId": 52278,
+          "async": false,
+          "exportedName": "hashPasscodeSecure",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts"
+        },
+        "app/reception/page": {
+          "moduleId": 82525,
+          "async": false,
+          "exportedName": "hashPasscodeSecure",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts"
+        },
+        "app/reservations/new/page": {
+          "moduleId": 99999,
+          "async": false,
+          "exportedName": "hashPasscodeSecure",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts"
+        },
+        "app/reservations/page": {
+          "moduleId": 93360,
+          "async": false,
+          "exportedName": "hashPasscodeSecure",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts"
+        },
+        "app/staff/[id]/page": {
+          "moduleId": 32732,
+          "async": false,
+          "exportedName": "hashPasscodeSecure",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts"
+        }
+      },
+      "layer": {
+        "app/book/[productionId]/page": "action-browser",
+        "app/dashboard/page": "action-browser",
+        "app/productions/[id]/attendance/page": "action-browser",
+        "app/productions/[id]/checkin/[performanceId]/page": "action-browser",
+        "app/productions/[id]/form-editor/page": "action-browser",
+        "app/productions/[id]/page": "action-browser",
+        "app/productions/[id]/reception/page": "action-browser",
+        "app/productions/[id]/report/page": "action-browser",
+        "app/productions/[id]/staff/page": "action-browser",
+        "app/productions/[id]/survey/page": "action-browser",
+        "app/productions/new/page": "action-browser",
+        "app/productions/page": "action-browser",
+        "app/reception/page": "action-browser",
+        "app/reservations/new/page": "action-browser",
+        "app/reservations/page": "action-browser",
+        "app/staff/[id]/page": "action-browser"
+      },
+      "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts",
+      "exportedName": "hashPasscodeSecure"
+    },
+    "401e699cd848f30bee6107bf4f1b625ed57b23dc88": {
+      "workers": {
+        "app/book/[productionId]/page": {
+          "moduleId": 63702,
+          "async": false,
+          "exportedName": "createReservation",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/reservation.ts"
+        }
+      },
+      "layer": {
+        "app/book/[productionId]/page": "action-browser"
+      },
+      "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/reservation.ts",
+      "exportedName": "createReservation"
+    },
+    "60b1ba1b9be4c6a0278ca728eb1d3376e08ae6e383": {
+      "workers": {
+        "app/dashboard/page": {
+          "moduleId": 31615,
+          "async": false,
+          "exportedName": "cancelReservation",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/reservation.ts"
+        }
+      },
+      "layer": {
+        "app/dashboard/page": "action-browser"
+      },
+      "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/reservation.ts",
+      "exportedName": "cancelReservation"
+    },
+    "401ab0ff4637b785d088f8c541111016c90180b6c9": {
+      "workers": {
+        "app/productions/new/page": {
+          "moduleId": 2181,
+          "async": false,
+          "exportedName": "switchProduction",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        },
+        "app/productions/page": {
+          "moduleId": 52278,
+          "async": false,
+          "exportedName": "switchProduction",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        }
+      },
+      "layer": {
+        "app/productions/new/page": "action-browser",
+        "app/productions/page": "action-browser"
+      },
+      "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts",
+      "exportedName": "switchProduction"
+    },
+    "404e713d0435088c029fcee095ca2b4cc84f1b2688": {
+      "workers": {
+        "app/productions/new/page": {
+          "moduleId": 2181,
+          "async": false,
+          "exportedName": "setActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        }
+      },
+      "layer": {
+        "app/productions/new/page": "action-browser"
+      },
+      "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts",
+      "exportedName": "setActiveProductionId"
+    },
+    "0029ea5552af60f30633168e6f02857f1bb9e813ec": {
+      "workers": {
+        "app/productions/new/page": {
+          "moduleId": 2181,
+          "async": false,
+          "exportedName": "clearActiveProductionId",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts"
+        }
+      },
+      "layer": {
+        "app/productions/new/page": "action-browser"
+      },
+      "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/production-context.ts",
+      "exportedName": "clearActiveProductionId"
+    },
+    "600bf0f6c40d2fe933ad13fe803f3427d3511dcacb": {
+      "workers": {
+        "app/reservations/page": {
+          "moduleId": 93360,
+          "async": false,
+          "exportedName": "getBookingOptions",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/reservation.ts"
+        }
+      },
+      "layer": {
+        "app/reservations/page": "action-browser"
+      },
+      "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/reservation.ts",
+      "exportedName": "getBookingOptions"
+    },
+    "78a283e32acfa5d4b106dcdd988be0d7776a8b2aca": {
+      "workers": {
+        "app/staff/[id]/page": {
+          "moduleId": 32732,
+          "async": false,
+          "exportedName": "verifyStaffPasscode",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts"
+        }
+      },
+      "layer": {
+        "app/staff/[id]/page": "action-browser"
+      },
+      "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts",
+      "exportedName": "verifyStaffPasscode"
+    },
+    "70e9a73bf8151297c1fd79b93378b058a641b10083": {
+      "workers": {
+        "app/staff/[id]/page": {
+          "moduleId": 32732,
+          "async": false,
+          "exportedName": "checkStaffSession",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts"
+        }
+      },
+      "layer": {
+        "app/staff/[id]/page": "action-browser"
+      },
+      "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts",
+      "exportedName": "checkStaffSession"
+    },
+    "6048180ce5f7173d3ba1ac177716359f88dc743bbb": {
+      "workers": {
+        "app/staff/[id]/page": {
+          "moduleId": 32732,
+          "async": false,
+          "exportedName": "validateStaffToken",
+          "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts"
+        }
+      },
+      "layer": {
+        "app/staff/[id]/page": "action-browser"
+      },
+      "filename": ".claude/worktrees/agent-a3a3fc77/src/app/actions/staff-auth.ts",
+      "exportedName": "validateStaffToken"
+    }
+  },
+  "edge": {},
+  "encryptionKey": "1I1MlQ3rboV2flrnUR28aSzwQh5uVjSPTF9itXvsb+M="
+}

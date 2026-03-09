@@ -212,7 +212,7 @@ export default function OnboardingPage() {
 
             {/* ステップコンテンツ */}
             <div className="card" style={{
-                padding: '2rem', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                padding: 'clamp(1rem, 3vw, 2rem)', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
                 minHeight: '250px',
             }}>
                 {/* Step 1: 劇団名 */}
@@ -353,9 +353,9 @@ export default function OnboardingPage() {
             {/* ナビゲーションボタン */}
             <div style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                marginTop: '1.5rem', gap: '1rem',
+                marginTop: '1.5rem', gap: '1rem', flexWrap: 'wrap',
             }}>
-                <div>
+                <div style={{ flex: '1 1 auto' }}>
                     {step > 1 && (
                         <button
                             onClick={handleBack}
@@ -364,6 +364,7 @@ export default function OnboardingPage() {
                             style={{
                                 display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
                                 padding: '0.7rem 1.5rem', borderRadius: '8px', fontSize: '0.95rem',
+                                width: '100%', justifyContent: 'center',
                             }}
                         >
                             <ArrowLeft size={16} /> 戻る
@@ -371,7 +372,7 @@ export default function OnboardingPage() {
                     )}
                 </div>
 
-                <div>
+                <div style={{ flex: '1 1 auto' }}>
                     {step < TOTAL_STEPS ? (
                         <button
                             onClick={handleNext}
@@ -380,6 +381,7 @@ export default function OnboardingPage() {
                             style={{
                                 display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
                                 padding: '0.7rem 2rem', borderRadius: '8px', fontSize: '0.95rem',
+                                width: '100%', justifyContent: 'center',
                             }}
                         >
                             次へ <ArrowRight size={16} />
@@ -392,6 +394,7 @@ export default function OnboardingPage() {
                             style={{
                                 display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
                                 padding: '0.7rem 2rem', borderRadius: '8px', fontSize: '0.95rem',
+                                width: '100%', justifyContent: 'center',
                             }}
                         >
                             {isSaving ? 'セットアップ中...' : 'はじめる'} {!isSaving && <Check size={16} />}
