@@ -190,6 +190,7 @@ export interface CashClosing {
     expectedSales: number;
     actualSales: number;
     discrepancy: number;
+    inventoryCheck?: InventoryCheckItem[] | null;
     remarks?: string | null;
     createdAt?: FirestoreTimestamp;
     updatedAt?: FirestoreTimestamp;
@@ -373,4 +374,7 @@ export interface InventoryCheckItem {
     expectedRemaining: number;
     actualRemaining: number;
     discrepancy: number;
+    baseStock: number;                          // 基準在庫（前回実数 or 初期在庫）
+    baseSource: 'INITIAL' | 'PREVIOUS_CHECK';   // 基準の出所
+    soldSinceBase: number;                      // 基準以降の販売数
 }

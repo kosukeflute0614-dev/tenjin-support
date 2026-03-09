@@ -27,6 +27,8 @@ import { Production, Performance, FirestoreReservation, MerchandiseProduct } fro
 import { useAuth } from '@/components/AuthProvider';
 import { serializeDoc, serializeDocs } from '@/lib/firestore-utils';
 import { ensureInvitationTicket } from '@/lib/client-firestore';
+import { getPerformancePaidTotalClient } from '@/lib/client-firestore/cash-close';
+import { getMerchandiseSalesTotalClient } from '@/lib/client-firestore/merchandise-sales';
 
 export default function CheckinPage({ params }: { params: any }) {
     const { user, loading } = useAuth();
@@ -42,6 +44,8 @@ export default function CheckinPage({ params }: { params: any }) {
     const [showCheckedIn, setShowCheckedIn] = useState(false);
     const [activeTab, setActiveTab] = useState<'LIST' | 'SAME_DAY' | 'MERCHANDISE' | 'CASH_CLOSE'>('LIST');
     const [merchProducts, setMerchProducts] = useState<MerchandiseProduct[]>([]);
+    const [ticketSalesTotal, setTicketSalesTotal] = useState<number>(0);
+    const [merchSalesTotal, setMerchSalesTotal] = useState<number>(0);
 
     useEffect(() => {
         let unsubscribeReservations: () => void;
@@ -164,6 +168,22 @@ export default function CheckinPage({ params }: { params: any }) {
                             setMerchProducts(serializeDocs<MerchandiseProduct>(snap.docs));
                         });
                     }
+
+                    // Load sales totals for cash close
+                    const loadSalesTotals = async () => {
+                        try {
+                            const ticketTotal = await getPerformancePaidTotalClient(performanceId, user.uid);
+                            setTicketSalesTotal(ticketTotal);
+
+                            if (production.merchandiseMode === 'SIMPLE') {
+                                const merchTotal = await getMerchandiseSalesTotalClient(performanceId, productionId, user.uid);
+                                setMerchSalesTotal(merchTotal);
+                            }
+                        } catch (err) {
+                            console.error('Failed to load sales totals:', err);
+                        }
+                    };
+                    loadSalesTotals();
 
                 } catch (err) {
                     console.error("Fetch error:", err);
@@ -318,6 +338,13 @@ export default function CheckinPage({ params }: { params: any }) {
                     userId={user.uid}
                     closedByType="ORGANIZER"
                     closedBy={user.uid}
+                    {...(showMerchTab ? {
+                        expectedSalesOverride: ticketSalesTotal + merchSalesTotal,
+                        ticketSales: ticketSalesTotal,
+                        merchandiseSales: merchSalesTotal,
+                        inventoryEnabled: production.merchandiseInventoryEnabled || false,
+                        merchProducts: merchProducts,
+                    } : {})}
                 />
             ) : activeTab === 'MERCHANDISE' ? (
                 <MerchandiseSalesForm
@@ -328,7 +355,6 @@ export default function CheckinPage({ params }: { params: any }) {
                     sets={production.merchandiseSets || []}
                     soldBy={user.uid}
                     soldByType="ORGANIZER"
-                    inventoryEnabled={production.merchandiseInventoryEnabled || false}
                 />
             ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '1.5rem', alignItems: 'start' }}>

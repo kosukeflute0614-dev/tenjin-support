@@ -160,6 +160,7 @@ export default function DashboardPage() {
             items: [
                 { href: prodHref('/report'), icon: <ClipboardList size={32} color="var(--primary)" />, title: 'レポート', desc: '売上・券種別の詳細集計' },
                 { href: prodHref('/cashclose-report'), icon: <Wallet size={32} color="var(--primary)" />, title: 'レジ締めレポート', desc: '各公演回の精算結果を確認' },
+                { href: prodHref('/merchandise/report'), icon: <ShoppingBag size={32} color="var(--primary)" />, title: '物販レポート', desc: '商品別売上・在庫照合' },
                 { href: prodHref('/survey'), icon: <FileEdit size={32} color="var(--primary)" />, title: 'アンケート管理', desc: 'アンケートの作成・集計・分析' },
             ]
         }

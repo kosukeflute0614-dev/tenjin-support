@@ -19,7 +19,7 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
     const [production, setProduction] = useState<Production | null>(null);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [newRole, setNewRole] = useState<'reception' | 'monitor'>('reception');
+    const [newRole, setNewRole] = useState<'reception' | 'merchandise' | 'monitor'>('reception');
     const [baseUrl, setBaseUrl] = useState('');
 
     useEffect(() => {
@@ -160,10 +160,11 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
                             disabled={isProcessing}
                         >
                             <option value="reception">受付スタッフ（reception）</option>
+                            <option value="merchandise">物販スタッフ（merchandise）</option>
                             <option value="monitor">来場状況確認・モニター（monitor）</option>
                         </select>
                         <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                            {newRole === 'reception' ? '※来場チェックインと当日券発行が可能です。' : '※来場状況の確認のみ可能です（読み取り専用）。'}
+                            {newRole === 'reception' ? '※来場チェックインと当日券発行が可能です。' : newRole === 'merchandise' ? '※物販販売とレジ締めが可能です。' : '※来場状況の確認のみ可能です（読み取り専用）。'}
                         </p>
                     </div>
                     <button
@@ -197,8 +198,8 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
                                                 fontWeight: 'bold',
                                                 padding: '2px 8px',
                                                 borderRadius: '4px',
-                                                backgroundColor: role === 'monitor' ? '#f3e8ff' : '#f5f5f5',
-                                                color: role === 'monitor' ? '#7c3aed' : '#616161'
+                                                backgroundColor: role === 'monitor' ? '#f3e8ff' : role === 'merchandise' ? '#fef3c7' : '#f5f5f5',
+                                                color: role === 'monitor' ? '#7c3aed' : role === 'merchandise' ? '#92400e' : '#616161'
                                             }}>
                                                 {role.toUpperCase()}
                                             </span>

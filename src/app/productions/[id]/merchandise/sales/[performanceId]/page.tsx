@@ -9,6 +9,10 @@ import { useAuth } from '@/components/AuthProvider';
 import { serializeDoc, serializeDocs } from '@/lib/firestore-utils';
 import { toDate } from '@/lib/firestore-utils';
 import MerchandiseSalesForm from '@/components/MerchandiseSalesForm';
+import CashCloseForm from '@/components/CashCloseForm';
+import BottomNav from '@/components/BottomNav';
+import { ShoppingBag, Calculator } from 'lucide-react';
+import { getMerchandiseSalesTotalClient } from '@/lib/client-firestore/merchandise-sales';
 import type { Production, Performance, MerchandiseProduct } from '@/types';
 
 export default function MerchandiseSalesPerformancePage({ params }: { params: any }) {
@@ -18,6 +22,8 @@ export default function MerchandiseSalesPerformancePage({ params }: { params: an
     const [performance, setPerformance] = useState<Performance | null>(null);
     const [products, setProducts] = useState<MerchandiseProduct[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<'SALES' | 'CASH_CLOSE'>('SALES');
+    const [merchSalesTotal, setMerchSalesTotal] = useState<number>(0);
 
     useEffect(() => {
         let unsubProducts: (() => void) | undefined;
@@ -53,6 +59,14 @@ export default function MerchandiseSalesPerformancePage({ params }: { params: an
                     setProducts(serializeDocs<MerchandiseProduct>(snap.docs));
                 });
 
+                // Load merchandise sales total for cash close
+                try {
+                    const merchTotal = await getMerchandiseSalesTotalClient(performanceId, productionId, user.uid);
+                    setMerchSalesTotal(merchTotal);
+                } catch (err) {
+                    console.error('Failed to load merch sales total:', err);
+                }
+
                 setIsLoading(false);
             } catch (err) {
                 console.error(err);
@@ -80,37 +94,55 @@ export default function MerchandiseSalesPerformancePage({ params }: { params: an
     const timeStr = startDate ? startDate.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '';
 
     return (
-        <div className="container" style={{ maxWidth: '1200px', paddingBottom: '2rem' }}>
+        <div className="container" style={{
+            maxWidth: activeTab === 'SALES' ? '1200px' : '1000px',
+            paddingBottom: 'calc(64px + env(safe-area-inset-bottom) + 1rem)',
+        }}>
             <header style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
                 marginBottom: '1.5rem',
                 paddingBottom: '1rem',
                 borderBottom: '1px solid var(--card-border)',
-                flexWrap: 'wrap',
-                gap: '0.5rem',
             }}>
-                <div>
-                    <Link href={`/productions/${production.id}/merchandise/sales`} style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                        &larr; 公演回の選択に戻る
-                    </Link>
-                    <h1 style={{ fontSize: '1.25rem', fontWeight: '700', margin: '0.25rem 0 0' }}>
-                        物販販売 - {dateStr} {timeStr}
-                    </h1>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>{production.title}</p>
-                </div>
+                <Link href={`/productions/${production.id}/merchandise/sales`} className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '8px', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                    <span>&larr;</span> 公演回の選択に戻る
+                </Link>
+                <h1 style={{ fontSize: '1.25rem', fontWeight: '700', margin: '0.25rem 0 0' }}>
+                    物販販売 - {dateStr} {timeStr}
+                </h1>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>{production.title}</p>
             </header>
 
-            <MerchandiseSalesForm
-                productionId={production.id}
-                performanceId={performance.id}
-                userId={user.uid}
-                products={products}
-                sets={production.merchandiseSets || []}
-                soldBy={user.uid}
-                soldByType="ORGANIZER"
-                inventoryEnabled={production.merchandiseInventoryEnabled || false}
+            {activeTab === 'CASH_CLOSE' ? (
+                <CashCloseForm
+                    productionId={production.id}
+                    performanceId={performance.id}
+                    userId={user.uid}
+                    closedByType="ORGANIZER"
+                    closedBy={user.uid}
+                    expectedSalesOverride={merchSalesTotal}
+                    merchandiseSales={merchSalesTotal}
+                    inventoryEnabled={production.merchandiseInventoryEnabled || false}
+                    merchProducts={products}
+                />
+            ) : (
+                <MerchandiseSalesForm
+                    productionId={production.id}
+                    performanceId={performance.id}
+                    userId={user.uid}
+                    products={products}
+                    sets={production.merchandiseSets || []}
+                    soldBy={user.uid}
+                    soldByType="ORGANIZER"
+                />
+            )}
+
+            <BottomNav
+                items={[
+                    { id: 'SALES', label: '販売', icon: <ShoppingBag size={22} /> },
+                    { id: 'CASH_CLOSE', label: '精算', icon: <Calculator size={22} /> },
+                ]}
+                activeId={activeTab}
+                onSelect={(id) => setActiveTab(id as typeof activeTab)}
             />
         </div>
     );

@@ -2,18 +2,23 @@
 
 import { useState, useEffect, use } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot, doc, getDoc, getDocs, setDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, doc, getDoc, getDocs, setDoc, serverTimestamp } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
-import { Production, FirestoreReservation } from '@/types';
+import { Production, FirestoreReservation, MerchandiseProduct } from '@/types';
 import { serializeDoc, serializeDocs, toDate } from '@/lib/firestore-utils';
 import { verifyStaffPasscode, checkStaffSession, validateStaffToken } from '@/app/actions/staff-auth';
 import { updateReservationByStaffToken, createSameDayTicketStaffClient, fetchProductionDetailsClient } from '@/lib/client-firestore';
+import { getMerchandiseSalesTotalClient } from '@/lib/client-firestore/merchandise-sales';
 import { useSearchParams } from 'next/navigation';
 import { useToast } from '@/components/Toast';
 import CheckinList from '@/components/CheckinList';
 import SameDayTicketForm from '@/components/SameDayTicketForm';
 import AttendanceStatus from '@/components/AttendanceStatus';
 import CashCloseForm from '@/components/CashCloseForm';
+import MerchandiseSalesForm from '@/components/MerchandiseSalesForm';
+import BottomNav from '@/components/BottomNav';
+import { ShoppingBag, Calculator, ClipboardList, Ticket } from 'lucide-react';
+import { getPerformancePaidTotalClient } from '@/lib/client-firestore/cash-close';
 
 export default function StaffPortalPage({ params }: { params: Promise<{ id: string }> }) {
     const { id: productionId } = use(params);
@@ -33,7 +38,11 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
     const [showCheckedIn, setShowCheckedIn] = useState(false);
     const [role, setRole] = useState<string | null>(null);
     const [selectedPerformanceId, setSelectedPerformanceId] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'LIST' | 'SAME_DAY' | 'CASH_CLOSE'>('LIST');
+    const [activeTab, setActiveTab] = useState<'LIST' | 'SAME_DAY' | 'MERCHANDISE' | 'CASH_CLOSE'>('LIST');
+    const [ticketSalesTotal, setTicketSalesTotal] = useState<number>(0);
+    const [merchActiveTab, setMerchActiveTab] = useState<'SALES' | 'CASH_CLOSE'>('SALES');
+    const [merchProducts, setMerchProducts] = useState<MerchandiseProduct[]>([]);
+    const [merchSalesTotal, setMerchSalesTotal] = useState<number>(0);
 
     // Firestore 側のセッション同期用
     const syncStaffSessionToFirestore = async (uid: string, passcodeHashed: string) => {
@@ -166,12 +175,38 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
     // 公演が1つだけの場合は自動選択、または初期選択を補助
     useEffect(() => {
         if (isAuthenticated && production?.performances && production.performances.length > 0 && !selectedPerformanceId) {
-            // 最も近い公演（または最初の公演）を自動選択するロジックを入れても良いが、
-            // ユーザーに選ばせる方が安全なのでここでは何もしないか、
-            // 最初の1件をデフォルトにする
-            // setSelectedPerformanceId(production.performances[0].id);
         }
     }, [isAuthenticated, production, selectedPerformanceId]);
+
+    // 物販データ読み込み（merchandiseロール or receptionロール+SIMPLEモード）
+    const needsMerch = role === 'merchandise' || (role === 'reception' && production?.merchandiseMode === 'SIMPLE');
+    useEffect(() => {
+        if (!isAuthenticated || !needsMerch || !selectedPerformanceId) return;
+
+        const currentProdId = resolvedProductionId || productionId;
+        const merchQuery = query(
+            collection(db, 'merchandiseProducts'),
+            where('productionId', '==', currentProdId),
+            orderBy('sortOrder')
+        );
+        const unsubMerch = onSnapshot(merchQuery, (snap) => {
+            setMerchProducts(serializeDocs<MerchandiseProduct>(snap.docs));
+        });
+
+        // 売上合計
+        getMerchandiseSalesTotalClient(selectedPerformanceId, currentProdId, production?.userId || '')
+            .then(total => setMerchSalesTotal(total))
+            .catch(err => console.error('Failed to load merch sales total:', err));
+
+        // 受付スタッフ: チケット売上合計も読み込む（精算画面で必要）
+        if (role === 'reception') {
+            getPerformancePaidTotalClient(selectedPerformanceId, production?.userId || '')
+                .then(total => setTicketSalesTotal(total))
+                .catch(err => console.error('Failed to load ticket sales total:', err));
+        }
+
+        return () => unsubMerch();
+    }, [isAuthenticated, needsMerch, role, selectedPerformanceId, resolvedProductionId, productionId, production?.userId]);
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -295,7 +330,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                         <div>
                             <h1 style={{ fontSize: '1rem', fontWeight: 'bold', margin: 0 }}>{production?.title}</h1>
                             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
-                                スタッフ用ポータル ({role === 'monitor' ? 'モニター' : '受付'})
+                                スタッフ用ポータル ({role === 'monitor' ? 'モニター' : role === 'merchandise' ? '物販' : '受付'})
                             </p>
                         </div>
                     </div>
@@ -303,7 +338,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
 
                 <main className="container" style={{ maxWidth: '600px', marginTop: '2rem' }}>
                     <div className="card" style={{ padding: '1.5rem' }}>
-                        <h2 className="heading-md" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>{role === 'monitor' ? '確認する公演を選択してください' : '受付する公演を選択してください'}</h2>
+                        <h2 className="heading-md" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>{role === 'monitor' ? '確認する公演を選択してください' : role === 'merchandise' ? '物販を行う公演を選択してください' : '受付する公演を選択してください'}</h2>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             {sortedPerformances.map(perf => {
                                 const d = perf.startTime ? toDate(perf.startTime) : new Date();
@@ -403,229 +438,132 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
         );
     }
 
-    // 受付ロール: 既存の受付UI
-    return (
-        <div style={{ backgroundColor: '#f4f7f6', minHeight: '100vh', paddingBottom: '4rem' }}>
-            <header style={{ backgroundColor: 'var(--card-bg)', padding: '1rem 0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', position: 'sticky', top: 0, zIndex: 100, borderBottom: '1px solid var(--card-border)' }}>
-                <div className="container" style={{ maxWidth: '1200px' }}>
-                    <div style={{ marginBottom: '1rem' }}>
-                        <button
-                            onClick={() => setSelectedPerformanceId(null)}
-                            className="btn btn-secondary"
-                            style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', borderRadius: '8px' }}
-                        >
-                            &larr; 公演回の選択に戻る
-                        </button>
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1.5rem' }}>
-                        <div style={{ flex: '1', minWidth: '300px' }}>
-                            <div style={{ marginBottom: '0.5rem' }}>
-                                <span style={{ background: '#eef2f1', color: 'var(--slate-600)', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                                    受付スタッフ
-                                </span>
-                            </div>
-                            <div style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
-                                公演：{production?.title}
-                            </div>
-                            <h1 style={{ fontSize: '1.8rem', fontWeight: '900', margin: 0, color: 'var(--primary)', lineHeight: '1.2' }}>
-                                {perfDateStr} {perfTimeStr}
-                            </h1>
+    // 物販ロール: 物販スタッフUI
+    if (role === 'merchandise') {
+        return (
+            <div style={{ backgroundColor: '#f4f7f6', minHeight: '100vh', paddingBottom: '5rem' }}>
+                <header style={{ backgroundColor: 'var(--card-bg)', padding: '1rem 0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', position: 'sticky', top: 0, zIndex: 100, borderBottom: '1px solid var(--card-border)' }}>
+                    <div className="container" style={{ maxWidth: '1000px' }}>
+                        <div style={{ marginBottom: '1rem' }}>
+                            <button
+                                onClick={() => setSelectedPerformanceId(null)}
+                                className="btn btn-secondary"
+                                style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', borderRadius: '8px' }}
+                            >
+                                &larr; 公演回の選択に戻る
+                            </button>
                         </div>
-
-                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                            {/* 進捗バー */}
-                            <div style={{ width: '180px', backgroundColor: 'var(--card-bg)', padding: '0.75rem', borderRadius: '12px', border: '1px solid var(--card-border)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.4rem' }}>
-                                    <span>来場進捗</span>
-                                    <span>{stats.checkedIn}/{stats.total}人</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                            <div>
+                                <div style={{ marginBottom: '0.5rem' }}>
+                                    <span style={{ background: '#fef3c7', color: '#92400e', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                        🛍️ 物販スタッフ
+                                    </span>
                                 </div>
-                                <div
-                                    role="progressbar"
-                                    aria-valuenow={stats.checkedIn}
-                                    aria-valuemin={0}
-                                    aria-valuemax={stats.total || 1}
-                                    aria-label={`来場進捗 ${stats.checkedIn}/${stats.total}人`}
-                                    style={{ width: '100%', height: '8px', backgroundColor: '#edf2f7', borderRadius: '4px', overflow: 'hidden' }}
-                                >
-                                    <div style={{
-                                        width: `${Math.min(100, (stats.checkedIn / (stats.total || 1)) * 100)}%`,
-                                        height: '100%',
-                                        backgroundColor: 'var(--primary)',
-                                        transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
-                                    }} />
+                                <div style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                                    公演：{production?.title}
                                 </div>
-                            </div>
-
-                            {/* 当日券残数 */}
-                            <div style={{
-                                background: 'white',
-                                padding: '0.75rem 1.25rem',
-                                borderRadius: '12px',
-                                border: '2px solid var(--primary)',
-                                textAlign: 'center',
-                                minWidth: '120px',
-                                boxShadow: '0 4px 12px rgba(var(--primary-rgb), 0.1)'
-                            }}>
-                                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>当日券 残数</div>
-                                <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--primary)', lineHeight: '1' }}>
-                                    {remainingCount} <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>枚</span>
-                                </div>
+                                <h1 style={{ fontSize: '1.8rem', fontWeight: '900', margin: 0, color: 'var(--primary)', lineHeight: '1.2' }}>
+                                    {perfDateStr} {perfTimeStr}
+                                </h1>
                             </div>
                         </div>
                     </div>
-                </div>
-            </header>
+                </header>
 
-            <main className="container" style={{ maxWidth: '1200px', marginTop: '2rem' }}>
-                {/* タブナビゲーション */}
-                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                    <button
-                        onClick={() => setActiveTab('LIST')}
-                        style={{
-                            padding: '0.6rem 1.2rem',
-                            borderRadius: '8px',
-                            border: 'none',
-                            fontSize: '0.9rem',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            background: activeTab === 'LIST' ? 'var(--primary)' : '#e2e8f0',
-                            color: activeTab === 'LIST' ? '#fff' : '#4a5568',
-                        }}
-                    >
-                        予約リスト
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('SAME_DAY')}
-                        style={{
-                            padding: '0.6rem 1.2rem',
-                            borderRadius: '8px',
-                            border: 'none',
-                            fontSize: '0.9rem',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            background: activeTab === 'SAME_DAY' ? 'var(--primary)' : '#e2e8f0',
-                            color: activeTab === 'SAME_DAY' ? '#fff' : '#4a5568',
-                        }}
-                    >
-                        当日券発行
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('CASH_CLOSE')}
-                        style={{
-                            padding: '0.6rem 1.2rem',
-                            borderRadius: '8px',
-                            border: 'none',
-                            fontSize: '0.9rem',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            background: activeTab === 'CASH_CLOSE' ? 'var(--primary)' : '#e2e8f0',
-                            color: activeTab === 'CASH_CLOSE' ? '#fff' : '#4a5568',
-                        }}
-                    >
-                        レジ締め
-                    </button>
-                </div>
-
-                {activeTab === 'CASH_CLOSE' ? (
-                    /* レジ締めタブ */
-                    <CashCloseForm
-                        productionId={resolvedProductionId || productionId}
-                        performanceId={selectedPerformanceId}
-                        userId={production?.userId || ''}
-                        closedByType="STAFF"
-                        closedBy={auth.currentUser?.uid || ''}
-                        hideHistory
-                        expectedSalesOverride={reservations.reduce((sum, r) => sum + (r.paidAmount || 0), 0)}
-                    />
-                ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '2rem', alignItems: 'start' }}>
-                    {/* 左カラム: 予約リスト */}
-                    <div className="card" style={{ padding: '1.5rem', borderRadius: '16px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-                        {activeTab === 'LIST' && (
-                        <>
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>予約リスト ({filteredReservations.length}件)</h2>
-                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>未入場の方を優先表示しています</span>
-                            </div>
-                            <div style={{ position: 'relative' }}>
-                                <input
-                                    type="search"
-                                    className="input"
-                                    placeholder="名前またはカタカナで検索..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    style={{
-                                        height: '3.5rem',
-                                        fontSize: '1rem',
-                                        borderRadius: '12px',
-                                        paddingLeft: '3rem',
-                                        backgroundColor: '#f8fafc',
-                                        border: '1px solid #e2e8f0',
-                                        width: '100%',
-                                        marginBottom: '1rem'
-                                    }}
-                                />
-                                <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', marginTop: '-0.5rem', fontSize: '1.2rem', color: '#94a3b8' }}>🔍</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0' }}>
-                                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--slate-600)', fontWeight: '500' }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={showCheckedIn}
-                                        onChange={(e) => setShowCheckedIn(e.target.checked)}
-                                        style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer', marginRight: '0.5rem' }}
-                                    />
-                                    入場済みを表示
-                                </label>
-                            </div>
-                        </div>
-
-                        <CheckinList
-                            reservations={filteredReservations}
-                            performanceId={selectedPerformanceId}
+                <main className="container" style={{ maxWidth: '1000px', marginTop: '2rem' }}>
+                    {merchActiveTab === 'SALES' ? (
+                        <MerchandiseSalesForm
+                            products={merchProducts}
+                            sets={production?.merchandiseSets || []}
                             productionId={resolvedProductionId || productionId}
-                            staffToken={token || undefined}
-                            staffRole={role || undefined}
+                            performanceId={selectedPerformanceId}
+                            userId={production?.userId || ''}
+                            soldBy={auth.currentUser?.uid || ''}
+                            soldByType="STAFF"
                         />
-                        </>
-                        )}
-                        {activeTab === 'SAME_DAY' && (
-                        <>
-                            <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.75rem' }}>
-                                <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>当日券を発行</h2>
-                            </div>
-                            <SameDayTicketForm
-                                productionId={resolvedProductionId || productionId}
-                                performanceId={selectedPerformanceId}
-                                ticketTypes={performanceTicketTypes}
-                                remainingCount={remainingCount}
-                                nextNumber={sameDayResCount + 1}
-                                staffToken={token || undefined}
-                            />
-                        </>
-                        )}
+                    ) : (
+                        <CashCloseForm
+                            productionId={resolvedProductionId || productionId}
+                            performanceId={selectedPerformanceId}
+                            userId={production?.userId || ''}
+                            closedByType="STAFF"
+                            closedBy={auth.currentUser?.uid || ''}
+                            hideHistory
+                            expectedSalesOverride={merchSalesTotal}
+                            merchandiseSales={merchSalesTotal}
+                            inventoryEnabled={production?.merchandiseInventoryEnabled ?? false}
+                            merchProducts={merchProducts}
+                        />
+                    )}
+                </main>
+
+                <BottomNav
+                    items={[
+                        { id: 'SALES', label: '販売', icon: <ShoppingBag size={22} /> },
+                        { id: 'CASH_CLOSE', label: '精算', icon: <Calculator size={22} /> },
+                    ]}
+                    activeId={merchActiveTab}
+                    onSelect={(id) => setMerchActiveTab(id as typeof merchActiveTab)}
+                />
+
+                <style jsx>{`
+                    .container {
+                        padding-left: 1.5rem;
+                        padding-right: 1.5rem;
+                    }
+                `}</style>
+            </div>
+        );
+    }
+
+    // 受付ロール: オーナーの当日受付と同じ構成
+    const showMerchTab = production?.merchandiseMode === 'SIMPLE' && merchProducts.length > 0;
+    const uncheckedCount = stats.total - stats.checkedIn;
+    const receptionTicketSalesTotal = reservations.reduce((sum, r) => sum + (r.paidAmount || 0), 0);
+
+    return (
+        <div className="container" style={{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom) + 1rem)', maxWidth: activeTab === 'MERCHANDISE' ? '1200px' : '1000px' }}>
+            <header style={{
+                marginBottom: '2rem',
+                borderBottom: '1px solid var(--card-border)',
+                padding: '1rem 0',
+                position: 'sticky',
+                top: 0,
+                backgroundColor: 'var(--card-bg)',
+                zIndex: 100
+            }}>
+                <button
+                    onClick={() => setSelectedPerformanceId(null)}
+                    className="btn btn-secondary"
+                    style={{ marginBottom: '1rem', display: 'inline-block', fontSize: '0.85rem', borderRadius: '8px' }}
+                >
+                    &larr; 公演回の選択に戻る
+                </button>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ flex: '1 1 250px', minWidth: 0 }}>
+                        <div style={{ marginBottom: '0.5rem' }}>
+                            <span style={{ background: '#eef2f1', color: 'var(--slate-600)', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                受付スタッフ
+                            </span>
+                        </div>
+                        <div style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                            公演：{production?.title}
+                        </div>
+                        <h1 style={{ fontSize: '1.8rem', fontWeight: '900', margin: 0, color: 'var(--primary)', lineHeight: '1.2' }}>
+                            {perfDateStr} {perfTimeStr}
+                        </h1>
                     </div>
 
-                    {/* 右カラム: 当日券残数・ヒント */}
-                    <aside style={{ position: 'sticky', top: '7.5rem' }}>
-                        <div className="card" style={{ padding: '1.5rem', borderRadius: '16px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-                            <div style={{ marginBottom: '0.75rem' }}>
-                                <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', margin: 0, color: 'var(--text-muted)' }}>来場状況</h3>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.4rem' }}>
-                                <span>入場済み</span>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        {/* 進捗バー */}
+                        <div style={{ width: '180px', minWidth: '140px', backgroundColor: 'var(--card-bg)', padding: '0.75rem', borderRadius: '12px', border: '1px solid var(--card-border)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.4rem' }}>
+                                <span>来場進捗</span>
                                 <span>{stats.checkedIn}/{stats.total}人</span>
                             </div>
-                            <div
-                                role="progressbar"
-                                aria-valuenow={stats.checkedIn}
-                                aria-valuemin={0}
-                                aria-valuemax={stats.total || 1}
-                                aria-label={`入場済み ${stats.checkedIn}/${stats.total}人`}
-                                style={{ width: '100%', height: '8px', backgroundColor: '#edf2f7', borderRadius: '4px', overflow: 'hidden', marginBottom: '1rem' }}
-                            >
+                            <div style={{ width: '100%', height: '8px', backgroundColor: '#edf2f7', borderRadius: '4px', overflow: 'hidden' }}>
                                 <div style={{
                                     width: `${Math.min(100, (stats.checkedIn / (stats.total || 1)) * 100)}%`,
                                     height: '100%',
@@ -633,50 +571,174 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                                     transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
                                 }} />
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--slate-600)' }}>
-                                <span>当日券残数</span>
-                                <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{remainingCount}枚</span>
+                        </div>
+
+                        {/* 当日券残数 */}
+                        <div style={{
+                            background: 'white',
+                            padding: '0.75rem 1.25rem',
+                            borderRadius: '12px',
+                            border: '2px solid var(--primary)',
+                            textAlign: 'center',
+                            minWidth: '120px',
+                            boxShadow: '0 4px 12px rgba(var(--primary-rgb), 0.1)'
+                        }}>
+                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>当日券 残数</div>
+                            <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--primary)', lineHeight: '1' }}>
+                                {remainingCount} <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>枚</span>
                             </div>
                         </div>
-
-                        <div style={{ marginTop: '1rem', padding: '1rem', background: '#eef2f1', borderRadius: '12px', fontSize: '0.8rem', color: 'var(--slate-600)' }}>
-                            <p style={{ margin: 0, fontWeight: 'bold' }}>ヒント</p>
-                            <p style={{ margin: '0.25rem 0 0 0' }}>
-                                {activeTab === 'LIST'
-                                    ? '予約リストからお客様を検索し、チェックインを行ってください。'
-                                    : '当日の飛び込みのお客様はこちらから情報を入力してチケットを発行してください。'
-                                }
-                            </p>
-                        </div>
-                    </aside>
+                    </div>
                 </div>
-                )}
-            </main>
+            </header>
 
-            <footer style={{ marginTop: '4rem', textAlign: 'center', color: '#a0aec0', fontSize: '0.8rem', paddingBottom: '2rem' }}>
-                &copy; {new Date().getFullYear()} Tenjin-Support スタッフポータル
-            </footer>
+            {/* Tab Content */}
+            {activeTab === 'CASH_CLOSE' ? (
+                <CashCloseForm
+                    productionId={resolvedProductionId || productionId}
+                    performanceId={selectedPerformanceId}
+                    userId={production?.userId || ''}
+                    closedByType="STAFF"
+                    closedBy={auth.currentUser?.uid || ''}
+                    hideHistory
+                    {...(showMerchTab ? {
+                        expectedSalesOverride: receptionTicketSalesTotal + merchSalesTotal,
+                        ticketSales: receptionTicketSalesTotal,
+                        merchandiseSales: merchSalesTotal,
+                        inventoryEnabled: production?.merchandiseInventoryEnabled || false,
+                        merchProducts: merchProducts,
+                    } : {
+                        expectedSalesOverride: receptionTicketSalesTotal,
+                    })}
+                />
+            ) : activeTab === 'MERCHANDISE' ? (
+                <MerchandiseSalesForm
+                    productionId={resolvedProductionId || productionId}
+                    performanceId={selectedPerformanceId}
+                    userId={production?.userId || ''}
+                    products={merchProducts}
+                    sets={production?.merchandiseSets || []}
+                    soldBy={auth.currentUser?.uid || ''}
+                    soldByType="STAFF"
+                />
+            ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '1.5rem', alignItems: 'start' }}>
+                {/* 左カラム: メインコンテンツ */}
+                <div className="card" style={{ padding: '1.5rem', borderRadius: '16px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                    {activeTab === 'LIST' && (
+                    <>
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>予約リスト ({filteredReservations.length}件)</h2>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>未入場の方を優先表示しています</span>
+                        </div>
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type="search"
+                                className="input"
+                                placeholder="名前またはカタカナで検索..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                style={{
+                                    height: '3.5rem',
+                                    fontSize: '1rem',
+                                    borderRadius: '12px',
+                                    paddingLeft: '3rem',
+                                    backgroundColor: '#f8fafc',
+                                    border: '1px solid #e2e8f0',
+                                    width: '100%',
+                                    marginBottom: '1rem'
+                                }}
+                            />
+                            <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', marginTop: '-0.5rem', fontSize: '1.2rem', color: '#94a3b8' }}>🔍</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--slate-600)', fontWeight: '500' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={showCheckedIn}
+                                    onChange={(e) => setShowCheckedIn(e.target.checked)}
+                                    style={{ width: '1.2rem', height: '1.2rem', cursor: 'pointer', marginRight: '0.5rem' }}
+                                />
+                                入場済みを表示
+                            </label>
+                        </div>
+                    </div>
 
-            <style jsx>{`
-                .container {
-                    padding-left: 1.5rem;
-                    padding-right: 1.5rem;
-                }
-                .input:focus {
-                    background-color: #fff !important;
-                    border-color: var(--primary) !important;
-                    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1) !important;
-                }
-                @media (max-width: 992px) {
-                    main > div {
-                        grid-template-columns: 1fr !important;
-                    }
-                    aside {
-                        position: static !important;
-                        margin-top: 1rem;
-                    }
-                }
-            `}</style>
+                    <CheckinList
+                        reservations={filteredReservations}
+                        performanceId={selectedPerformanceId}
+                        productionId={resolvedProductionId || productionId}
+                        staffToken={token || undefined}
+                        staffRole={role || undefined}
+                    />
+                    </>
+                    )}
+                    {activeTab === 'SAME_DAY' && (
+                    <>
+                        <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.75rem' }}>
+                            <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>当日券を発行</h2>
+                        </div>
+                        <SameDayTicketForm
+                            productionId={resolvedProductionId || productionId}
+                            performanceId={selectedPerformanceId}
+                            ticketTypes={performanceTicketTypes}
+                            remainingCount={remainingCount}
+                            nextNumber={sameDayResCount + 1}
+                            staffToken={token || undefined}
+                        />
+                    </>
+                    )}
+                </div>
+
+                {/* 右カラム: サイドバー */}
+                <aside style={{ position: 'sticky', top: '7.5rem' }}>
+                    <div className="card" style={{ padding: '1.5rem', borderRadius: '16px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                        <div style={{ marginBottom: '0.75rem' }}>
+                            <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', margin: 0, color: 'var(--text-muted)' }}>来場状況</h3>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.4rem' }}>
+                            <span>入場済み</span>
+                            <span>{stats.checkedIn}/{stats.total}人</span>
+                        </div>
+                        <div style={{ width: '100%', height: '8px', backgroundColor: '#edf2f7', borderRadius: '4px', overflow: 'hidden', marginBottom: '1rem' }}>
+                            <div style={{
+                                width: `${Math.min(100, (stats.checkedIn / (stats.total || 1)) * 100)}%`,
+                                height: '100%',
+                                backgroundColor: 'var(--primary)',
+                                transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                            }} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--slate-600)' }}>
+                            <span>当日券残数</span>
+                            <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{remainingCount}枚</span>
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: '1rem', padding: '1rem', background: '#eef2f1', borderRadius: '12px', fontSize: '0.8rem', color: 'var(--slate-600)' }}>
+                        <p style={{ margin: 0, fontWeight: 'bold' }}>ヒント</p>
+                        <p style={{ margin: '0.25rem 0 0 0' }}>
+                            {activeTab === 'LIST'
+                                ? '予約リストからお客様を検索し、チェックインを行ってください。'
+                                : '当日の飛び込みのお客様はこちらから情報を入力してチケットを発行してください。'
+                            }
+                        </p>
+                    </div>
+                </aside>
+            </div>
+            )}
+
+            {/* Bottom Navigation */}
+            <BottomNav
+                items={[
+                    { id: 'LIST', label: '一覧', icon: <ClipboardList size={22} />, badge: uncheckedCount > 0 ? uncheckedCount : null },
+                    { id: 'SAME_DAY', label: '当日券', icon: <Ticket size={22} /> },
+                    { id: 'MERCHANDISE', label: '物販', icon: <ShoppingBag size={22} />, visible: showMerchTab },
+                    { id: 'CASH_CLOSE', label: '精算', icon: <Calculator size={22} /> },
+                ]}
+                activeId={activeTab}
+                onSelect={(id) => setActiveTab(id as typeof activeTab)}
+            />
         </div>
     );
 }
