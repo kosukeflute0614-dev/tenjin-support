@@ -257,9 +257,22 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
     const [resizing, setResizing] = useState<{ id: string; startY: number; startH: number } | null>(null);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'finalizing' | 'finalized' | 'error'>('idle');
     const [finalizedLayoutId, setFinalizedLayoutId] = useState<string | null>(null);
+    const [isMobile, setIsMobile] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const canvasAreaRef = useRef<HTMLDivElement>(null);
     const { user } = useAuth();
     const { showToast } = useToast();
+
+    // Responsive breakpoint detection
+    useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth <= 1024);
+        check();
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+    }, []);
+
+    // Canvas scale for mobile (fit A4 width into viewport)
+    const canvasScale = isMobile ? Math.min(1, (typeof window !== 'undefined' ? window.innerWidth - 32 : 794) / 794) : 1;
 
     // マウント時にドラフトを復元
     useEffect(() => {
@@ -279,31 +292,39 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
         setResizing({ id, startY: clientY, startH: currentH });
     }, []);
 
-    // グローバルドラッグ処理
+    // グローバルドラッグ処理 (mouse + touch)
     useEffect(() => {
         if (!resizing) return;
 
-        const handleMove = (e: MouseEvent) => {
-            const deltaPx = e.clientY - resizing.startY;
-            const deltaMm = deltaPx / PX_PER_MM;
-            // 最小 10mm 以上の範囲で自由に変更可能にする（最大制限は撤廃）
+        const applyDelta = (clientY: number) => {
+            const deltaPx = clientY - resizing.startY;
+            const deltaMm = deltaPx / PX_PER_MM / canvasScale; // scale補正
             const newH = Math.max(FREE_TEXT_HEIGHT_MIN, resizing.startH + deltaMm);
-
             setFreeTextHeights(prev => ({
                 ...prev,
                 [resizing.id]: newH
             }));
         };
 
+        const handleMove = (e: MouseEvent) => applyDelta(e.clientY);
         const handleUp = () => setResizing(null);
+        const handleTouchMove = (e: TouchEvent) => {
+            e.preventDefault(); // スクロール防止
+            applyDelta(e.touches[0].clientY);
+        };
+        const handleTouchEnd = () => setResizing(null);
 
         window.addEventListener('mousemove', handleMove);
         window.addEventListener('mouseup', handleUp);
+        window.addEventListener('touchmove', handleTouchMove, { passive: false });
+        window.addEventListener('touchend', handleTouchEnd);
         return () => {
             window.removeEventListener('mousemove', handleMove);
             window.removeEventListener('mouseup', handleUp);
+            window.removeEventListener('touchmove', handleTouchMove);
+            window.removeEventListener('touchend', handleTouchEnd);
         };
-    }, [resizing]);
+    }, [resizing, canvasScale]);
 
     // QRコード用URL生成（確定後は &lid={layout_id} を追加）
     const qrUrl = typeof window !== 'undefined'
@@ -635,29 +656,32 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
             {/* ── ヘッダーバー ── */}
             <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '0 1rem', height: '48px', flexShrink: 0,
+                padding: isMobile ? '0 0.5rem' : '0 1rem',
+                height: isMobile ? '44px' : '48px', flexShrink: 0,
                 backgroundColor: '#2d2d2d', borderBottom: '1px solid #404040',
+                gap: isMobile ? '0.25rem' : undefined,
             }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.4rem' : '0.75rem', minWidth: 0, flex: 1 }}>
                     <button
                         onClick={onBack}
                         style={{
                             display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                            padding: '0.35rem 0.75rem', borderRadius: '6px',
+                            padding: isMobile ? '0.3rem 0.5rem' : '0.35rem 0.75rem', borderRadius: '6px',
                             border: '1px solid #555', backgroundColor: 'transparent',
-                            color: '#ccc', fontSize: '0.8rem', cursor: 'pointer',
-                            transition: 'all 0.15s',
+                            color: '#ccc', fontSize: isMobile ? '0.75rem' : '0.8rem', cursor: 'pointer',
+                            transition: 'all 0.15s', flexShrink: 0,
+                            minHeight: '44px', // タッチターゲット確保
                         }}
                         onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#404040'; e.currentTarget.style.borderColor = '#777'; }}
                         onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderColor = '#555'; }}
                     >
-                        ← ハブに戻る
+                        {isMobile ? '←' : '← ハブに戻る'}
                     </button>
-                    <div style={{ width: '1px', height: '24px', backgroundColor: '#404040' }} />
-                    <span style={{ color: '#999', fontSize: '0.8rem' }}>🖨️ 印刷レイアウトエディタ</span>
-                    <span style={{ color: '#666', fontSize: '0.75rem' }}>— {templateTitle}</span>
+                    <div style={{ width: '1px', height: '24px', backgroundColor: '#404040', flexShrink: 0 }} />
+                    <span style={{ color: '#999', fontSize: isMobile ? '0.7rem' : '0.8rem', flexShrink: 0 }}>🖨️ {isMobile ? 'エディタ' : '印刷レイアウトエディタ'}</span>
+                    <span style={{ color: '#666', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>— {templateTitle}</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.5rem' : '1.25rem', flexShrink: 0 }}>
                     {/* オーバーフロー警告 */}
                     {isOverflow && (
                         <div style={{
@@ -667,7 +691,7 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                             display: 'flex', alignItems: 'center', gap: '0.5rem',
                             animation: 'pulse 2s infinite'
                         }}>
-                            <span>⚠️ 設問が1枚に収まりきりません。内容を削るか調整が必要です</span>
+                            <span>{isMobile ? '⚠️ はみ出し' : '⚠️ 設問が1枚に収まりきりません。内容を削るか調整が必要です'}</span>
                             <style>{`@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }`}</style>
                         </div>
                     )}
@@ -677,7 +701,7 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                         display: 'flex', alignItems: 'center', gap: '0.4rem',
                         cursor: 'pointer', userSelect: 'none',
                     }}>
-                        <span style={{ fontSize: '0.75rem', color: '#999' }}>📐 マーカー</span>
+                        {!isMobile && <span style={{ fontSize: '0.75rem', color: '#999' }}>📐 マーカー</span>}
                         <span
                             onClick={() => setShowMarkers(v => !v)}
                             style={{
@@ -698,21 +722,42 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                             }} />
                         </span>
                     </label>
-                    <div style={{ width: '1px', height: '20px', backgroundColor: '#404040' }} />
+                    {!isMobile && <div style={{ width: '1px', height: '20px', backgroundColor: '#404040' }} />}
                 </div>
             </div>
 
             {/* ── メインレイアウト (2ペイン構成) ── */}
-            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-                {/* ── 左サイドバー (コントローラー) ── */}
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', flex: 1, overflow: 'hidden' }}>
+                {/* ── サイドバー (コントローラー) ── */}
                 <aside style={{
-                    width: '280px', flexShrink: 0,
-                    backgroundColor: '#f9f9f9', borderRight: '1px solid #e0e0e0',
-                    display: 'flex', flexDirection: 'column', gap: '2.5rem',
-                    padding: '1.5rem 1.25rem', color: '#333', overflowY: 'auto',
-                    boxShadow: 'inset -2px 0 8px rgba(0,0,0,0.02)',
+                    width: isMobile ? '100%' : '280px', flexShrink: 0,
+                    backgroundColor: '#f9f9f9',
+                    borderRight: isMobile ? 'none' : '1px solid #e0e0e0',
+                    borderBottom: isMobile ? '1px solid #e0e0e0' : 'none',
+                    display: 'flex', flexDirection: 'column', gap: isMobile ? '1rem' : '2.5rem',
+                    padding: isMobile ? '0.75rem 1rem' : '1.5rem 1.25rem',
+                    color: '#333', overflowY: 'auto',
+                    boxShadow: isMobile ? 'none' : 'inset -2px 0 8px rgba(0,0,0,0.02)',
+                    ...(isMobile && sidebarCollapsed ? { maxHeight: '0', padding: '0 1rem', overflow: 'hidden', borderBottom: 'none' } : {}),
+                    ...(isMobile && !sidebarCollapsed ? { maxHeight: '400px' } : {}),
+                    transition: isMobile ? 'max-height 0.3s ease, padding 0.3s ease' : undefined,
                 }}>
-                    <h2 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#111', borderBottom: '1px solid #ddd', paddingBottom: '0.75rem' }}>🎛️ アンケート調整</h2>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <h2 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#111', borderBottom: isMobile ? 'none' : '1px solid #ddd', paddingBottom: isMobile ? '0' : '0.75rem', margin: 0 }}>🎛️ アンケート調整</h2>
+                        {isMobile && (
+                            <button
+                                onClick={() => setSidebarCollapsed(v => !v)}
+                                style={{
+                                    background: 'none', border: '1px solid #ccc', borderRadius: '6px',
+                                    padding: '0.3rem 0.6rem', fontSize: '0.75rem', color: '#666',
+                                    cursor: 'pointer', minHeight: '44px', minWidth: '44px',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}
+                            >
+                                {sidebarCollapsed ? '▼ 開く' : '▲ 閉じる'}
+                            </button>
+                        )}
+                    </div>
 
                     {/* 文字サイズ調整 */}
                     <section>
@@ -729,6 +774,7 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                                         fontSize: '0.85rem', fontWeight: label === fontSizeMode ? 'bold' : 'normal',
                                         borderRight: label !== '大' ? '1px solid #ccc' : 'none',
                                         transition: 'all 0.2s',
+                                        minHeight: '44px', // タッチターゲット確保
                                     }}
                                 >
                                     {label}
@@ -756,7 +802,8 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                                 <div style={{ width: '50%', height: '100%', backgroundColor: '#444', borderRadius: '2px' }} />
                                 <div style={{
                                     position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                                    width: '22px', height: '22px', backgroundColor: '#fff', border: '1.5px solid #1a1a1a',
+                                    width: isMobile ? '32px' : '22px', height: isMobile ? '32px' : '22px',
+                                    backgroundColor: '#fff', border: '1.5px solid #1a1a1a',
                                     borderRadius: '50%', boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
                                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px'
                                 }}>
@@ -771,7 +818,15 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                         </p>
                     </section>
 
-                    <div style={{ marginTop: 'auto', borderTop: '1px dotted #ccc', paddingTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div style={{
+                        marginTop: isMobile ? '0' : 'auto',
+                        borderTop: '1px dotted #ccc',
+                        paddingTop: isMobile ? '0.75rem' : '1.5rem',
+                        display: 'flex',
+                        flexDirection: isMobile ? 'row' : 'column',
+                        gap: '0.6rem',
+                        flexWrap: isMobile ? 'wrap' : undefined,
+                    }}>
                         {/* 保存状態インジケーター */}
                         {saveStatus !== 'idle' && (
                             <div style={{
@@ -818,6 +873,8 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                                 cursor: (saveStatus === 'saving' || saveStatus === 'finalizing') ? 'not-allowed' : 'pointer',
                                 opacity: (saveStatus === 'saving' || saveStatus === 'finalizing') ? 0.6 : 1,
                                 transition: 'all 0.15s',
+                                minHeight: '44px', // タッチターゲット確保
+                                flex: isMobile ? '1 1 auto' : undefined,
                             }}
                         >
                             💾 一時保存
@@ -909,12 +966,34 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                                 opacity: (saveStatus === 'saving' || saveStatus === 'finalizing') ? 0.6 : 1,
                                 boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                                 transition: 'all 0.15s',
+                                minHeight: '44px', // タッチターゲット確保
+                                flex: isMobile ? '1 1 auto' : undefined,
                             }}
                         >
                             ✅ PDF確定・書き出し
                         </button>
                     </div>
                 </aside>
+
+                {/* モバイル: サイドバーが閉じている時の開くボタン */}
+                {isMobile && sidebarCollapsed && (
+                    <div style={{
+                        backgroundColor: '#f9f9f9', borderBottom: '1px solid #e0e0e0',
+                        padding: '0.4rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    }}>
+                        <span style={{ fontSize: '0.8rem', color: '#666' }}>🎛️ アンケート調整</span>
+                        <button
+                            onClick={() => setSidebarCollapsed(false)}
+                            style={{
+                                background: 'none', border: '1px solid #ccc', borderRadius: '6px',
+                                padding: '0.3rem 0.6rem', fontSize: '0.75rem', color: '#666',
+                                cursor: 'pointer', minHeight: '36px',
+                            }}
+                        >
+                            ▼ 開く
+                        </button>
+                    </div>
+                )}
 
                 {/* ── 右メインプレビューエリア ── */}
                 <div
@@ -923,12 +1002,27 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                     onMouseLeave={handleMouseLeave}
                     style={{
                         flex: 1, overflow: 'auto',
-                        display: 'flex', justifyContent: 'center',
-                        padding: '2.5rem',
+                        display: 'flex', justifyContent: isMobile ? 'flex-start' : 'center',
+                        padding: isMobile ? '0.75rem' : '2.5rem',
                         backgroundColor: '#262626',
                     }}
                 >
-                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                    {/* スケールラッパー: モバイルではcanvas全体を縮小表示 */}
+                    <div style={{
+                        ...(isMobile ? {
+                            width: `${(A4_WIDTH_PX + RULER_SIZE) * canvasScale}px`,
+                            height: `${(A4_HEIGHT_PX + RULER_SIZE) * canvasScale}px`,
+                            overflow: 'hidden',
+                            flexShrink: 0,
+                        } : {}),
+                    }}>
+                    <div style={{
+                        position: 'relative', flexShrink: 0,
+                        ...(isMobile ? {
+                            transform: `scale(${canvasScale})`,
+                            transformOrigin: 'top left',
+                        } : {}),
+                    }}>
                         {/* ルーラーコーナー（左上の空白） */}
                         <div style={{
                             position: 'absolute', top: 0, left: 0,
@@ -1031,6 +1125,7 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                             )}
                         </div>
                     </div>
+                    </div>{/* スケールラッパー終了 */}
                 </div>
             </div>
         </div>
@@ -1496,22 +1591,27 @@ function FreeTextBlock({ layout, fontScale, onResizeStart }: { layout: QuestionL
             {/* リサイズハンドル (底辺中央) - 印刷時は非表示 */}
             <foreignObject
                 data-print-hide
-                x={bx + bw / 2 - 25}
-                y={by + bh - 10}
-                width={50}
-                height={20}
-                style={{ pointerEvents: 'auto', cursor: 'ns-resize' }}
+                x={bx + bw / 2 - 30}
+                y={by + bh - 15}
+                width={60}
+                height={30}
+                style={{ pointerEvents: 'auto', cursor: 'ns-resize', touchAction: 'none' }}
                 onMouseDown={(e) => {
                     e.preventDefault();
                     onResizeStart(e.clientY, box.boundingBox.h);
                 }}
+                onTouchStart={(e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    onResizeStart(touch.clientY, box.boundingBox.h);
+                }}
             >
                 <div style={{
                     width: '100%', height: '100%',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px'
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '3px'
                 }}>
-                    <div style={{ width: '20px', height: '2.5px', backgroundColor: '#3b82f6', borderRadius: '1.25px', boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
-                    <div style={{ width: '20px', height: '2.5px', backgroundColor: '#3b82f6', borderRadius: '1.25px', boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
+                    <div style={{ width: '28px', height: '3px', backgroundColor: '#3b82f6', borderRadius: '1.5px', boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
+                    <div style={{ width: '28px', height: '3px', backgroundColor: '#3b82f6', borderRadius: '1.5px', boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
                 </div>
             </foreignObject>
         </svg>

@@ -357,10 +357,10 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
             </div>
             <div style={{ marginBottom: '2rem' }}>
                 <h2 className="heading-lg" style={{ marginBottom: '0.5rem' }}>予約フォーム編集</h2>
-                <p className="text-muted" style={{ fontSize: '0.9rem' }}>予約フォームに表示する項目を設定できます。ドラッグで並び替えが可能です。</p>
+                <p className="text-muted" style={{ fontSize: '0.9rem' }}>予約フォームに表示する項目を設定できます。▲▼ボタンまたはドラッグで並び替えが可能です。</p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '1.5rem', alignItems: 'start' }}>
+            <div className="form-editor-layout">
                 {/* 左カラム: フィールド設定 */}
                 <div>
                     <div style={{
@@ -426,6 +426,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                             <span style={dragHandleStyle} title="ドラッグで並び替え">⠿</span>
                                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                                 <button
+                                                    className="form-editor-move-btn"
                                                     onClick={() => moveBlock(block.leaderId, -1)}
                                                     disabled={isFirst}
                                                     style={{
@@ -435,6 +436,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                                     title="上に移動"
                                                 >▲</button>
                                                 <button
+                                                    className="form-editor-move-btn"
                                                     onClick={() => moveBlock(block.leaderId, 1)}
                                                     disabled={isLast}
                                                     style={{
@@ -885,7 +887,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                 </div>
 
                 {/* 右カラム: プレビュー（実際の予約フォームと同じ表示） */}
-                <div style={{ position: 'sticky', top: '1rem' }}>
+                <div className="form-editor-preview" style={{ position: 'sticky', top: '1rem' }}>
                     <div style={{
                         display: 'flex', alignItems: 'center', gap: '0.5rem',
                         marginBottom: '0.75rem', paddingBottom: '0.5rem',
