@@ -7,6 +7,7 @@ import { useToast } from '@/components/Toast';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { initializeTroupeAndMembership } from '@/lib/platform';
 import { createProductionClient, addPerformanceClient } from '@/lib/client-firestore';
+import { validateInvitationCode } from '@/app/actions/invitation';
 import { SmartMaskedDatePicker, SmartMaskedTimeInput } from '@/components/SmartInputs';
 import { Trash2, Plus, ArrowRight, ArrowLeft, Check } from 'lucide-react';
 
@@ -29,8 +30,10 @@ export default function OnboardingPage() {
     const [step, setStep] = useState(1);
     const [isSaving, setIsSaving] = useState(false);
 
-    // Step 1: 劇団名
+    // Step 1: 劇団名 + 招待コード
     const [troupeName, setTroupeName] = useState('');
+    const [invitationCode, setInvitationCode] = useState('');
+    const [invitationError, setInvitationError] = useState('');
 
     // Step 2: 公演タイトル
     const [title, setTitle] = useState('');
@@ -75,7 +78,7 @@ export default function OnboardingPage() {
     useUnsavedChanges(isDirty);
 
     // --- Validation ---
-    const isStep1Valid = troupeName.trim().length > 0;
+    const isStep1Valid = troupeName.trim().length > 0 && invitationCode.trim().length > 0;
     const isStep2Valid = title.trim().length > 0;
     const isStep3Valid = performances.length > 0 && performances.every(p =>
         p.date && p.date.length === 10 && p.time && p.time.length === 5 && p.capacity > 0
@@ -90,7 +93,27 @@ export default function OnboardingPage() {
         }
     };
 
-    const handleNext = () => {
+    const [isValidating, setIsValidating] = useState(false);
+
+    const handleNext = async () => {
+        if (step === 1) {
+            // 招待コードをサーバーサイドで検証
+            setIsValidating(true);
+            setInvitationError('');
+            try {
+                const isValid = await validateInvitationCode(invitationCode.trim());
+                if (!isValid) {
+                    setInvitationError('招待コードが正しくありません');
+                    setIsValidating(false);
+                    return;
+                }
+            } catch {
+                setInvitationError('検証に失敗しました。もう一度お試しください。');
+                setIsValidating(false);
+                return;
+            }
+            setIsValidating(false);
+        }
         if (step < TOTAL_STEPS) setStep(step + 1);
     };
 
@@ -233,8 +256,29 @@ export default function OnboardingPage() {
                             placeholder="例: 劇団てんじん"
                             required
                             autoFocus
+                            style={{ fontSize: '1.1rem', padding: '0.85rem 1rem', marginBottom: '1.5rem' }}
+                        />
+
+                        <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--foreground)', display: 'block', marginBottom: '0.4rem' }}>
+                            招待コード
+                        </label>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                            ご利用には招待コードが必要です。
+                        </p>
+                        <input
+                            type="text"
+                            className="input"
+                            value={invitationCode}
+                            onChange={(e) => { setInvitationCode(e.target.value); setInvitationError(''); }}
+                            placeholder="招待コードを入力"
+                            required
                             style={{ fontSize: '1.1rem', padding: '0.85rem 1rem' }}
                         />
+                        {invitationError && (
+                            <p style={{ color: 'var(--accent)', fontSize: '0.85rem', marginTop: '0.5rem', fontWeight: '500' }}>
+                                {invitationError}
+                            </p>
+                        )}
                     </div>
                 )}
 
@@ -376,7 +420,7 @@ export default function OnboardingPage() {
                     {step < TOTAL_STEPS ? (
                         <button
                             onClick={handleNext}
-                            disabled={!canGoNext()}
+                            disabled={!canGoNext() || isValidating}
                             className="btn btn-primary"
                             style={{
                                 display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
@@ -384,7 +428,7 @@ export default function OnboardingPage() {
                                 width: '100%', justifyContent: 'center',
                             }}
                         >
-                            次へ <ArrowRight size={16} />
+                            {isValidating ? '確認中...' : '次へ'} {!isValidating && <ArrowRight size={16} />}
                         </button>
                     ) : (
                         <button

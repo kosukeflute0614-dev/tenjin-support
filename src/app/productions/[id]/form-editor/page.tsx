@@ -337,6 +337,18 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
         }
     };
 
+    const reorderBtnStyle = (active: boolean): React.CSSProperties => ({
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        width: '36px', height: '36px', borderRadius: '8px',
+        border: `1px solid ${active ? 'var(--card-border)' : '#f0f0f0'}`,
+        background: active ? 'var(--card-bg)' : 'var(--secondary)',
+        fontSize: '0.75rem',
+        cursor: active ? 'pointer' : 'default',
+        color: active ? 'var(--text-muted)' : '#ddd',
+        transition: 'all 0.15s',
+        boxShadow: active ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+    });
+
     const dragHandleStyle: React.CSSProperties = {
         cursor: 'grab',
         padding: 0,
@@ -357,7 +369,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
             </div>
             <div style={{ marginBottom: '2rem' }}>
                 <h2 className="heading-lg" style={{ marginBottom: '0.5rem' }}>予約フォーム編集</h2>
-                <p className="text-muted" style={{ fontSize: '0.9rem' }}>予約フォームに表示する項目を設定できます。▲▼ボタンまたはドラッグで並び替えが可能です。</p>
+                <p className="text-muted" style={{ fontSize: '0.9rem' }}>予約フォームに表示する項目を設定できます。左の▲▼ボタンで並び替えが可能です。</p>
             </div>
 
             <div className="form-editor-layout">
@@ -403,14 +415,39 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                 return (
                                     <div
                                         key={block.leaderId}
+                                        style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}
+                                    >
+                                        {/* 並べ替えボタン（カード左横） */}
+                                        <div style={{
+                                            display: 'flex', flexDirection: 'column', gap: '4px',
+                                            justifyContent: 'center', flexShrink: 0,
+                                        }}>
+                                            <button
+                                                className="form-editor-move-btn"
+                                                onClick={() => moveBlock(block.leaderId, -1)}
+                                                disabled={isFirst}
+                                                style={reorderBtnStyle(!isFirst)}
+                                                aria-label="上に移動"
+                                            >▲</button>
+                                            <button
+                                                className="form-editor-move-btn"
+                                                onClick={() => moveBlock(block.leaderId, 1)}
+                                                disabled={isLast}
+                                                style={reorderBtnStyle(!isLast)}
+                                                aria-label="下に移動"
+                                            >▼</button>
+                                        </div>
+
+                                    <div
                                         draggable
                                         onDragStart={() => handleDragStart(block.leaderId)}
                                         onDragOver={(e) => handleDragOver(e, block.leaderId)}
                                         onDragEnd={handleDragEnd}
                                         style={{
+                                            flex: 1,
                                             padding: 0,
                                             background: isDragging ? 'rgba(139, 0, 0, 0.03)' : 'var(--card-bg)',
-                                            border: isDragging ? '2px dashed var(--primary)' : '1px solid #e5e7eb',
+                                            border: isDragging ? '2px dashed var(--primary)' : '1px solid var(--card-border)',
                                             borderRadius: '6px',
                                             opacity: isDragging ? 0.7 : 1,
                                             transition: 'background 0.15s, opacity 0.15s',
@@ -424,28 +461,6 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                             background: 'var(--secondary)',
                                         }}>
                                             <span style={dragHandleStyle} title="ドラッグで並び替え">⠿</span>
-                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                <button
-                                                    className="form-editor-move-btn"
-                                                    onClick={() => moveBlock(block.leaderId, -1)}
-                                                    disabled={isFirst}
-                                                    style={{
-                                                        border: 'none', background: 'none', cursor: isFirst ? 'default' : 'pointer',
-                                                        padding: '0', fontSize: '0.55rem', color: isFirst ? '#ddd' : '#888', lineHeight: 1,
-                                                    }}
-                                                    title="上に移動"
-                                                >▲</button>
-                                                <button
-                                                    className="form-editor-move-btn"
-                                                    onClick={() => moveBlock(block.leaderId, 1)}
-                                                    disabled={isLast}
-                                                    style={{
-                                                        border: 'none', background: 'none', cursor: isLast ? 'default' : 'pointer',
-                                                        padding: '0', fontSize: '0.55rem', color: isLast ? '#ddd' : '#888', lineHeight: 1,
-                                                    }}
-                                                    title="下に移動"
-                                                >▼</button>
-                                            </div>
 
                                             {/* ブロックラベル or 単独フィールドラベル */}
                                             {isMultiBlock && blockLabel ? (
@@ -621,6 +636,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                                 </label>
                                             </div>
                                         )}
+                                    </div>
                                     </div>
                                 );
                             });

@@ -21,3 +21,5 @@ env:
     value: G-73W0EY5CPH
   - variable: RESEND_API_KEY
     secret: RESEND_API_KEY
+  - variable: INVITATION_CODE
+    value: tenjin2026
