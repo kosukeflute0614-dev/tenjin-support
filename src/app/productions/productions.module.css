@@ -1,0 +1,397 @@
+/* ===== Productions Page ===== */
+
+.page {
+  padding-bottom: 2rem;
+}
+
+/* --- Page Header --- */
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.pageTitle {
+  margin: 0;
+}
+
+.pageSubtitle {
+  margin-top: 0.5rem;
+}
+
+.createBtn {
+  padding: 0.8rem 2rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* --- Empty State --- */
+.emptyState {
+  text-align: center;
+  padding: 4rem 2rem;
+  background-color: var(--card-bg);
+  border-radius: 12px;
+  border: 1px dashed var(--card-border);
+}
+
+.emptyText {
+  font-size: 1.1rem;
+}
+
+.emptyBtn {
+  margin-top: 1.5rem;
+}
+
+/* --- Production List (Vertical Stack) --- */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+/* --- Production Card (Full-width block) --- */
+.card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--border-radius);
+  padding: 1.25rem 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.cardActive {
+  border-color: var(--primary);
+  border-left: 4px solid var(--primary);
+  background: linear-gradient(90deg, rgba(139, 0, 0, 0.03), var(--card-bg) 30%);
+}
+
+/* --- Card Main Content (left side, grows) --- */
+.cardBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.cardTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.35rem;
+}
+
+.cardTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--foreground);
+  word-break: break-word;
+}
+
+/* --- Badges --- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.badgeActive {
+  background-color: var(--primary);
+  color: #fff;
+}
+
+.badgeReception {
+  background-color: #059669;
+  color: #fff;
+}
+
+.badgeClosed {
+  background-color: var(--card-border);
+  color: var(--text-muted);
+}
+
+/* --- Card Meta Info --- */
+.cardMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.metaDivider {
+  color: var(--card-border);
+  user-select: none;
+}
+
+.performanceList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+}
+
+.performanceChip {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background-color: var(--secondary);
+  border: 1px solid var(--card-border);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* --- Card Right Actions --- */
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.actionBtn {
+  min-height: 40px;
+  min-width: 140px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+/* --- Delete (Three-dot menu style) --- */
+.moreBtn {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.4rem;
+  border-radius: 6px;
+  transition: all 0.15s;
+  min-width: 36px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  line-height: 1;
+  position: relative;
+}
+
+.moreBtn:hover,
+.moreBtn:focus-visible {
+  background-color: var(--secondary);
+  border-color: var(--card-border);
+  color: var(--foreground);
+}
+
+.moreMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.25rem;
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 50;
+  min-width: 160px;
+  padding: 0.35rem;
+  animation: fadeIn 0.12s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.moreMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--foreground);
+  transition: background-color 0.1s;
+  text-decoration: none;
+  text-align: left;
+}
+
+.moreMenuItem:hover {
+  background-color: var(--secondary);
+}
+
+.moreMenuDanger {
+  color: var(--accent);
+}
+
+.moreMenuDanger:hover {
+  background-color: rgba(255, 75, 75, 0.08);
+}
+
+/* --- Backdrop for closing menu --- */
+.menuBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+/* ===== Tablet (768px) ===== */
+@media (max-width: 768px) {
+  .pageHeader {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .backLink {
+    margin-bottom: 1rem;
+    align-self: flex-start;
+  }
+
+  .createBtn {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+  }
+
+  .card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 1.25rem;
+  }
+
+  .cardActions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .actionBtn {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .emptyState {
+    padding: 3rem 1.5rem;
+  }
+}
+
+/* ===== Smartphone (480px) ===== */
+@media (max-width: 480px) {
+  .page {
+    padding-bottom: 1rem;
+  }
+
+  .pageHeader {
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .backLink {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .createBtn {
+    padding: 0.7rem 1rem;
+    font-size: 0.95rem;
+  }
+
+  .list {
+    gap: 0.75rem;
+  }
+
+  .card {
+    padding: 1rem;
+  }
+
+  .card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .cardTitle {
+    font-size: 1rem;
+  }
+
+  .cardMeta {
+    font-size: 0.8rem;
+  }
+
+  .actionBtn {
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
+
+  .moreBtn {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .emptyState {
+    padding: 2.5rem 1rem;
+  }
+
+  .emptyText {
+    font-size: 1rem;
+  }
+}
+
+/* ===== Dark mode adjustments ===== */
+@media (prefers-color-scheme: dark) {
+  .card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .cardActive {
+    background: linear-gradient(90deg, rgba(139, 0, 0, 0.08), var(--card-bg) 30%);
+  }
+
+  .performanceChip {
+    background-color: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .moreMenu {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+}

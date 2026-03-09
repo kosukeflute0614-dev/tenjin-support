@@ -31,13 +31,13 @@ export default function ReservationsPage() {
                         : await getBookingOptions(undefined, user.uid);
                     setBookingOptions(options);
 
-                    // 2. Set up listener for reservations
+                    // 2. Set up listener for reservations (filter by active production)
                     const reservationsRef = collection(db, "reservations");
-                    const q = query(
-                        reservationsRef,
-                        where("userId", "==", user.uid)
-                        // orderBy("createdAt", "desc") // Remove to avoid composite index requirement
-                    );
+                    const constraints = [where("userId", "==", user.uid)];
+                    if (activeProductionId) {
+                        constraints.push(where("productionId", "==", activeProductionId));
+                    }
+                    const q = query(reservationsRef, ...constraints);
 
                     unsubscribe = onSnapshot(q, (snapshot) => {
                         const res = serializeDocs<FirestoreReservation>(snapshot.docs);

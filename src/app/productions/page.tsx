@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getProductions } from '@/app/actions/production';
 import { getActiveProductionId } from '@/app/actions/production-context';
 import ProductionList from '@/components/ProductionList';
 import { useAuth } from '@/components/AuthProvider';
-import { Production } from '@/types';
+import { Production, Performance } from '@/types';
 import { db } from '@/lib/firebase';
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { serializeDocs, toDate } from '@/lib/firestore-utils';
+import { collection, query, where, onSnapshot, getDocs } from 'firebase/firestore';
+import { serializeDocs, serializeDoc, toDate } from '@/lib/firestore-utils';
+import styles from './productions.module.css';
 
 export default function ProductionsPage() {
     const { user, loading } = useAuth();
@@ -23,28 +23,40 @@ export default function ProductionsPage() {
         const setupRealtimeListener = async () => {
             if (user) {
                 try {
-                    // 1. Get active production ID once (or we could also watch this if needed)
                     const id = await getActiveProductionId();
                     setActiveId(id);
 
-                    // 2. Set up Firestore listener for productions
                     const productionsRef = collection(db, "productions");
                     const q = query(
                         productionsRef,
                         where("userId", "==", user.uid)
-                        // orderBy("updatedAt", "desc") // Remove to avoid composite index requirement
                     );
 
                     unsubscribe = onSnapshot(q, (snapshot) => {
                         const prods = serializeDocs<Production>(snapshot.docs);
-                        // Manual sort by updatedAt descending
-                        const sortedProds = prods.sort((a, b) => {
-                            const timeA = a.updatedAt ? toDate(a.updatedAt!).getTime() : 0;
-                            const timeB = b.updatedAt ? toDate(b.updatedAt!).getTime() : 0;
-                            return timeB - timeA;
+
+                        // Fetch performances for each production, then update state
+                        Promise.all(
+                            prods.map(async (prod) => {
+                                try {
+                                    const perfsRef = collection(db, "performances");
+                                    const perfsQuery = query(perfsRef, where("productionId", "==", prod.id));
+                                    const perfsSnap = await getDocs(perfsQuery);
+                                    const performances = serializeDocs<Performance>(perfsSnap.docs);
+                                    return { ...prod, performances };
+                                } catch {
+                                    return { ...prod, performances: [] as Performance[] };
+                                }
+                            })
+                        ).then((prodsWithPerfs) => {
+                            const sortedProds = prodsWithPerfs.sort((a, b) => {
+                                const timeA = a.updatedAt ? toDate(a.updatedAt!).getTime() : 0;
+                                const timeB = b.updatedAt ? toDate(b.updatedAt!).getTime() : 0;
+                                return timeB - timeA;
+                            });
+                            setProductions(sortedProds);
+                            setIsInitialLoading(false);
                         });
-                        setProductions(sortedProds);
-                        setIsInitialLoading(false);
                     }, (error) => {
                         console.error("Firestore snapshot error:", error);
                         setIsInitialLoading(false);
@@ -80,25 +92,18 @@ export default function ProductionsPage() {
     }
 
     return (
-        <div className="productions-page">
-            <div className="page-header flex-center" style={{ justifyContent: 'space-between', marginBottom: '2rem' }}>
+        <div className={styles.page}>
+            <div className={styles.pageHeader}>
                 <div>
-                    <div style={{ marginBottom: '1.5rem' }}>
-                        <Link href="/dashboard" className="btn btn-secondary" style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            padding: '0.6rem 1.2rem',
-                            borderRadius: '8px',
-                            fontSize: '0.9rem'
-                        }}>
-                            <span>&larr;</span> ダッシュボードに戻る
-                        </Link>
-                    </div>
-                    <h2 className="heading-lg" style={{ margin: 0 }}>公演一覧・管理</h2>
-                    <p className="text-muted" style={{ marginTop: '0.5rem' }}>操作する公演を選択するか、新しい公演を作成してください。</p>
+                    <Link href="/dashboard" className={`btn btn-secondary ${styles.backLink}`}>
+                        <span>&larr;</span> ダッシュボードに戻る
+                    </Link>
+                    <h2 className={`heading-lg ${styles.pageTitle}`}>公演一覧・管理</h2>
+                    <p className={`text-muted ${styles.pageSubtitle}`}>
+                        操作する公演を選択するか、新しい公演を作成してください。
+                    </p>
                 </div>
-                <Link href="/productions/new" className="btn btn-primary" style={{ padding: '0.8rem 2rem', fontSize: '1.1rem', fontWeight: 'bold' }}>
+                <Link href="/productions/new" className={`btn btn-primary ${styles.createBtn}`}>
                     + 新規公演作成
                 </Link>
             </div>
@@ -106,9 +111,9 @@ export default function ProductionsPage() {
             <ProductionList productions={productions} activeId={activeId} />
 
             {productions.length === 0 && (
-                <div className="empty-state" style={{ textAlign: 'center', padding: '4rem', backgroundColor: 'var(--background-light)', borderRadius: '12px', border: '1px dashed var(--card-border)' }}>
-                    <p className="text-muted" style={{ fontSize: '1.1rem' }}>まだ公演が登録されていません。</p>
-                    <Link href="/productions/new" className="btn btn-primary" style={{ marginTop: '1.5rem' }}>
+                <div className={styles.emptyState}>
+                    <p className={`text-muted ${styles.emptyText}`}>まだ公演が登録されていません。</p>
+                    <Link href="/productions/new" className={`btn btn-primary ${styles.emptyBtn}`}>
                         最初の公演を作成する
                     </Link>
                 </div>
