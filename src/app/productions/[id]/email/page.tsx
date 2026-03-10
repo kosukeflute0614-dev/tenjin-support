@@ -22,9 +22,11 @@ const TARGET_LABELS: Record<string, string> = {
     custom: 'カスタム',
 };
 
-const DEFAULT_CONFIRMATION_TEMPLATE: EmailTemplateData = {
-    subject: 'ご予約完了のお知らせ — {{production_title}}',
-    body: `{{customer_name}} 様
+function getDefaultConfirmationTemplate(hasVenue: boolean): EmailTemplateData {
+    const venueLineConfirm = hasVenue ? '\n会場: {{venue}}' : '';
+    return {
+        subject: 'ご予約完了のお知らせ — {{production_title}}',
+        body: `{{customer_name}} 様
 
 この度は「{{production_title}}」にご予約いただき、誠にありがとうございます。
 
@@ -32,8 +34,7 @@ const DEFAULT_CONFIRMATION_TEMPLATE: EmailTemplateData = {
 
 ━━━━━━━━━━━━━━━━━━
 公演名: {{production_title}}
-公演日時: {{performance_date}}
-会場: {{venue}}
+公演日時: {{performance_date}}${venueLineConfirm}
 
 {{ticket_details}}
 
@@ -50,19 +51,21 @@ const DEFAULT_CONFIRMATION_TEMPLATE: EmailTemplateData = {
 ──────────────────
 ※ このメールは送信専用アドレスから配信しています。
 ※ ご不明な点がございましたら {{organizer_email}} までお問い合わせください。`,
-};
+    };
+}
 
-const DEFAULT_REMINDER_TEMPLATE: EmailTemplateData = {
-    subject: '【明日公演】{{production_title}} ご来場のご案内',
-    timing: 'day_before_18',
-    body: `{{customer_name}} 様
+function getDefaultReminderTemplate(hasVenue: boolean): EmailTemplateData {
+    const venueLineReminder = hasVenue ? '\n会場: {{venue}}' : '';
+    return {
+        subject: '【明日公演】{{production_title}} ご来場のご案内',
+        timing: 'day_before_18',
+        body: `{{customer_name}} 様
 
 いつもありがとうございます。
 明日の「{{production_title}}」公演についてご案内いたします。
 
 ━━━━━━━━━━━━━━━━━━
-公演日時: {{performance_date}}
-会場: {{venue}}
+公演日時: {{performance_date}}${venueLineReminder}
 お席: {{ticket_count}}枚
 ━━━━━━━━━━━━━━━━━━
 
@@ -77,7 +80,8 @@ const DEFAULT_REMINDER_TEMPLATE: EmailTemplateData = {
 ──────────────────
 ※ このメールは送信専用アドレスから配信しています。
 ※ ご不明な点がございましたら {{organizer_email}} までお問い合わせください。`,
-};
+    };
+}
 
 const REMINDER_TIMING_OPTIONS = [
     { value: 'day_before_10', label: '公演前日 10:00' },
@@ -116,8 +120,8 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
     // 自動メール設定
     const [confirmationEnabled, setConfirmationEnabled] = useState(true);
     const [reminderEnabled, setReminderEnabled] = useState(false);
-    const [confirmationTemplate, setConfirmationTemplate] = useState<EmailTemplateData>(DEFAULT_CONFIRMATION_TEMPLATE);
-    const [reminderTemplate, setReminderTemplate] = useState<EmailTemplateData>(DEFAULT_REMINDER_TEMPLATE);
+    const [confirmationTemplate, setConfirmationTemplate] = useState<EmailTemplateData>(getDefaultConfirmationTemplate(true));
+    const [reminderTemplate, setReminderTemplate] = useState<EmailTemplateData>(getDefaultReminderTemplate(true));
 
     // モーダル状態
     const [editingType, setEditingType] = useState<'confirmation' | 'reminder' | null>(null);
@@ -243,14 +247,19 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                     const data = serializeDoc<Production>(docSnap);
                     if (data.userId === user.uid) {
                         setProduction(data);
+                        const hasVenue = !!data.venue?.trim();
                         if (data.emailTemplates?.confirmation) {
                             setConfirmationTemplate(data.emailTemplates.confirmation);
+                        } else {
+                            setConfirmationTemplate(getDefaultConfirmationTemplate(hasVenue));
                         }
                         if (data.emailTemplates?.confirmationEnabled !== undefined) {
                             setConfirmationEnabled(data.emailTemplates.confirmationEnabled);
                         }
                         if (data.emailTemplates?.reminder) {
                             setReminderTemplate(data.emailTemplates.reminder);
+                        } else {
+                            setReminderTemplate(getDefaultReminderTemplate(hasVenue));
                         }
                         if (data.emailTemplates?.reminderEnabled !== undefined) {
                             setReminderEnabled(data.emailTemplates.reminderEnabled);
@@ -379,6 +388,8 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
         );
     }
 
+    const comingSoonTabs = new Set<Tab>(['BROADCAST', 'HISTORY']);
+
     const tabs: { id: Tab; label: string; icon: string }[] = [
         { id: 'AUTO', label: '自動メール', icon: '⚡' },
         { id: 'BROADCAST', label: '一斉送信', icon: '📨' },
@@ -393,9 +404,9 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
             '{{production_title}}': '公演名',
             '{{performance_date}}': '公演日時',
             '{{venue}}': '会場名',
-            '{{ticket_details}}': 'チケット詳細',
+            '{{ticket_details}}': 'チケット詳細（券種名×枚数×金額）',
             '{{total_amount}}': '合計金額',
-            '{{ticket_count}}': 'チケット枚数',
+            '{{ticket_count}}': '合計枚数',
             '{{organizer_name}}': '主催者名',
             '{{organizer_email}}': '主催者メールアドレス',
         };
@@ -438,26 +449,42 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                 overflowX: 'auto',
                 WebkitOverflowScrolling: 'touch',
             }}>
-                {tabs.map((tab) => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        style={{
-                            padding: '0.75rem 1rem',
-                            border: 'none',
-                            background: 'none',
-                            cursor: 'pointer',
-                            fontSize: '0.9rem',
-                            fontWeight: activeTab === tab.id ? '700' : '500',
-                            color: activeTab === tab.id ? 'var(--primary)' : '#666',
-                            borderBottom: activeTab === tab.id ? '3px solid var(--primary)' : '3px solid transparent',
-                            transition: 'all 0.2s',
-                            whiteSpace: 'nowrap',
-                        }}
-                    >
-                        {tab.icon} {tab.label}
-                    </button>
-                ))}
+                {tabs.map((tab) => {
+                    const isComing = comingSoonTabs.has(tab.id);
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => { if (!isComing) setActiveTab(tab.id); }}
+                            disabled={isComing}
+                            style={{
+                                padding: '0.75rem 1rem',
+                                border: 'none',
+                                background: 'none',
+                                cursor: isComing ? 'default' : 'pointer',
+                                fontSize: '0.9rem',
+                                fontWeight: activeTab === tab.id ? '700' : '500',
+                                color: isComing ? '#bbb' : (activeTab === tab.id ? 'var(--primary)' : '#666'),
+                                borderBottom: activeTab === tab.id ? '3px solid var(--primary)' : '3px solid transparent',
+                                transition: 'all 0.2s',
+                                whiteSpace: 'nowrap',
+                                display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                opacity: isComing ? 0.6 : 1,
+                            }}
+                        >
+                            {tab.icon} {tab.label}
+                            {isComing && (
+                                <span style={{
+                                    fontSize: '0.65rem', fontWeight: '600',
+                                    background: '#e0e0e0', color: '#888',
+                                    padding: '0.1rem 0.4rem', borderRadius: '4px',
+                                    lineHeight: '1.4',
+                                }}>
+                                    Coming Soon
+                                </span>
+                            )}
+                        </button>
+                    );
+                })}
             </div>
 
             {/* 自動メールタブ */}
@@ -534,8 +561,23 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                         </div>
                     </div>
 
-                    {/* リマインドメール */}
-                    <div className="card" style={{ padding: '1.5rem' }}>
+                    {/* リマインドメール（Coming Soon） */}
+                    <div className="card" style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
+                        <div style={{
+                            position: 'absolute', inset: 0,
+                            background: 'rgba(255,255,255,0.7)',
+                            zIndex: 1,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                            <span style={{
+                                background: '#f0f0f0', color: '#888',
+                                padding: '0.5rem 1.5rem', borderRadius: '8px',
+                                fontSize: '0.95rem', fontWeight: '700',
+                                border: '1px solid #ddd',
+                            }}>
+                                Coming Soon
+                            </span>
+                        </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                             <div>
                                 <h3 style={{ fontSize: '1.05rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>🔔 リマインドメール</h3>
@@ -543,65 +585,23 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                                     公演前に予約者へ自動送信されるリマインダーです。
                                 </p>
                             </div>
-                            <button
-                                onClick={() => {
-                                    const newVal = !reminderEnabled;
-                                    setReminderEnabled(newVal);
-                                    saveEmailTemplates({ reminderEnabled: newVal });
-                                }}
-                                style={{
-                                    width: '52px', minWidth: '52px', height: '28px', minHeight: '28px', maxHeight: '28px',
-                                    borderRadius: '14px',
-                                    border: 'none', cursor: 'pointer', padding: 0,
-                                    background: reminderEnabled ? 'var(--primary)' : '#ccc',
-                                    position: 'relative', transition: 'background 0.2s', flexShrink: 0,
-                                }}
-                                title={reminderEnabled ? 'ON' : 'OFF'}
-                            >
+                            <div style={{
+                                width: '52px', minWidth: '52px', height: '28px',
+                                borderRadius: '14px', background: '#ccc',
+                                position: 'relative',
+                            }}>
                                 <div style={{
                                     width: '22px', height: '22px', borderRadius: '50%', background: 'var(--card-bg)',
-                                    position: 'absolute', top: '3px',
-                                    left: reminderEnabled ? '27px' : '3px',
-                                    transition: 'left 0.2s',
+                                    position: 'absolute', top: '3px', left: '3px',
                                     boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                                 }} />
-                            </button>
+                            </div>
                         </div>
                         <div style={{
                             background: 'var(--secondary)', borderRadius: '8px', padding: '1rem 1.25rem',
                             fontSize: '0.85rem', color: 'var(--slate-600)', lineHeight: '1.7', border: '1px solid var(--card-border)',
                         }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                <span style={{ fontWeight: 'bold', color: 'var(--foreground)' }}>テンプレート内容</span>
-                                <button
-                                    onClick={() => setEditingType('reminder')}
-                                    style={{
-                                        display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-                                        padding: '0.35rem 0.75rem', border: '1px solid var(--primary)',
-                                        borderRadius: '6px', background: 'var(--card-bg)', cursor: 'pointer',
-                                        fontSize: '0.8rem', color: 'var(--primary)', fontWeight: '600',
-                                        transition: 'all 0.15s',
-                                    }}
-                                    onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--primary)'; e.currentTarget.style.color = '#fff'; }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--card-bg)'; e.currentTarget.style.color = 'var(--primary)'; }}
-                                >
-                                    ✏️ 編集
-                                </button>
-                            </div>
-                            <div style={{ borderLeft: '3px solid var(--primary)', paddingLeft: '0.75rem' }}>
-                                <p style={{ margin: '0 0 0.25rem' }}>
-                                    <span style={{ color: 'var(--slate-500)', fontSize: '0.8rem' }}>件名:</span>{' '}
-                                    {highlightVariables(reminderTemplate.subject)}
-                                </p>
-                                <p style={{ margin: '0 0 0.25rem' }}>
-                                    <span style={{ color: 'var(--slate-500)', fontSize: '0.8rem' }}>送信タイミング:</span>{' '}
-                                    {getTimingLabel(reminderTemplate.timing || '')}
-                                </p>
-                                <p style={{ margin: '0', whiteSpace: 'pre-line' }}>
-                                    <span style={{ color: 'var(--slate-500)', fontSize: '0.8rem' }}>本文:</span>{' '}
-                                    {getBodySummary(reminderTemplate.body)}...
-                                </p>
-                            </div>
+                            <span style={{ fontWeight: 'bold', color: 'var(--foreground)' }}>テンプレート内容</span>
                         </div>
                     </div>
                 </div>
@@ -993,8 +993,10 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                         setEditingType(null);
                     }}
                     onReset={() => {
-                        setConfirmationTemplate(DEFAULT_CONFIRMATION_TEMPLATE);
-                        saveEmailTemplates({ confirmation: DEFAULT_CONFIRMATION_TEMPLATE });
+                        const hasVenue = !!production?.venue?.trim();
+                        const tpl = getDefaultConfirmationTemplate(hasVenue);
+                        setConfirmationTemplate(tpl);
+                        saveEmailTemplates({ confirmation: tpl });
                         setEditingType(null);
                         showToast('予約確認メールをデフォルトに戻しました。', 'success');
                     }}
@@ -1017,8 +1019,10 @@ export default function EmailPage({ params }: { params: Promise<{ id: string }> 
                         setEditingType(null);
                     }}
                     onReset={() => {
-                        setReminderTemplate(DEFAULT_REMINDER_TEMPLATE);
-                        saveEmailTemplates({ reminder: DEFAULT_REMINDER_TEMPLATE });
+                        const hasVenue = !!production?.venue?.trim();
+                        const tpl = getDefaultReminderTemplate(hasVenue);
+                        setReminderTemplate(tpl);
+                        saveEmailTemplates({ reminder: tpl });
                         setEditingType(null);
                         showToast('リマインドメールをデフォルトに戻しました。', 'success');
                     }}

@@ -6,6 +6,7 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { formatDateTime } from '@/lib/format';
 import { FirestoreReservation } from '@/types';
 import { useAuth } from './AuthProvider';
+import styles from './AttendanceStatus.module.css';
 
 type Props = {
     productionId: string;
@@ -86,9 +87,6 @@ export default function AttendanceStatus({ productionId, performances, readOnly 
                 stats.sameDayTickets += count;
             } else {
                 stats.totalReservations += count;
-                // Note: checkedInTickets is per reservation, but we want to distribute it
-                // Logic: If the whole reservation is checked in, all its tickets are checked in.
-                // If partially checked in, we simplify for the breakdown display.
             }
 
             if (stats.ticketTypeBreakdown[ttId]) {
@@ -97,9 +95,6 @@ export default function AttendanceStatus({ productionId, performances, readOnly 
                     stats.ticketTypeBreakdown[ttId].checkedIn += count;
                 } else if (res.checkinStatus === 'CHECKED_IN') {
                     stats.ticketTypeBreakdown[ttId].checkedIn += count;
-                } else if (res.checkedInTickets && res.checkedInTickets > 0) {
-                    // Partial checkin - simplified attribution to first ticket types
-                    // (In reality this is complex with multi-type reservations)
                 }
             }
         });
@@ -114,8 +109,31 @@ export default function AttendanceStatus({ productionId, performances, readOnly 
 
     const [listTab, setListTab] = useState<'not_attended' | 'attended'>('not_attended');
 
+    const capacity = selectedPerf?.capacity || 0;
+    const sameDayRemaining = Math.max(0, capacity - stats.totalReservations - stats.sameDayTickets);
+    const isZero = sameDayRemaining === 0;
+
+    // フィルタ済みリスト
+    const notAttendedList = reservations
+        .filter(r => (r.tickets?.reduce((s, t) => s + (t.count || 0), 0) || 0) > (r.checkedInTickets || 0) && r.source !== 'SAME_DAY')
+        .sort((a, b) => {
+            const nameA = a.customerNameKana || a.customerName || '';
+            const nameB = b.customerNameKana || b.customerName || '';
+            return nameA.localeCompare(nameB, 'ja');
+        });
+
+    const attendedList = reservations
+        .filter(r => (r.checkedInTickets || 0) > 0 || r.source === 'SAME_DAY')
+        .sort((a, b) => {
+            if (a.source === 'PRE_RESERVATION' && b.source === 'SAME_DAY') return -1;
+            if (a.source === 'SAME_DAY' && b.source === 'PRE_RESERVATION') return 1;
+            const nameA = a.customerNameKana || a.customerName || '';
+            const nameB = b.customerNameKana || b.customerName || '';
+            return nameA.localeCompare(nameB, 'ja');
+        });
+
     return (
-        <div style={{ display: 'grid', gap: '2rem' }}>
+        <div className={styles.wrapper}>
             {/* 公演選択 */}
             <div className="form-group">
                 <label className="label">表示する公演回</label>
@@ -137,54 +155,81 @@ export default function AttendanceStatus({ productionId, performances, readOnly 
                 <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>読み込み中...</div>
             ) : (
                 <>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-
-                        {/* 予約総数（左） */}
-                        <div className="card" style={{ padding: '2rem', textAlign: 'center', borderTop: '6px solid #64748b' }}>
-                            <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>事前予約総数</div>
-                            <div style={{ fontSize: '3.5rem', fontWeight: 'bold', color: '#334155', lineHeight: 1 }}>
-                                {stats.totalReservations}
+                    {/* === 統計カード群 === */}
+                    <div className={styles.statsGrid}>
+                        {/* 上段: 予約総数 / 来場合計 / 未着 (スマホ3列) */}
+                        <div className={styles.statsRow1}>
+                            {/* 事前予約総数 */}
+                            <div className={`${styles.statCard} ${styles.borderSlate}`}>
+                                <div className={styles.label}>事前予約総数</div>
+                                <div className={`${styles.value} ${styles.colorSlate}`}>
+                                    {stats.totalReservations}
+                                </div>
+                                <div className={styles.unit}>枚</div>
+                                <div className={styles.sub}>
+                                    定員: {selectedPerf?.capacity || '-'}
+                                </div>
                             </div>
-                            <div style={{ marginTop: '0.5rem', fontSize: '1rem' }}>枚</div>
-                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                                定員: {selectedPerf?.capacity || '-'}
+
+                            {/* 来場人数 (合計) */}
+                            <div className={`${styles.statCard} ${styles.borderSuccess}`}>
+                                <div className={styles.label}>来場人数 (合計)</div>
+                                <div className={`${styles.value} ${styles.colorSuccess}`}>
+                                    {stats.totalCheckedIn}
+                                </div>
+                                <div className={styles.unit}>人</div>
+                                <div className={styles.sub}>
+                                    内 当日券: {stats.sameDayTickets}枚
+                                </div>
+                            </div>
+
+                            {/* 未着 (最重要) */}
+                            <div className={`${styles.statCardPrimary} ${styles.borderPrimary}`}>
+                                <div className={styles.label}>未着 (あと何人)</div>
+                                <div className={`${styles.value} ${styles.colorPrimary}`}>
+                                    {stats.notAttended}
+                                </div>
+                                <div className={styles.unit} style={{ fontWeight: 'bold' }}>人</div>
                             </div>
                         </div>
 
-                        {/* 来場済み（中） */}
-                        <div className="card" style={{ padding: '2rem', textAlign: 'center', borderTop: '6px solid var(--success)' }}>
-                            <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>来場人数 (合計)</div>
-                            <div style={{ fontSize: '3.5rem', fontWeight: 'bold', color: 'var(--success)', lineHeight: 1 }}>
-                                {stats.totalCheckedIn}
+                        {/* 下段: 当日券 発行 / 残り発行可能 (スマホ2列) */}
+                        <div className={styles.statsRow2}>
+                            {/* 当日券 発行枚数 */}
+                            <div className={`${styles.statCard} ${styles.borderAmber}`}>
+                                <div className={styles.label}>当日券 発行枚数</div>
+                                <div className={`${styles.value} ${styles.colorAmber}`}>
+                                    {stats.sameDayTickets}
+                                </div>
+                                <div className={styles.unit}>人</div>
                             </div>
-                            <div style={{ marginTop: '0.5rem', fontSize: '1rem' }}>人</div>
-                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                                (内 当日券: {stats.sameDayTickets}枚)
-                            </div>
-                        </div>
 
-                        {/* 未着（右・最重要） */}
-                        <div className="card" style={{ padding: '2rem', textAlign: 'center', borderTop: '6px solid var(--primary)', background: 'var(--card-bg)' }}>
-                            <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>未着 (あと何人)</div>
-                            <div style={{ fontSize: '4.5rem', fontWeight: '900', color: 'var(--primary)', lineHeight: 1 }}>
-                                {stats.notAttended}
+                            {/* 当日券 残り発行可能 */}
+                            <div className={`${styles.statCard} ${isZero ? styles.borderDanger : styles.borderAmber}`}>
+                                <div className={styles.label}>当日券 残り発行可能</div>
+                                <div className={`${styles.value} ${isZero ? styles.colorDanger : styles.colorAmber}`}>
+                                    {sameDayRemaining}
+                                </div>
+                                <div className={styles.unit}>枚</div>
                             </div>
-                            <div style={{ marginTop: '0.5rem', fontSize: '1.1rem', fontWeight: 'bold' }}>人</div>
                         </div>
                     </div>
 
-                    {/* 券種別内訳 */}
-                    <div className="card" style={{ padding: '1.5rem' }}>
-                        <h4 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--text-muted)' }}>券種別詳細</h4>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
+                    {/* === 券種別内訳 === */}
+                    <div className={styles.breakdownCard}>
+                        <h4>券種別詳細</h4>
+                        <div className={styles.breakdownGrid}>
                             {Object.values(stats.ticketTypeBreakdown).map((tt: any, idx) => (
-                                <div key={idx} style={{ padding: '1rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>{tt.name}</div>
-                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.3rem' }}>
-                                        <span style={{ fontSize: '1.4rem', fontWeight: 'bold' }}>{tt.checkedIn}</span>
-                                        <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>/ {tt.total}</span>
+                                <div key={idx} className={styles.breakdownItem}>
+                                    <div className={styles.ttName}>{tt.name}</div>
+                                    <div className={styles.ttValues}>
+                                        <span className={styles.ttCheckedIn}>{tt.checkedIn}</span>
+                                        <span className={styles.ttTotal}>/ {tt.total}</span>
                                     </div>
-                                    <div style={{ fontSize: '0.8rem', color: tt.total - tt.checkedIn > 0 ? 'var(--primary)' : 'var(--text-muted)', marginTop: '0.2rem' }}>
+                                    <div
+                                        className={styles.ttNotAttended}
+                                        style={{ color: tt.total - tt.checkedIn > 0 ? 'var(--primary)' : 'var(--text-muted)' }}
+                                    >
                                         未着: {tt.total - tt.checkedIn}
                                     </div>
                                 </div>
@@ -192,98 +237,77 @@ export default function AttendanceStatus({ productionId, performances, readOnly 
                         </div>
                     </div>
 
-                    {/* 名前一覧セクション */}
-                    <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-                        <div style={{ display: 'flex', borderBottom: '1px solid var(--card-border)', background: '#f8fafc' }}>
+                    {/* === 名前一覧セクション === */}
+                    <div className={styles.listCard}>
+                        <div className={styles.tabBar}>
                             <button
                                 onClick={() => setListTab('not_attended')}
-                                style={{
-                                    flex: 1, padding: '1rem', border: 'none', background: listTab === 'not_attended' ? 'var(--card-bg)' : 'transparent',
-                                    fontWeight: 'bold', color: listTab === 'not_attended' ? 'var(--primary)' : 'var(--text-muted)',
-                                    borderBottom: listTab === 'not_attended' ? '3px solid var(--primary)' : 'none', cursor: 'pointer'
-                                }}
+                                className={`${styles.tab} ${listTab === 'not_attended' ? styles.tabActivePrimary : ''}`}
                             >
-                                未着者リスト ({reservations.filter(r => (r.tickets?.reduce((s, t) => s + (t.count || 0), 0) || 0) > (r.checkedInTickets || 0) && r.source !== 'SAME_DAY').length}組)
+                                未着者リスト ({notAttendedList.length}組)
                             </button>
                             <button
                                 onClick={() => setListTab('attended')}
-                                style={{
-                                    flex: 1, padding: '1rem', border: 'none', background: listTab === 'attended' ? 'var(--card-bg)' : 'transparent',
-                                    fontWeight: 'bold', color: listTab === 'attended' ? 'var(--success)' : 'var(--text-muted)',
-                                    borderBottom: listTab === 'attended' ? '3px solid var(--success)' : 'none', cursor: 'pointer'
-                                }}
+                                className={`${styles.tab} ${listTab === 'attended' ? styles.tabActiveSuccess : ''}`}
                             >
-                                来場済みリスト ({reservations.filter(r => (r.checkedInTickets || 0) > 0 || r.source === 'SAME_DAY').length}組)
+                                来場済みリスト ({attendedList.length}組)
                             </button>
                         </div>
 
-                        <div style={{ maxHeight: '500px', overflowY: 'auto', padding: '1rem' }}>
+                        <div className={styles.listBody}>
                             {listTab === 'not_attended' ? (
-                                <div style={{ display: 'grid', gap: '0.75rem' }}>
-                                    {reservations
-                                        .filter(r => (r.tickets?.reduce((s, t) => s + (t.count || 0), 0) || 0) > (r.checkedInTickets || 0) && r.source !== 'SAME_DAY')
-                                        .sort((a, b) => {
-                                            // かながあればかなで、なければ名前で比較
-                                            const nameA = a.customerNameKana || a.customerName || '';
-                                            const nameB = b.customerNameKana || b.customerName || '';
-                                            return nameA.localeCompare(nameB, 'ja');
-                                        })
-                                        .map(r => {
-                                            const total = r.tickets?.reduce((s, t) => s + (t.count || 0), 0) || 0;
-                                            const arrived = r.checkedInTickets || 0;
-                                            return (
-                                                <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.8rem 1.2rem', background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: '8px' }}>
-                                                    <div>
-                                                        <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{r.customerName}</span>
-                                                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>様</span>
-                                                        {arrived > 0 && <span style={{ marginLeft: '0.8rem', padding: '2px 8px', background: '#fef3c7', color: '#92400e', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>🟡 一部来場 ({arrived}/{total})</span>}
-                                                    </div>
-                                                    <div style={{ fontWeight: 'bold' }}>{total - arrived} 名 未着</div>
+                                <div className={styles.listItems}>
+                                    {notAttendedList.map(r => {
+                                        const total = r.tickets?.reduce((s, t) => s + (t.count || 0), 0) || 0;
+                                        const arrived = r.checkedInTickets || 0;
+                                        return (
+                                            <div key={r.id} className={styles.listItem}>
+                                                <div>
+                                                    <span className={styles.listItemName}>{r.customerName}</span>
+                                                    <span className={styles.listItemSuffix}>様</span>
+                                                    {arrived > 0 && (
+                                                        <span className={`${styles.listItemBadge} ${styles.badgePartial}`}>
+                                                            一部来場 ({arrived}/{total})
+                                                        </span>
+                                                    )}
                                                 </div>
-                                            );
-                                        })
-                                    }
-                                    {reservations.filter(r => (r.tickets?.reduce((s, t) => s + (t.count || 0), 0) || 0) > (r.checkedInTickets || 0) && r.source !== 'SAME_DAY').length === 0 && (
-                                        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>対象者がいません</div>
+                                                <div className={styles.listItemStatus}>{total - arrived} 名 未着</div>
+                                            </div>
+                                        );
+                                    })}
+                                    {notAttendedList.length === 0 && (
+                                        <div className={styles.emptyMessage}>対象者がいません</div>
                                     )}
                                 </div>
                             ) : (
-                                <div style={{ display: 'grid', gap: '0.75rem' }}>
-                                    {reservations
-                                        .filter(r => (r.checkedInTickets || 0) > 0 || r.source === 'SAME_DAY')
-                                        .sort((a, b) => {
-                                            // 1. source によるソート (PRE_RESERVATION < SAME_DAY)
-                                            if (a.source === 'PRE_RESERVATION' && b.source === 'SAME_DAY') return -1;
-                                            if (a.source === 'SAME_DAY' && b.source === 'PRE_RESERVATION') return 1;
-
-                                            // 2. 名前のあいうえお順
-                                            const nameA = a.customerNameKana || a.customerName || '';
-                                            const nameB = b.customerNameKana || b.customerName || '';
-                                            return nameA.localeCompare(nameB, 'ja');
-                                        })
-                                        .map(r => {
-                                            const total = r.tickets?.reduce((s, t) => s + (t.count || 0), 0) || 0;
-                                            const arrived = r.checkedInTickets || 0;
-                                            const isSameDay = r.source === 'SAME_DAY';
-                                            const isPartial = !isSameDay && arrived < total;
-
-                                            return (
-                                                <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.8rem 1.2rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                                                    <div>
-                                                        <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#475569' }}>{r.customerName || '当日券客'}</span>
-                                                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>様</span>
-                                                        {isSameDay && <span style={{ marginLeft: '0.8rem', padding: '2px 8px', background: '#e2e8f0', color: '#475569', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>当日券</span>}
-                                                        {isPartial && <span style={{ marginLeft: '0.8rem', padding: '2px 8px', background: '#fef3c7', color: '#92400e', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>一部来場</span>}
-                                                    </div>
-                                                    <div style={{ fontWeight: 'bold', color: 'var(--success)' }}>
-                                                        {isSameDay ? total : `${arrived} / ${total}`} 名 入場済
-                                                    </div>
+                                <div className={styles.listItems}>
+                                    {attendedList.map(r => {
+                                        const total = r.tickets?.reduce((s, t) => s + (t.count || 0), 0) || 0;
+                                        const arrived = r.checkedInTickets || 0;
+                                        const isSameDay = r.source === 'SAME_DAY';
+                                        const isPartial = !isSameDay && arrived < total;
+                                        return (
+                                            <div key={r.id} className={styles.listItem} style={{ background: 'var(--slate-50)' }}>
+                                                <div>
+                                                    <span className={styles.listItemName} style={{ color: 'var(--slate-600)' }}>
+                                                        {r.customerName || '当日券客'}
+                                                    </span>
+                                                    <span className={styles.listItemSuffix}>様</span>
+                                                    {isSameDay && (
+                                                        <span className={`${styles.listItemBadge} ${styles.badgeSameDay}`}>当日券</span>
+                                                    )}
+                                                    {isPartial && (
+                                                        <span className={`${styles.listItemBadge} ${styles.badgePartial}`}>一部来場</span>
+                                                    )}
                                                 </div>
-                                            );
-                                        })
-                                    }
-                                    {reservations.filter(r => (r.checkedInTickets || 0) > 0 || r.source === 'SAME_DAY').length === 0 && (
-                                        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>対象者がいません</div>
+                                                <div className={styles.listItemStatus} style={{ color: 'var(--success)' }}>
+                                                    {isSameDay ? total : `${arrived} / ${total}`} 名 入場済
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    {attendedList.length === 0 && (
+                                        <div className={styles.emptyMessage}>対象者がいません</div>
                                     )}
                                 </div>
                             )}
@@ -292,17 +316,8 @@ export default function AttendanceStatus({ productionId, performances, readOnly 
                 </>
             )}
 
-            <div style={{
-                padding: '1rem',
-                backgroundColor: '#f8fafc',
-                borderRadius: '8px',
-                fontSize: '0.85rem',
-                color: 'var(--text-muted)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-            }}>
-                <span style={{ fontSize: '1.2rem' }}>⚡</span>
+            <div className={styles.footer}>
+                <span style={{ fontSize: '1.2rem' }}>&#9889;</span>
                 受付での操作（チェックイン・当日券登録）はリアルタイムにこの画面に反映されます。
             </div>
         </div>

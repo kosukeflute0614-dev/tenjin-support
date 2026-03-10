@@ -339,14 +339,15 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
 
     const reorderBtnStyle = (active: boolean): React.CSSProperties => ({
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        width: '36px', height: '36px', borderRadius: '8px',
+        width: '28px', flex: 1, borderRadius: '6px',
         border: `1px solid ${active ? 'var(--card-border)' : '#f0f0f0'}`,
         background: active ? 'var(--card-bg)' : 'var(--secondary)',
-        fontSize: '0.75rem',
+        fontSize: '0.65rem',
         cursor: active ? 'pointer' : 'default',
         color: active ? 'var(--text-muted)' : '#ddd',
         transition: 'all 0.15s',
         boxShadow: active ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+        padding: 0,
     });
 
     const dragHandleStyle: React.CSSProperties = {
@@ -384,7 +385,7 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                         <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--foreground)', margin: 0 }}>フォーム項目の設定</h3>
                         <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)', marginLeft: 'auto' }}>{fields.filter(f => f.enabled).length} 項目</span>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         {(() => {
                             // ブロック単位でレンダリング（フォロワーはスキップ）
                             const blocks: { leaderId: string; fields: FormField[] }[] = [];
@@ -415,12 +416,12 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                 return (
                                     <div
                                         key={block.leaderId}
-                                        style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}
+                                        style={{ display: 'flex', gap: '0.4rem', alignItems: 'stretch' }}
                                     >
                                         {/* 並べ替えボタン（カード左横） */}
                                         <div style={{
-                                            display: 'flex', flexDirection: 'column', gap: '4px',
-                                            justifyContent: 'center', flexShrink: 0,
+                                            display: 'flex', flexDirection: 'column', gap: '2px',
+                                            flexShrink: 0, width: '28px',
                                         }}>
                                             <button
                                                 className="form-editor-move-btn"
@@ -452,13 +453,17 @@ export default function FormEditorPage({ params }: { params: Promise<{ id: strin
                                             opacity: isDragging ? 0.7 : 1,
                                             transition: 'background 0.15s, opacity 0.15s',
                                             overflow: 'hidden',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            minHeight: '58px',
                                         }}
                                     >
                                         {/* 共通ヘッダー行 */}
                                         <div style={{
                                             display: 'flex', alignItems: 'center', gap: '0.35rem',
-                                            padding: '3px 0.6rem',
+                                            padding: '0.45rem 0.6rem',
                                             background: 'var(--secondary)',
+                                            flex: 1,
                                         }}>
                                             <span style={dragHandleStyle} title="ドラッグで並び替え">⠿</span>
 

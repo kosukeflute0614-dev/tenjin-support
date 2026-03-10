@@ -4,9 +4,9 @@ export const TEMPLATE_VARIABLES = [
     { key: '{{production_title}}', label: '公演名', icon: '🎭', description: '公演のタイトル' },
     { key: '{{performance_date}}', label: '公演日時', icon: '📅', description: '開演の日付と時刻' },
     { key: '{{venue}}', label: '会場名', icon: '📍', description: '会場の名前' },
-    { key: '{{ticket_details}}', label: 'チケット詳細', icon: '🎫', description: '券種・枚数・金額の一覧' },
+    { key: '{{ticket_details}}', label: 'チケット詳細（券種名×枚数×金額）', icon: '🎫', description: '券種ごとの名前・枚数・金額の一覧' },
     { key: '{{total_amount}}', label: '合計金額', icon: '💰', description: '予約の合計金額' },
-    { key: '{{ticket_count}}', label: 'チケット枚数', icon: '🔖', description: '予約のチケット総枚数' },
+    { key: '{{ticket_count}}', label: '合計枚数', icon: '🔖', description: '予約のチケット総枚数' },
     { key: '{{organizer_name}}', label: '主催者名', icon: '🏢', description: '主催者・劇団名' },
     { key: '{{organizer_email}}', label: '主催者メールアドレス', icon: '📧', description: '主催者の問い合わせ先メールアドレス' },
 ] as const;

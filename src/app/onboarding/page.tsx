@@ -35,8 +35,9 @@ export default function OnboardingPage() {
     const [invitationCode, setInvitationCode] = useState('');
     const [invitationError, setInvitationError] = useState('');
 
-    // Step 2: 公演タイトル
+    // Step 2: 公演タイトル + 会場名
     const [title, setTitle] = useState('');
+    const [venue, setVenue] = useState('');
 
     // Step 3: 公演日時
     const [performances, setPerformances] = useState<PerformanceEntry[]>([
@@ -143,12 +144,15 @@ export default function OnboardingPage() {
                 await addPerformanceClient(productionId, startTime, perf.capacity, user.uid);
             }
 
-            // 5. 主催者メールアドレスをデフォルト設定
-            if (user.email) {
+            // 5. 主催者メールアドレス・会場名をデフォルト設定
+            {
                 const { updateProductionBasicInfoClient } = await import('@/lib/client-firestore');
-                await updateProductionBasicInfoClient(productionId, {
-                    organizerEmail: user.email,
-                });
+                const basicInfo: { organizerEmail?: string; venue?: string } = {};
+                if (user.email) basicInfo.organizerEmail = user.email;
+                if (venue.trim()) basicInfo.venue = venue.trim();
+                if (Object.keys(basicInfo).length > 0) {
+                    await updateProductionBasicInfoClient(productionId, basicInfo);
+                }
             }
 
             // 6. プロフィールをリフレッシュしてからリダイレクト
@@ -300,6 +304,23 @@ export default function OnboardingPage() {
                             autoFocus
                             style={{ fontSize: '1.1rem', padding: '0.85rem 1rem' }}
                         />
+
+                        <div style={{ marginTop: '2rem' }}>
+                            <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--foreground)', display: 'block', marginBottom: '0.4rem' }}>
+                                会場名 <span style={{ color: 'var(--text-muted)', fontWeight: '400', fontSize: '0.8rem' }}>(任意)</span>
+                            </label>
+                            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                                未定の場合はスキップできます。後から設定・変更もできます。
+                            </p>
+                            <input
+                                type="text"
+                                className="input"
+                                value={venue}
+                                onChange={(e) => setVenue(e.target.value)}
+                                placeholder='例: 天神ホール'
+                                style={{ fontSize: '1.1rem', padding: '0.85rem 1rem' }}
+                            />
+                        </div>
                     </div>
                 )}
 

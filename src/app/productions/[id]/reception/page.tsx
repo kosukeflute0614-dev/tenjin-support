@@ -82,6 +82,51 @@ export default function ReceptionPage({ params }: { params: Promise<{ id: string
             />
 
             <ActorUrlManager production={production} />
+
+            {/* 関連する設定 */}
+            <div style={{ marginTop: '2.5rem' }}>
+                <h3 style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                    関連する設定
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem' }}>
+                    <Link
+                        href={`/productions/${production.id}/email`}
+                        style={{
+                            display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
+                            padding: '1rem 1.25rem', borderRadius: '10px',
+                            background: 'var(--secondary)', border: '1px solid var(--card-border)',
+                            textDecoration: 'none', color: 'inherit',
+                            transition: 'border-color 0.15s, box-shadow 0.15s',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--card-border)'; e.currentTarget.style.boxShadow = 'none'; }}
+                    >
+                        <span style={{ fontSize: '1.3rem', lineHeight: 1, flexShrink: 0, marginTop: '0.1rem' }}>📩</span>
+                        <div>
+                            <div style={{ fontWeight: '600', fontSize: '0.9rem', marginBottom: '0.25rem' }}>自動メール設定</div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>予約確認メールのテンプレートを編集</div>
+                        </div>
+                    </Link>
+                    <Link
+                        href={`/productions/${production.id}/form-editor`}
+                        style={{
+                            display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
+                            padding: '1rem 1.25rem', borderRadius: '10px',
+                            background: 'var(--secondary)', border: '1px solid var(--card-border)',
+                            textDecoration: 'none', color: 'inherit',
+                            transition: 'border-color 0.15s, box-shadow 0.15s',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--card-border)'; e.currentTarget.style.boxShadow = 'none'; }}
+                    >
+                        <span style={{ fontSize: '1.3rem', lineHeight: 1, flexShrink: 0, marginTop: '0.1rem' }}>📝</span>
+                        <div>
+                            <div style={{ fontWeight: '600', fontSize: '0.9rem', marginBottom: '0.25rem' }}>予約フォーム設定</div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>フォームの項目や表示をカスタマイズ</div>
+                        </div>
+                    </Link>
+                </div>
+            </div>
         </div>
     );
 }

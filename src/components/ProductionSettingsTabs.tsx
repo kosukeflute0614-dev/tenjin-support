@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import PerformanceManager from './PerformanceManager';
 import TicketTypeManager from './TicketTypeManager';
 
@@ -24,7 +25,12 @@ export default function ProductionSettingsTabs({
     userEmail: string;
 }) {
     const { showToast } = useToast();
-    const [activeTab, setActiveTab] = useState<TabType>('schedule');
+    const searchParams = useSearchParams();
+    const [activeTab, setActiveTab] = useState<TabType>(() => {
+        const tab = searchParams.get('tab');
+        if (tab === 'tickets' || tab === 'basic' || tab === 'schedule') return tab;
+        return 'schedule';
+    });
     const [customId, setCustomId] = useState(production.customId || '');
     const [isSaving, setIsSaving] = useState(false);
     const [baseUrl, setBaseUrl] = useState('');
