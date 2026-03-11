@@ -1,4 +1,4 @@
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { collection, doc, getDoc, getDocs, query, where, addDoc, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { Production, Performance, FormFieldConfig } from '@/types';
 import { serializeDocs, toDate } from '@/lib/firestore-utils';
@@ -67,11 +67,27 @@ export async function fetchProductionDetailsClient(
             ...(userId ? { staffTokens: rawData.staffTokens || {} } : {}),
             userId: rawData.userId || '',
             formFields: rawData.formFields || undefined,
+            organizerEmail: rawData.organizerEmail || undefined,
             // 物販関連
             merchandiseMode: rawData.merchandiseMode || undefined,
             merchandiseInventoryEnabled: rawData.merchandiseInventoryEnabled || false,
             merchandiseSets: rawData.merchandiseSets || undefined,
         } as Production;
+
+        // organizerEmail 未設定の公演に、オーナーのメールアドレスを自動補完（マイグレーション）
+        // userId が渡された場合（主催者アクセス）のみ実行。公開フォームからは走らない。
+        if (userId && !rawData.organizerEmail) {
+            const currentUser = auth.currentUser;
+            if (currentUser?.email) {
+                try {
+                    const prodDocRef = doc(db, "productions", docSnap.id);
+                    await updateDoc(prodDocRef, { organizerEmail: currentUser.email });
+                    production.organizerEmail = currentUser.email;
+                } catch (e) {
+                    console.warn("[client-firestore] organizerEmail auto-fill failed:", e);
+                }
+            }
+        }
 
         // 公演回の取得
         const realId = docSnap.id;

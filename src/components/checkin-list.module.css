@@ -1,0 +1,298 @@
+/* ===== CheckinList モバイル最適化 ===== */
+
+/* モーダル内2カラムレイアウト */
+.modalColumns {
+  display: flex;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .modalColumns {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+/* モーダル右サイドバー */
+.modalSidebar {
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .modalSidebar {
+    width: 100%;
+  }
+}
+
+/* モーダル右カラム（一部入場・取消用） */
+.modalSidebarNarrow {
+  width: 240px;
+}
+
+@media (max-width: 768px) {
+  .modalSidebarNarrow {
+    width: 100%;
+  }
+}
+
+/* モーダル固定フッター */
+.modalFooter {
+  position: absolute;
+  bottom: -1.5rem;
+  right: -1.5rem;
+  left: -1.5rem;
+  padding: 1rem 1.5rem;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--card-border);
+  display: flex;
+  justify-content: flex-end;
+  border-radius: 0 0 12px 12px;
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .modalFooter {
+    position: sticky;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    border-radius: 0;
+    padding: 0.75rem 1rem;
+  }
+}
+
+.modalFooterWithGap {
+  composes: modalFooter;
+  gap: 1rem;
+}
+
+/* メインアクションボタン */
+.actionBtnLarge {
+  min-width: 240px;
+  padding: 1.2rem 2.5rem;
+  font-size: 1.25rem;
+  font-weight: bold;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(var(--primary-rgb), 0.4);
+}
+
+@media (max-width: 768px) {
+  .actionBtnLarge {
+    min-width: 0;
+    width: 100%;
+    padding: 1rem 1.5rem;
+    font-size: 1.1rem;
+  }
+}
+
+/* NumberStepper コンテナ */
+.stepperContainer {
+  width: 160px;
+}
+
+.stepperContainerSmall {
+  width: 150px;
+}
+
+@media (max-width: 768px) {
+  .stepperContainer {
+    width: 140px;
+  }
+  .stepperContainerSmall {
+    width: 130px;
+  }
+}
+
+/* ===== 電卓: デスクトップ ポップオーバー ===== */
+.calcAnchor {
+  position: relative;
+}
+
+.calcPopover {
+  display: none;
+  position: fixed;
+  width: 280px;
+  background: var(--card-bg);
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  z-index: 200;
+  padding: 0.75rem 1rem;
+}
+
+@media (min-width: 769px) {
+  .calcPopover {
+    display: block;
+  }
+}
+
+/* ===== 電卓: モバイル オーバーレイ (ボトムシート) ===== */
+.calcOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+@media (min-width: 769px) {
+  .calcOverlay {
+    display: none;
+  }
+}
+
+.calcPanel {
+  background: var(--card-bg);
+  border-radius: 16px 16px 0 0;
+  padding: 1rem 1.25rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  width: 100%;
+  max-width: 400px;
+  animation: slideUp 0.2s;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* ===== その他の操作アコーディオン ===== */
+.moreActionsToggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: var(--text-muted);
+  width: 100%;
+}
+
+.moreActionsToggle:hover {
+  color: var(--foreground);
+}
+
+.moreActionsPanel {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.25s ease, opacity 0.2s ease, margin 0.25s ease;
+  margin-top: 0;
+}
+
+.moreActionsPanelOpen {
+  max-height: 200px;
+  opacity: 1;
+  margin-top: 0.5rem;
+}
+
+.moreActionsCard {
+  background: var(--secondary);
+  border-radius: 10px;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.moreActionsBtn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--foreground);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  transition: background 0.15s, border-color 0.15s;
+  min-height: 48px;
+}
+
+.moreActionsBtn:hover {
+  background: #f0f0f0;
+  border-color: #ccc;
+}
+
+.moreActionsBtn:active {
+  background: #e8e8e8;
+}
+
+.moreActionsBtnDanger {
+  composes: moreActionsBtn;
+  color: var(--accent);
+  border-color: rgba(220, 53, 69, 0.2);
+}
+
+.moreActionsBtnDanger:hover {
+  background: rgba(220, 53, 69, 0.05);
+  border-color: rgba(220, 53, 69, 0.3);
+}
+
+/* 全員入場済み時の取り消しボタン（直接表示） */
+.resetBtn {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  font-size: 0.95rem;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--foreground);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.resetBtn:hover {
+  background: #f0f0f0;
+  border-color: #ccc;
+}
+
+/* ===== ダークモード ===== */
+@media (prefers-color-scheme: dark) {
+  .modalFooter {
+    background: rgba(30, 30, 30, 0.9);
+  }
+
+  .moreActionsBtn:hover,
+  .resetBtn:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .moreActionsBtnDanger:hover {
+    background: rgba(220, 53, 69, 0.1);
+  }
+
+  .calcPopover {
+    background: var(--card-bg);
+    border-color: var(--card-border);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  }
+
+  .calcPanel {
+    background: var(--card-bg);
+  }
+}

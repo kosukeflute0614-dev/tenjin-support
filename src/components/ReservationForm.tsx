@@ -231,6 +231,7 @@ export default function ReservationForm({ productions }: Props) {
                                             min="0"
                                             value={ticketCounts[ticket.id] || 0}
                                             onChange={(e) => handleTicketChange(ticket.id, parseInt(e.target.value) || 0)}
+                                            onFocus={(e) => e.target.select()}
                                             className="input"
                                             style={{ width: '80px', textAlign: 'right' }}
                                         />

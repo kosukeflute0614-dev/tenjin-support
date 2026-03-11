@@ -199,6 +199,7 @@ export default function MerchandiseProductForm({
                                     min={0}
                                     value={price}
                                     onChange={(e) => setPrice(Number(e.target.value))}
+                                    onFocus={(e) => e.target.select()}
                                     required
                                 />
                             </div>
@@ -261,6 +262,7 @@ export default function MerchandiseProductForm({
                                                         min={0}
                                                         placeholder="在庫"
                                                         value={v.stock}
+                                                        onFocus={(e) => e.target.select()}
                                                         onChange={(e) =>
                                                             updateVariant(v.id, {
                                                                 stock: Number(e.target.value),
@@ -315,6 +317,7 @@ export default function MerchandiseProductForm({
                                         min={0}
                                         value={stock}
                                         onChange={(e) => setStock(Number(e.target.value))}
+                                        onFocus={(e) => e.target.select()}
                                     />
                                 </div>
                             </div>

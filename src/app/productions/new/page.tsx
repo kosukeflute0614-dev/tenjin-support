@@ -345,6 +345,7 @@ export default function NewProductionPage() {
                                                 className="input"
                                                 value={perf.capacity}
                                                 onChange={(e) => updatePerformance(perf.id, 'capacity', Math.max(1, parseInt(e.target.value) || 1))}
+                                                onFocus={(e) => e.target.select()}
                                                 min={1}
                                                 style={{ height: '50px', marginBottom: 0 }}
                                             />
@@ -430,6 +431,7 @@ export default function NewProductionPage() {
                                                 className="input"
                                                 value={ticket.advancePrice}
                                                 onChange={(e) => updateTicket(ticket.id, 'advancePrice', Math.max(0, parseInt(e.target.value) || 0))}
+                                                onFocus={(e) => e.target.select()}
                                                 min={0}
                                                 style={{ marginBottom: 0 }}
                                             />
@@ -443,6 +445,7 @@ export default function NewProductionPage() {
                                                 className="input"
                                                 value={ticket.doorPrice}
                                                 onChange={(e) => updateTicket(ticket.id, 'doorPrice', Math.max(0, parseInt(e.target.value) || 0))}
+                                                onFocus={(e) => e.target.select()}
                                                 min={0}
                                                 style={{ marginBottom: 0 }}
                                             />

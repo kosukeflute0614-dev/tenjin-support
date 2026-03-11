@@ -274,6 +274,7 @@ export default function PublicReservationForm({ production, promoterId }: Props)
                                     min="0" max="10"
                                     value={ticketCounts[ticket.id] || 0}
                                     onChange={(e) => handleTicketChange(ticket.id, parseInt(e.target.value) || 0)}
+                                    onFocus={(e) => e.target.select()}
                                     className="input"
                                     style={{ width: '70px', textAlign: 'right', marginBottom: 0 }}
                                 />
@@ -415,6 +416,26 @@ export default function PublicReservationForm({ production, promoterId }: Props)
         }
     };
 
+    // --- 問い合わせフッター ---
+    const contactFooter = production.organizerEmail ? (
+        <p style={{
+            textAlign: 'center',
+            fontSize: '0.8rem',
+            color: 'var(--text-muted)',
+            marginTop: '2rem',
+            lineHeight: '1.8',
+        }}>
+            ご予約がうまくできない場合やメールが届かない場合は、<br />
+            <a
+                href={`mailto:${production.organizerEmail}`}
+                style={{ fontWeight: 600, color: 'var(--text-muted)' }}
+            >
+                {production.organizerEmail}
+            </a>
+            {' '}までお気軽にお問い合わせください。
+        </p>
+    ) : null;
+
     // --- ステップ表示 ---
 
     const stepIndicator = (
@@ -444,20 +465,25 @@ export default function PublicReservationForm({ production, promoterId }: Props)
 
     if (step === 'success') {
         return (
-            <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
-                {stepIndicator}
-                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🎉</div>
-                <h2 className="heading-md" style={{ color: 'var(--success)', marginBottom: '1rem' }}>予約を承りました</h2>
-                <p style={{ marginBottom: '2rem', lineHeight: '1.8' }}>
-                    ご予約ありがとうございます。<br />
-                    入力いただいたメールアドレスに確認メールを送信しましたので、順次ご確認ください。
-                </p>
-                <div style={{ borderTop: '1px solid var(--card-border)', paddingTop: '1.5rem' }}>
-                    <p className="text-muted" style={{ fontSize: '0.9rem' }}>
-                        ※メールが届かない場合は、迷惑メールフォルダをご確認いただくか、主催者までお問い合わせください。
+            <>
+                <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
+                    {stepIndicator}
+                    <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🎉</div>
+                    <h2 className="heading-md" style={{ color: 'var(--success)', marginBottom: '1rem' }}>予約を承りました</h2>
+                    <p style={{ marginBottom: '2rem', lineHeight: '1.8' }}>
+                        ご予約ありがとうございます。<br />
+                        入力いただいたメールアドレスに確認メールを送信しましたので、順次ご確認ください。
                     </p>
+                    <div style={{ borderTop: '1px solid var(--card-border)', paddingTop: '1.5rem' }}>
+                        <p className="text-muted" style={{ fontSize: '0.9rem' }}>
+                            ※メールが届かない場合は、迷惑メールフォルダをご確認いただくか、{production.organizerEmail
+                                ? <a href={`mailto:${production.organizerEmail}`} style={{ color: 'inherit', fontWeight: 600 }}>{production.organizerEmail}</a>
+                                : '主催者'}までお問い合わせください。
+                        </p>
+                    </div>
                 </div>
-            </div>
+                {contactFooter}
+            </>
         );
     }
 
@@ -470,6 +496,7 @@ export default function PublicReservationForm({ production, promoterId }: Props)
         });
 
         return (
+            <>
             <div className="card" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
                 {stepIndicator}
                 <h2 className="heading-md" style={{ textAlign: 'center', marginBottom: '2rem', color: 'var(--primary)' }}>
@@ -551,10 +578,13 @@ export default function PublicReservationForm({ production, promoterId }: Props)
                     </button>
                 </div>
             </div>
+            {contactFooter}
+            </>
         );
     }
 
     return (
+        <>
         <form onSubmit={handleToConfirm} className="card" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
             <input type="hidden" name="productionId" value={production.id} />
 
@@ -585,5 +615,7 @@ export default function PublicReservationForm({ production, promoterId }: Props)
                 </p>
             </div>
         </form>
+        {contactFooter}
+        </>
     );
 }

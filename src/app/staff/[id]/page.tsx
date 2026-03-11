@@ -43,6 +43,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
     const [merchActiveTab, setMerchActiveTab] = useState<'SALES' | 'CASH_CLOSE'>('SALES');
     const [merchProducts, setMerchProducts] = useState<MerchandiseProduct[]>([]);
     const [merchSalesTotal, setMerchSalesTotal] = useState<number>(0);
+    const [otherReservations, setOtherReservations] = useState<FirestoreReservation[]>([]);
 
     // Firestore 側のセッション同期用
     const syncStaffSessionToFirestore = async (uid: string, passcodeHashed: string) => {
@@ -207,6 +208,38 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
 
         return () => unsubMerch();
     }, [isAuthenticated, needsMerch, role, selectedPerformanceId, resolvedProductionId, productionId, production?.userId]);
+
+    // 他の回の予約を検索（debounce付き、受付ロール用）
+    useEffect(() => {
+        if (!searchTerm || !isAuthenticated || !selectedPerformanceId || !production) {
+            setOtherReservations([]);
+            return;
+        }
+        const currentProdId = resolvedProductionId || productionId;
+        const timer = setTimeout(async () => {
+            try {
+                const resQuery = query(
+                    collection(db, 'reservations'),
+                    where('productionId', '==', currentProdId)
+                );
+                const snap = await getDocs(resQuery);
+                const allRes = serializeDocs<FirestoreReservation>(snap.docs)
+                    .filter(r => r.status !== 'CANCELED')
+                    .filter(r => r.performanceId !== selectedPerformanceId)
+                    .map(r => ({
+                        ...r,
+                        tickets: (r.tickets || []).map((t: any) => ({
+                            ...t,
+                            ticketType: production?.ticketTypes?.find((tt: any) => tt.id === t.ticketTypeId) || { name: '不明な券種', price: t.price || 0 }
+                        }))
+                    }));
+                setOtherReservations(allRes);
+            } catch (err) {
+                console.error('Failed to load other reservations:', err);
+            }
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchTerm, isAuthenticated, selectedPerformanceId, resolvedProductionId, productionId, production]);
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -390,50 +423,37 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
     // モニターロール: 来場状況確認画面（読み取り専用）
     if (role === 'monitor') {
         return (
-            <div style={{ backgroundColor: '#f4f7f6', minHeight: '100vh', paddingBottom: '4rem' }}>
-                <header style={{ backgroundColor: 'var(--card-bg)', padding: '1rem 0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', position: 'sticky', top: 0, zIndex: 100, borderBottom: '1px solid var(--card-border)' }}>
-                    <div className="container" style={{ maxWidth: '1000px' }}>
-                        <div style={{ marginBottom: '1rem' }}>
-                            <button
-                                onClick={() => setSelectedPerformanceId(null)}
-                                className="btn btn-secondary"
-                                style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', borderRadius: '8px' }}
-                            >
-                                &larr; 公演回の選択に戻る
-                            </button>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-                            <div>
-                                <div style={{ marginBottom: '0.5rem' }}>
-                                    <span style={{ background: '#f3e8ff', color: 'var(--primary)', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                                        📺 モニター（読み取り専用）
-                                    </span>
-                                </div>
-                                <div style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
-                                    公演：{production?.title}
-                                </div>
-                                <h1 style={{ fontSize: '1.8rem', fontWeight: '900', margin: 0, color: 'var(--primary)', lineHeight: '1.2' }}>
-                                    {perfDateStr} {perfTimeStr}
-                                </h1>
+            <div className="container" style={{ maxWidth: '1000px', paddingBottom: '2rem' }}>
+                <header className="checkin-header">
+                    <button
+                        onClick={() => setSelectedPerformanceId(null)}
+                        className="btn btn-secondary checkin-header-back"
+                    >
+                        &larr; 公演回の選択に戻る
+                    </button>
+
+                    <div className="checkin-header-content">
+                        <div className="checkin-header-info">
+                            <div style={{ marginBottom: '0.5rem' }}>
+                                <span style={{ background: '#f3e8ff', color: 'var(--primary)', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                    モニター（読み取り専用）
+                                </span>
                             </div>
+                            <div style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                                公演：{production?.title}
+                            </div>
+                            <h2 className="checkin-header-date">
+                                {perfDateStr} {perfTimeStr}
+                            </h2>
                         </div>
                     </div>
                 </header>
 
-                <main className="container" style={{ maxWidth: '1000px', marginTop: '2rem' }}>
-                    <AttendanceStatus
-                        productionId={resolvedProductionId || productionId}
-                        performances={production?.performances || []}
-                        readOnly={true}
-                    />
-                </main>
-
-                <style jsx>{`
-                    .container {
-                        padding-left: 1.5rem;
-                        padding-right: 1.5rem;
-                    }
-                `}</style>
+                <AttendanceStatus
+                    productionId={resolvedProductionId || productionId}
+                    performances={production?.performances || []}
+                    readOnly={true}
+                />
             </div>
         );
     }
@@ -441,62 +461,56 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
     // 物販ロール: 物販スタッフUI
     if (role === 'merchandise') {
         return (
-            <div style={{ backgroundColor: '#f4f7f6', minHeight: '100vh', paddingBottom: '5rem' }}>
-                <header style={{ backgroundColor: 'var(--card-bg)', padding: '1rem 0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', position: 'sticky', top: 0, zIndex: 100, borderBottom: '1px solid var(--card-border)' }}>
-                    <div className="container" style={{ maxWidth: '1000px' }}>
-                        <div style={{ marginBottom: '1rem' }}>
-                            <button
-                                onClick={() => setSelectedPerformanceId(null)}
-                                className="btn btn-secondary"
-                                style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', borderRadius: '8px' }}
-                            >
-                                &larr; 公演回の選択に戻る
-                            </button>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-                            <div>
-                                <div style={{ marginBottom: '0.5rem' }}>
-                                    <span style={{ background: '#fef3c7', color: '#92400e', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                                        🛍️ 物販スタッフ
-                                    </span>
-                                </div>
-                                <div style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
-                                    公演：{production?.title}
-                                </div>
-                                <h1 style={{ fontSize: '1.8rem', fontWeight: '900', margin: 0, color: 'var(--primary)', lineHeight: '1.2' }}>
-                                    {perfDateStr} {perfTimeStr}
-                                </h1>
+            <div className="container" style={{ maxWidth: '1000px', paddingBottom: 'calc(72px + env(safe-area-inset-bottom) + 1rem)' }}>
+                <header className="checkin-header">
+                    <button
+                        onClick={() => setSelectedPerformanceId(null)}
+                        className="btn btn-secondary checkin-header-back"
+                    >
+                        &larr; 公演回の選択に戻る
+                    </button>
+
+                    <div className="checkin-header-content">
+                        <div className="checkin-header-info">
+                            <div style={{ marginBottom: '0.5rem' }}>
+                                <span style={{ background: '#fef3c7', color: '#92400e', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                    物販スタッフ
+                                </span>
                             </div>
+                            <div style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                                公演：{production?.title}
+                            </div>
+                            <h2 className="checkin-header-date">
+                                {perfDateStr} {perfTimeStr}
+                            </h2>
                         </div>
                     </div>
                 </header>
 
-                <main className="container" style={{ maxWidth: '1000px', marginTop: '2rem' }}>
-                    {merchActiveTab === 'SALES' ? (
-                        <MerchandiseSalesForm
-                            products={merchProducts}
-                            sets={production?.merchandiseSets || []}
-                            productionId={resolvedProductionId || productionId}
-                            performanceId={selectedPerformanceId}
-                            userId={production?.userId || ''}
-                            soldBy={auth.currentUser?.uid || ''}
-                            soldByType="STAFF"
-                        />
-                    ) : (
-                        <CashCloseForm
-                            productionId={resolvedProductionId || productionId}
-                            performanceId={selectedPerformanceId}
-                            userId={production?.userId || ''}
-                            closedByType="STAFF"
-                            closedBy={auth.currentUser?.uid || ''}
-                            hideHistory
-                            expectedSalesOverride={merchSalesTotal}
-                            merchandiseSales={merchSalesTotal}
-                            inventoryEnabled={production?.merchandiseInventoryEnabled ?? false}
-                            merchProducts={merchProducts}
-                        />
-                    )}
-                </main>
+                {merchActiveTab === 'SALES' ? (
+                    <MerchandiseSalesForm
+                        products={merchProducts}
+                        sets={production?.merchandiseSets || []}
+                        productionId={resolvedProductionId || productionId}
+                        performanceId={selectedPerformanceId}
+                        userId={production?.userId || ''}
+                        soldBy={auth.currentUser?.uid || ''}
+                        soldByType="STAFF"
+                    />
+                ) : (
+                    <CashCloseForm
+                        productionId={resolvedProductionId || productionId}
+                        performanceId={selectedPerformanceId}
+                        userId={production?.userId || ''}
+                        closedByType="STAFF"
+                        closedBy={auth.currentUser?.uid || ''}
+                        hideHistory
+                        expectedSalesOverride={merchSalesTotal}
+                        merchandiseSales={merchSalesTotal}
+                        inventoryEnabled={production?.merchandiseInventoryEnabled ?? false}
+                        merchProducts={merchProducts}
+                    />
+                )}
 
                 <BottomNav
                     items={[
@@ -506,13 +520,6 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                     activeId={merchActiveTab}
                     onSelect={(id) => setMerchActiveTab(id as typeof merchActiveTab)}
                 />
-
-                <style jsx>{`
-                    .container {
-                        padding-left: 1.5rem;
-                        padding-right: 1.5rem;
-                    }
-                `}</style>
             </div>
         );
     }
@@ -522,27 +529,48 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
     const uncheckedCount = stats.total - stats.checkedIn;
     const receptionTicketSalesTotal = reservations.reduce((sum, r) => sum + (r.paidAmount || 0), 0);
 
+    // 他の回の検索結果（検索語がある場合のみ）
+    const otherPerformanceResults = (() => {
+        if (!searchTerm || otherReservations.length === 0) return [];
+        const term = searchTerm.toLowerCase();
+        const allPerfs = production?.performances || [];
+        const matched = otherReservations
+            .filter(r => r.checkinStatus !== 'CHECKED_IN')
+            .filter(r =>
+                r.customerName.toLowerCase().includes(term) ||
+                (r.customerNameKana || '').includes(searchTerm)
+            );
+        if (matched.length === 0) return [];
+
+        // performanceId ごとにグルーピング
+        const grouped: { [perfId: string]: FirestoreReservation[] } = {};
+        matched.forEach(r => {
+            if (!grouped[r.performanceId]) grouped[r.performanceId] = [];
+            grouped[r.performanceId].push(r);
+        });
+
+        return Object.entries(grouped)
+            .map(([perfId, resArr]) => {
+                const perf = allPerfs.find((p: any) => p.id === perfId);
+                const perfDate = perf?.startTime ? toDate(perf.startTime) : null;
+                return { perfId, perf, perfDate, reservations: resArr };
+            })
+            .filter(g => g.perf)
+            .sort((a, b) => (b.perfDate?.getTime() || 0) - (a.perfDate?.getTime() || 0));
+    })();
+
     return (
-        <div className="container" style={{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom) + 1rem)', maxWidth: activeTab === 'MERCHANDISE' ? '1200px' : '1000px' }}>
-            <header style={{
-                marginBottom: '2rem',
-                borderBottom: '1px solid var(--card-border)',
-                padding: '1rem 0',
-                position: 'sticky',
-                top: 0,
-                backgroundColor: 'var(--card-bg)',
-                zIndex: 100
-            }}>
+        <div className="container" style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom) + 1rem)', maxWidth: activeTab === 'MERCHANDISE' ? '1200px' : '1000px' }}>
+            <header className="checkin-header">
                 <button
                     onClick={() => setSelectedPerformanceId(null)}
-                    className="btn btn-secondary"
-                    style={{ marginBottom: '1rem', display: 'inline-block', fontSize: '0.85rem', borderRadius: '8px' }}
+                    className="btn btn-secondary checkin-header-back"
                 >
                     &larr; 公演回の選択に戻る
                 </button>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-                    <div style={{ flex: '1 1 250px', minWidth: 0 }}>
+                <div className="checkin-header-content">
+                    <div className="checkin-header-info">
                         <div style={{ marginBottom: '0.5rem' }}>
                             <span style={{ background: '#eef2f1', color: 'var(--slate-600)', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
                                 受付スタッフ
@@ -551,14 +579,14 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                         <div style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
                             公演：{production?.title}
                         </div>
-                        <h1 style={{ fontSize: '1.8rem', fontWeight: '900', margin: 0, color: 'var(--primary)', lineHeight: '1.2' }}>
+                        <h2 className="checkin-header-date">
                             {perfDateStr} {perfTimeStr}
-                        </h1>
+                        </h2>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div className="checkin-header-stats">
                         {/* 進捗バー */}
-                        <div style={{ width: '180px', minWidth: '140px', backgroundColor: 'var(--card-bg)', padding: '0.75rem', borderRadius: '12px', border: '1px solid var(--card-border)', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                        <div className="checkin-progress-box">
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.4rem' }}>
                                 <span>来場進捗</span>
                                 <span>{stats.checkedIn}/{stats.total}人</span>
@@ -574,15 +602,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                         </div>
 
                         {/* 当日券残数 */}
-                        <div style={{
-                            background: 'white',
-                            padding: '0.75rem 1.25rem',
-                            borderRadius: '12px',
-                            border: '2px solid var(--primary)',
-                            textAlign: 'center',
-                            minWidth: '120px',
-                            boxShadow: '0 4px 12px rgba(var(--primary-rgb), 0.1)'
-                        }}>
+                        <div className="checkin-remaining-box">
                             <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>当日券 残数</div>
                             <div style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--primary)', lineHeight: '1' }}>
                                 {remainingCount} <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>枚</span>
@@ -622,15 +642,14 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                     soldByType="STAFF"
                 />
             ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '1.5rem', alignItems: 'start' }}>
-                {/* 左カラム: メインコンテンツ */}
+            <div>
                 <div className="card" style={{ padding: '1.5rem', borderRadius: '16px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
                     {activeTab === 'LIST' && (
                     <>
                     <div style={{ marginBottom: '1.5rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <div className="checkin-search-header">
                             <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: 0 }}>予約リスト ({filteredReservations.length}件)</h2>
-                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>未入場の方を優先表示しています</span>
+                            <span className="checkin-search-hint">未入場の方を優先表示しています</span>
                         </div>
                         <div style={{ position: 'relative' }}>
                             <input
@@ -672,6 +691,67 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                         staffToken={token || undefined}
                         staffRole={role || undefined}
                     />
+
+                    {/* 他の公演回の検索結果 */}
+                    {searchTerm && otherPerformanceResults.length > 0 && (
+                        <div style={{ marginTop: '1.5rem', borderTop: '2px solid var(--card-border)', paddingTop: '1rem' }}>
+                            <h3 style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                                他の公演回にも該当する予約があります
+                            </h3>
+                            {otherPerformanceResults.map(group => {
+                                const d = group.perfDate;
+                                const dateLabel = d
+                                    ? `${d.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' })} ${d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}`
+                                    : '日時不明';
+                                return (
+                                    <div key={group.perfId} style={{ marginBottom: '1rem' }}>
+                                        <div style={{
+                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                            padding: '0.5rem 0.75rem', background: 'var(--secondary)', borderRadius: '6px',
+                                            marginBottom: '0.5rem'
+                                        }}>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--primary)' }}>
+                                                {dateLabel}
+                                            </span>
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                                {group.reservations.length}件
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                            {group.reservations.map(r => {
+                                                const totalTickets = (r.tickets || []).reduce((sum: number, t: any) => sum + (t.count || 0), 0);
+                                                const checkedIn = r.checkedInTickets || 0;
+                                                return (
+                                                    <div key={r.id} style={{
+                                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                        padding: '0.6rem 0.75rem', background: 'var(--card-bg)',
+                                                        border: '1px solid var(--card-border)', borderRadius: '6px',
+                                                        fontSize: '0.85rem'
+                                                    }}>
+                                                        <div style={{ minWidth: 0, flex: 1 }}>
+                                                            <div style={{ fontWeight: 'bold' }}>{r.customerName}</div>
+                                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                                                {r.tickets?.map((t: any) => `${t.ticketType?.name || '不明'}×${t.count}`).join(', ')}
+                                                                {checkedIn > 0 && ` (入場済: ${checkedIn}/${totalTickets})`}
+                                                            </div>
+                                                        </div>
+                                                        <span style={{
+                                                            fontSize: '0.7rem', fontWeight: 'bold', padding: '0.2rem 0.5rem',
+                                                            borderRadius: '4px', flexShrink: 0, whiteSpace: 'nowrap',
+                                                            background: checkedIn > 0 ? '#e2e3e5' : '#eee',
+                                                            color: checkedIn > 0 ? '#383d41' : 'var(--text-muted)'
+                                                        }}>
+                                                            {checkedIn > 0 ? '一部入場' : '未入場'}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                     </>
                     )}
                     {activeTab === 'SAME_DAY' && (
@@ -690,41 +770,6 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                     </>
                     )}
                 </div>
-
-                {/* 右カラム: サイドバー */}
-                <aside style={{ position: 'sticky', top: '7.5rem' }}>
-                    <div className="card" style={{ padding: '1.5rem', borderRadius: '16px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-                        <div style={{ marginBottom: '0.75rem' }}>
-                            <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', margin: 0, color: 'var(--text-muted)' }}>来場状況</h3>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.4rem' }}>
-                            <span>入場済み</span>
-                            <span>{stats.checkedIn}/{stats.total}人</span>
-                        </div>
-                        <div style={{ width: '100%', height: '8px', backgroundColor: '#edf2f7', borderRadius: '4px', overflow: 'hidden', marginBottom: '1rem' }}>
-                            <div style={{
-                                width: `${Math.min(100, (stats.checkedIn / (stats.total || 1)) * 100)}%`,
-                                height: '100%',
-                                backgroundColor: 'var(--primary)',
-                                transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
-                            }} />
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--slate-600)' }}>
-                            <span>当日券残数</span>
-                            <span style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{remainingCount}枚</span>
-                        </div>
-                    </div>
-
-                    <div style={{ marginTop: '1rem', padding: '1rem', background: '#eef2f1', borderRadius: '12px', fontSize: '0.8rem', color: 'var(--slate-600)' }}>
-                        <p style={{ margin: 0, fontWeight: 'bold' }}>ヒント</p>
-                        <p style={{ margin: '0.25rem 0 0 0' }}>
-                            {activeTab === 'LIST'
-                                ? '予約リストからお客様を検索し、チェックインを行ってください。'
-                                : '当日の飛び込みのお客様はこちらから情報を入力してチケットを発行してください。'
-                            }
-                        </p>
-                    </div>
-                </aside>
             </div>
             )}
 

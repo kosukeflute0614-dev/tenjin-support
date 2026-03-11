@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useTransition, Fragment, useRef } from 'react'
-import { CheckCircle, MinusCircle, Circle } from 'lucide-react'
+import { useState, useTransition, Fragment, useRef, useEffect } from 'react'
+import { CheckCircle, MinusCircle, Circle, ChevronDown, RotateCcw, Users } from 'lucide-react'
 import {
     processCheckinWithPaymentClient,
     resetCheckInClient,
@@ -14,6 +14,7 @@ import { formatTime } from '@/lib/format'
 import { NumberStepper, SoftKeypad } from './TouchInputs'
 import { useAuth } from './AuthProvider'
 import { useToast } from '@/components/Toast'
+import styles from './checkin-list.module.css'
 
 type ReservationWithTickets = any
 
@@ -35,6 +36,8 @@ function InvitationBadge() {
             color: '#fff',
             marginLeft: '0.4rem',
             letterSpacing: '0.05em',
+            flexShrink: 0,
+            whiteSpace: 'nowrap' as const,
         }}>
             招待
         </span>
@@ -60,6 +63,11 @@ export default function CheckinList({
     const [selectedRes, setSelectedRes] = useState<any | null>(null)
 
     const sorted = [...reservations].sort((a, b) => {
+        // 入場済みを一番下に
+        const scoreA = a.checkinStatus === 'CHECKED_IN' ? 1 : 0
+        const scoreB = b.checkinStatus === 'CHECKED_IN' ? 1 : 0
+        if (scoreA !== scoreB) return scoreA - scoreB
+        // 同じステータス内は名前順
         const nameA = a.customerNameKana || a.customerName
         const nameB = b.customerNameKana || b.customerName
         return nameA.localeCompare(nameB, 'ja')
@@ -175,9 +183,9 @@ export default function CheckinList({
                                 )}
                                 <div className={`mobile-card-item${res.checkinStatus === 'CHECKED_IN' ? ' is-checked-in' : ''}`}>
                                     <div className="mobile-card-header">
-                                        <div>
-                                            <div className="mobile-card-title" style={{ display: 'flex', alignItems: 'center' }}>
-                                                {res.customerName}
+                                        <div style={{ minWidth: 0, flex: 1 }}>
+                                            <div className="mobile-card-title" style={{ display: 'flex', alignItems: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{res.customerName}</span>
                                                 {hasInvitationTickets(res) && <InvitationBadge />}
                                             </div>
                                             <div className="mobile-card-subtitle">{res.customerNameKana}</div>
@@ -289,7 +297,7 @@ function CheckinBadge({ status }: { status: string }) {
         NOT_CHECKED_IN: <Circle size={14} />
     }
 
-    return <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', background: style.bg, color: style.color }}>{iconMap[status] || iconMap.NOT_CHECKED_IN}{style.label}</span>
+    return <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', background: style.bg, color: style.color, flexShrink: 0, whiteSpace: 'nowrap' as const }}>{iconMap[status] || iconMap.NOT_CHECKED_IN}{style.label}</span>
 }
 
 // 受付詳細モーダル
@@ -340,6 +348,38 @@ function DetailModal({
     const received = parseInt(receivedStr) || 0
     const [showKeypad, setShowKeypad] = useState(false)
     const keypadRef = useRef<HTMLDivElement>(null)
+    const mobileCalcRef = useRef<HTMLDivElement>(null)
+    const sidebarRef = useRef<HTMLDivElement>(null)
+    const [calcPos, setCalcPos] = useState<{ top: number; right: number } | null>(null)
+
+    const openCalcWithPosition = () => {
+        setReceivedStr('');
+        if (showKeypad) { setShowKeypad(false); return; }
+        if (sidebarRef.current) {
+            const rect = sidebarRef.current.getBoundingClientRect();
+            const top = Math.max(8, rect.top);
+            const right = window.innerWidth - rect.left + 16;
+            setCalcPos({ top, right });
+        }
+        setShowKeypad(true);
+    }
+    // 電卓: 外側クリックで閉じる（デスクトップポップオーバー & モバイルオーバーレイ両対応）
+    useEffect(() => {
+        if (!showKeypad) return;
+        const handleClickOutside = (e: MouseEvent) => {
+            const target = e.target as Node;
+            // デスクトップポップオーバー内のクリックは無視
+            if (keypadRef.current?.contains(target)) return;
+            // モバイルボトムシート内のクリックは無視
+            if (mobileCalcRef.current?.contains(target)) return;
+            setShowKeypad(false);
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showKeypad]);
+
+    const [showLogs, setShowLogs] = useState(false)
+    const [showMoreActions, setShowMoreActions] = useState(false)
 
     // 各券種の支払い状況 (DBの値を使用)
     const ticketPaymentStatus = tickets.map((t: any) => ({
@@ -395,6 +435,100 @@ function DetailModal({
     })
     const isAmountValid = (currentPaidAmount + currentTransactionAmount) >= requiredMinAmount
 
+    // 電卓コンテンツ（デスクトップポップオーバー & モバイルオーバーレイ共通）
+    const renderCalcContent = (amount: number, recv: number, chg: number, setStr: (fn: (prev: string) => string) => void, onClose: () => void) => (
+        <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>お釣り計算</span>
+                <button
+                    type="button"
+                    onClick={onClose}
+                    style={{
+                        background: '#f5f5f5', border: 'none', fontSize: '1.25rem', cursor: 'pointer',
+                        color: 'var(--text-muted)', width: '28px', height: '28px', display: 'flex',
+                        alignItems: 'center', justifyContent: 'center', borderRadius: '50%', lineHeight: 1, padding: 0,
+                    }}
+                >
+                    &times;
+                </button>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '0.35rem' }}>
+                <span style={{ color: 'var(--text-muted)' }}>合計</span>
+                <span style={{ fontWeight: '700', color: 'var(--primary)' }}>¥{amount.toLocaleString()}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--slate-500)' }}>預かり</span>
+                <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>
+                    {recv > 0 ? recv.toLocaleString() : '0'} <span style={{ fontSize: '0.8rem', fontWeight: 'normal' }}>円</span>
+                </div>
+            </div>
+            {recv > 0 && (
+                <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    borderTop: '1px solid var(--card-border)', paddingTop: '0.5rem', marginBottom: '0.75rem',
+                }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--slate-500)' }}>{chg >= 0 ? 'お釣り' : '不足'}</span>
+                    <div style={{ fontSize: '1.3rem', fontWeight: '900', color: chg >= 0 ? 'var(--success)' : 'var(--accent)' }}>
+                        ¥{Math.abs(chg).toLocaleString()}
+                    </div>
+                </div>
+            )}
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '0.5rem' }}>
+                {[1000, 5000, 10000].map(amt => (
+                    <button
+                        key={amt}
+                        type="button"
+                        className="btn btn-secondary"
+                        style={{ flex: 1, padding: '0.5rem', fontSize: '0.85rem', background: 'var(--card-bg)' }}
+                        onClick={() => setStr(prev => String((parseInt(prev) || 0) + amt))}
+                    >
+                        +{(amt / 1000).toLocaleString()}千
+                    </button>
+                ))}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                {['1','2','3','4','5','6','7','8','9','0','00','C'].map(key => (
+                    <button
+                        key={key}
+                        type="button"
+                        className="btn btn-secondary"
+                        style={{
+                            height: '3.2rem', fontSize: '1.15rem', fontWeight: 'bold',
+                            background: key === 'C' ? 'rgba(139,0,0,0.05)' : 'var(--card-bg)',
+                            color: key === 'C' ? '#d93025' : '#333',
+                            border: '1px solid #ddd', borderRadius: '8px',
+                        }}
+                        onClick={() => {
+                            if (key === 'C') { setStr(() => ''); return; }
+                            setStr(prev => {
+                                if (key === '00' && (prev === '' || prev === '0')) return '0';
+                                if (prev === '0' && key !== '00') return key;
+                                return prev + key;
+                            });
+                        }}
+                    >
+                        {key}
+                    </button>
+                ))}
+            </div>
+        </>
+    );
+
+    // モバイル電卓オーバーレイ（ボトムシート）
+    const renderMobileCalc = () => {
+        if (!showKeypad) return null;
+        return (
+            <div
+                className={styles.calcOverlay}
+                onClick={(e) => { if (e.target === e.currentTarget) setShowKeypad(false); }}
+            >
+                <div className={styles.calcPanel} ref={mobileCalcRef}>
+                    {renderCalcContent(currentTransactionAmount, received, change, setReceivedStr, () => setShowKeypad(false))}
+                </div>
+            </div>
+        );
+    };
+
     if (view === 'CONFIRM_PARTIAL') {
         return (
             <ModalOverlay onClose={() => setView('DETAIL')} maxWidth="400px" ariaLabelledBy="modal-title-confirm-partial">
@@ -421,9 +555,9 @@ function DetailModal({
 
                     {/* メインスクロールエリア */}
                     <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '80px' }}>
-                        <div style={{ display: 'flex', gap: '2rem' }}>
+                        <div className={styles.modalColumns}>
                             {/* 左カラム: 設定 */}
-                            <div style={{ flex: 1 }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ marginBottom: '1.5rem' }}>
                                     <label style={{
                                         fontSize: '0.85rem', fontWeight: 'bold', display: 'block', marginBottom: '0.75rem',
@@ -490,7 +624,7 @@ function DetailModal({
                             </div>
 
                             {/* 右カラム: 会計情報と電卓ボタン */}
-                            <div style={{ width: '240px' }}>
+                            <div className={styles.modalSidebarNarrow} ref={sidebarRef}>
                                 <div style={{ background: 'var(--secondary)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.05)' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                                         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>今回会計額</span>
@@ -498,81 +632,22 @@ function DetailModal({
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                         <span style={{ fontWeight: '900', fontSize: '1.5rem' }}>¥{currentTransactionAmount.toLocaleString()}</span>
                                         {/* 電卓ボタン */}
-                                        <div style={{ position: 'relative' }}>
-                                            <button
-                                                onClick={() => setShowKeypad(!showKeypad)}
-                                                style={{
-                                                    background: 'var(--card-bg)',
-                                                    border: '1px solid var(--primary)',
-                                                    borderRadius: '4px',
-                                                    padding: '4px 12px',
-                                                    fontSize: '0.85rem',
-                                                    color: 'var(--primary)',
-                                                    cursor: 'pointer',
-                                                    fontWeight: 'bold',
-                                                }}
-                                                title="お釣り計算"
-                                            >
-                                                電卓
-                                            </button>
-                                            {showKeypad && (
-                                                <div
-                                                    ref={keypadRef}
-                                                    style={{
-                                                        position: 'absolute', right: '0', top: '45px', width: 'min(280px, calc(100vw - 2rem))', background: 'var(--card-bg)',
-                                                        border: '1px solid #ddd', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-                                                        zIndex: 100, padding: '0.75rem 1rem'
-                                                    }}
-                                                >
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                                                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>お釣り計算</span>
-                                                        <button
-                                                            onClick={() => setShowKeypad(false)}
-                                                            style={{
-                                                                background: '#f5f5f5',
-                                                                border: 'none',
-                                                                fontSize: '1.25rem',
-                                                                cursor: 'pointer',
-                                                                color: 'var(--text-muted)',
-                                                                width: '28px',
-                                                                height: '28px',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center',
-                                                                borderRadius: '50%',
-                                                                lineHeight: 1,
-                                                                padding: 0
-                                                            }}
-                                                        >
-                                                            &times;
-                                                        </button>
-                                                    </div>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                            <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)' }}>預かり</span>
-                                                            <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--foreground)' }}>
-                                                                {received.toLocaleString()} <span style={{ fontSize: '0.8rem', fontWeight: 'normal' }}>円</span>
-                                                            </div>
-                                                        </div>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--card-border)', paddingTop: '0.4rem' }}>
-                                                            <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)' }}>{change >= 0 ? 'お釣り' : '不足'}</span>
-                                                            <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: change >= 0 ? 'var(--success)' : 'var(--primary)' }}>
-                                                                ¥{Math.abs(change).toLocaleString()}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <SoftKeypad
-                                                        onInput={(digit) => setReceivedStr(prev => {
-                                                            if (digit === '00' && (prev === '' || prev === '0')) return '0'
-                                                            if (prev === '0' && digit !== '00') return digit
-                                                            return prev + digit
-                                                        })}
-                                                        onClear={() => setReceivedStr('')}
-                                                        onQuickInput={(amount) => setReceivedStr(prev => ((parseInt(prev) || 0) + amount).toString())}
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
+                                        <button
+                                            onClick={openCalcWithPosition}
+                                            style={{
+                                                background: 'var(--card-bg)',
+                                                border: '1px solid var(--primary)',
+                                                borderRadius: '4px',
+                                                padding: '4px 12px',
+                                                fontSize: '0.85rem',
+                                                color: 'var(--primary)',
+                                                cursor: 'pointer',
+                                                fontWeight: 'bold',
+                                            }}
+                                            title="お釣り計算"
+                                        >
+                                            電卓
+                                        </button>
                                     </div>
 
                                 </div>
@@ -582,18 +657,9 @@ function DetailModal({
                     </div>
 
                     {/* 固定フッターアクション */}
-                    <div style={{
-                        position: 'absolute', bottom: '-1.5rem', right: '-1.5rem', left: '-1.5rem',
-                        padding: '1rem 1.5rem', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)',
-                        borderTop: '1px solid var(--card-border)', display: 'flex', justifyContent: 'flex-end',
-                        borderRadius: '0 0 12px 12px', zIndex: 10, flexShrink: 0
-                    }}>
+                    <div className={styles.modalFooter}>
                         <button
-                            className="btn btn-primary"
-                            style={{
-                                minWidth: '240px', padding: '1.2rem 2.5rem', fontSize: '1.25rem', fontWeight: 'bold',
-                                borderRadius: '12px', boxShadow: '0 4px 14px rgba(var(--primary-rgb), 0.4)'
-                            }}
+                            className={`btn btn-primary ${styles.actionBtnLarge}`}
                             onClick={() => onAction('complex_checkin', partialEntryCount, currentTransactionAmount, partialPayingCounts)}
                             disabled={isPending || !isAmountValid}
                         >
@@ -601,6 +667,16 @@ function DetailModal({
                         </button>
                     </div>
                 </div>
+                {renderMobileCalc()}
+                {showKeypad && calcPos && (
+                    <div
+                        ref={keypadRef}
+                        className={styles.calcPopover}
+                        style={{ top: calcPos.top, right: calcPos.right }}
+                    >
+                        {renderCalcContent(currentTransactionAmount, received, change, setReceivedStr, () => setShowKeypad(false))}
+                    </div>
+                )}
             </ModalOverlay>
         )
     }
@@ -628,12 +704,7 @@ function DetailModal({
                         </div>
 
                         {/* 固定フッターアクション */}
-                        <div style={{
-                            position: 'absolute', bottom: '-1.5rem', right: '-1.5rem', left: '-1.5rem',
-                            padding: '1rem 1.5rem', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)',
-                            borderTop: '1px solid var(--card-border)', display: 'flex', justifyContent: 'flex-end', gap: '1rem',
-                            borderRadius: '0 0 12px 12px', zIndex: 10
-                        }}>
+                        <div className={styles.modalFooterWithGap}>
                             <button className="btn btn-secondary" style={{ padding: '0.8rem 2rem' }} onClick={() => setConfirmStep(0)}>いいえ</button>
                             <button className="btn btn-primary" style={{ minWidth: '180px', padding: '0.8rem 2rem', background: '#333' }} onClick={() => setConfirmStep(2)}>はい、次へ</button>
                         </div>
@@ -656,12 +727,7 @@ function DetailModal({
                         </div>
 
                         {/* 固定フッターアクション */}
-                        <div style={{
-                            position: 'absolute', bottom: '-1.5rem', right: '-1.5rem', left: '-1.5rem',
-                            padding: '1rem 1.5rem', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)',
-                            borderTop: '1px solid var(--card-border)', display: 'flex', justifyContent: 'flex-end', gap: '1rem',
-                            borderRadius: '0 0 12px 12px', zIndex: 10
-                        }}>
+                        <div className={styles.modalFooterWithGap}>
                             <button className="btn btn-secondary" style={{ padding: '0.8rem 2rem' }} onClick={() => setConfirmStep(0)}>いいえ、戻ります</button>
                             <button
                                 className="btn btn-primary"
@@ -688,9 +754,9 @@ function DetailModal({
 
                     {/* メインスクロールエリア */}
                     <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '80px' }}>
-                        <div style={{ display: 'flex', gap: '2rem' }}>
+                        <div className={styles.modalColumns}>
                             {/* 左カラム: 入力 */}
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                 <div>
                                     <label style={{ fontSize: '0.85rem', fontWeight: 'bold', display: 'block', marginBottom: '0.75rem', color: 'var(--text-muted)' }}>1. 取消する入場人数 <span style={{ fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-muted)' }}>(現在: {checkedInCount}名)</span></label>
                                     <NumberStepper
@@ -728,7 +794,7 @@ function DetailModal({
                             </div>
 
                             {/* 右カラム: 合計 */}
-                            <div style={{ width: '240px' }}>
+                            <div className={styles.modalSidebarNarrow}>
                                 <div style={{ background: 'rgba(220, 53, 69, 0.08)', padding: '1.25rem', borderRadius: '12px', border: '1px solid #ffeded' }}>
                                     <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--accent)', marginBottom: '0.5rem' }}>返金合計額</div>
                                     <div style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--accent)' }}>
@@ -741,18 +807,10 @@ function DetailModal({
                     </div>
 
                     {/* 固定フッターアクション */}
-                    <div style={{
-                        position: 'absolute', bottom: '-1.5rem', right: '-1.5rem', left: '-1.5rem',
-                        padding: '1rem 1.5rem', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)',
-                        borderTop: '1px solid var(--card-border)', display: 'flex', justifyContent: 'flex-end',
-                        borderRadius: '0 0 12px 12px', zIndex: 10
-                    }}>
+                    <div className={styles.modalFooter}>
                         <button
-                            className="btn btn-primary"
-                            style={{
-                                minWidth: '240px', padding: '1.2rem 2.5rem', fontSize: '1.25rem', fontWeight: 'bold',
-                                borderRadius: '12px', background: '#333'
-                            }}
+                            className={`btn btn-primary ${styles.actionBtnLarge}`}
+                            style={{ background: '#333' }}
                             onClick={() => setConfirmStep(1)}
                             disabled={resetCount === 0 && totalRefund === 0}
                         >
@@ -778,9 +836,9 @@ function DetailModal({
 
                 {/* メインスクロールエリア */}
                 <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '80px' }}>
-                    <div style={{ display: 'flex', gap: '2rem' }}>
+                    <div className={styles.modalColumns}>
                         {/* 左カラム: 明細と状況 */}
-                        <div style={{ flex: 1 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ marginBottom: '1rem', background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: '6px', overflow: 'hidden' }}>
                                 <div style={{ padding: '0.5rem 0.75rem', background: 'var(--card-bg)', borderBottom: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>予約チケット</span>
@@ -830,34 +888,10 @@ function DetailModal({
 
                             </div>
 
-                            {/* 操作履歴 */}
-                            <div style={{ padding: '0.75rem', background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: '6px' }}>
-                                <h3 style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>受付履歴</h3>
-                                <div style={{ maxHeight: '100px', overflowY: 'auto', fontSize: '0.75rem' }}>
-                                    {res.logs && res.logs.length > 0 ? (
-                                        res.logs.map((log: any, index: number) => (
-                                            <div key={log.id || `${log.type}-${log.createdAt}-${index}`} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.2rem 0', borderBottom: '1px dashed #f0f0f0' }}>
-                                                <span>
-                                                    {log.type === 'CHECKIN' ? <span style={{ color: 'var(--success)' }}>● 入場</span> : <span style={{ color: 'var(--primary)' }}>× 取消</span>}
-                                                    {log.count > 0 && ` (${log.count}枚)`}
-                                                </span>
-                                                <span style={{ color: 'var(--slate-500)' }}>
-                                                    {(() => {
-                                                        const date = log.createdAt?.toDate ? log.createdAt.toDate() : new Date(log.createdAt);
-                                                        return isNaN(date.getTime()) ? '時刻不明' : date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-                                                    })()}
-                                                </span>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <p style={{ color: '#ccc', textAlign: 'center', padding: '0.5rem' }}>履歴はありません</p>
-                                    )}
-                                </div>
-                            </div>
                         </div>
 
                         {/* 右カラム: サブアクション */}
-                        <div style={{ width: '240px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <div className={styles.modalSidebar} ref={sidebarRef}>
                             {/* 会計情報 */}
                             <div style={{ background: 'var(--secondary)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)', marginBottom: '0.5rem' }}>
                                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
@@ -869,90 +903,22 @@ function DetailModal({
                                     </span>
                                     {/* 電卓ポップオーバーボタン */}
                                     {currentPaidAmount < totalAmount && (
-                                        <div style={{ position: 'relative' }}>
-                                            <button
-                                                onClick={() => setShowKeypad(!showKeypad)}
-                                                style={{
-                                                    background: 'var(--card-bg)',
-                                                    border: '1px solid var(--primary)',
-                                                    borderRadius: '4px',
-                                                    padding: '4px 12px',
-                                                    fontSize: '0.85rem',
-                                                    color: 'var(--primary)',
-                                                    cursor: 'pointer',
-                                                    fontWeight: 'bold',
-                                                }}
-                                                title="お釣り計算"
-                                            >
-                                                電卓
-                                            </button>
-                                            {showKeypad && (
-                                                <div
-                                                    ref={keypadRef}
-                                                    style={{
-                                                        position: 'absolute',
-                                                        right: '0',
-                                                        top: '45px',
-                                                        width: 'min(280px, calc(100vw - 2rem))',
-                                                        background: 'var(--card-bg)',
-                                                        border: '1px solid #ddd',
-                                                        borderRadius: '12px',
-                                                        boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-                                                        zIndex: 100,
-                                                        padding: '0.75rem 1rem'
-                                                    }}
-                                                >
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                                                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>お釣り計算</span>
-                                                        <button
-                                                            onClick={() => setShowKeypad(false)}
-                                                            style={{
-                                                                background: '#f5f5f5',
-                                                                border: 'none',
-                                                                fontSize: '1.25rem',
-                                                                cursor: 'pointer',
-                                                                color: 'var(--text-muted)',
-                                                                width: '28px',
-                                                                height: '28px',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center',
-                                                                borderRadius: '50%',
-                                                                lineHeight: 1,
-                                                                padding: 0
-                                                            }}
-                                                        >
-                                                            &times;
-                                                        </button>
-                                                    </div>
-
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                            <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)' }}>預かり</span>
-                                                            <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--foreground)' }}>
-                                                                {received.toLocaleString()} <span style={{ fontSize: '0.8rem', fontWeight: 'normal' }}>円</span>
-                                                            </div>
-                                                        </div>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--card-border)', paddingTop: '0.4rem' }}>
-                                                            <span style={{ fontSize: '0.75rem', color: 'var(--slate-500)' }}>{change >= 0 ? 'お釣り' : '不足'}</span>
-                                                            <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: change >= 0 ? 'var(--success)' : 'var(--primary)' }}>
-                                                                ¥{Math.abs(change).toLocaleString()}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <SoftKeypad
-                                                        onInput={(digit) => setReceivedStr(prev => {
-                                                            if (digit === '00' && (prev === '' || prev === '0')) return '0'
-                                                            if (prev === '0' && digit !== '00') return digit
-                                                            return prev + digit
-                                                        })}
-                                                        onClear={() => setReceivedStr('')}
-                                                        onQuickInput={(amount) => setReceivedStr(prev => ((parseInt(prev) || 0) + amount).toString())}
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
+                                        <button
+                                            onClick={openCalcWithPosition}
+                                            style={{
+                                                background: 'var(--card-bg)',
+                                                border: '1px solid var(--primary)',
+                                                borderRadius: '4px',
+                                                padding: '4px 12px',
+                                                fontSize: '0.85rem',
+                                                color: 'var(--primary)',
+                                                cursor: 'pointer',
+                                                fontWeight: 'bold',
+                                            }}
+                                            title="お釣り計算"
+                                        >
+                                            電卓
+                                        </button>
                                     )}
                                 </div>
                                 <div style={{ marginTop: '0.4rem', paddingTop: '0.4rem', borderTop: '1px solid rgba(0,0,0,0.05)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -967,54 +933,139 @@ function DetailModal({
                                 </div>
                             </div>
 
-                            {/* 大ボタン */}
-                            <button
-                                className="btn btn-primary"
-                                style={{
-                                    padding: '1.25rem', fontSize: '1.2rem', fontWeight: 'bold', borderRadius: '12px',
-                                    boxShadow: '0 4px 12px rgba(var(--primary-rgb), 0.3)',
-                                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem'
-                                }}
-                                onClick={() => onAction('checkin', remaining, totalAmount - currentPaidAmount)}
-                                disabled={isPending || remaining === 0}
-                            >
-                                <span>{remaining > 1 ? `残りの ${remaining}名 を全員入場` : '入場受付と会計を確定'}</span>
-                                <span style={{ fontSize: '0.8rem', fontWeight: 'normal', opacity: 0.9 }}>
-                                    {totalAmount - currentPaidAmount > 0 ? `受領額: ¥${(totalAmount - currentPaidAmount).toLocaleString()}` : (totalAmount > 0 ? 'お支払い済み' : '無料')}
-                                </span>
-                            </button>
+                            {/* メインアクション: 入場ボタン（remaining > 0 のときだけ表示） */}
+                            {remaining > 0 && (
+                                <button
+                                    className="btn btn-primary"
+                                    style={{
+                                        padding: '1.25rem', fontSize: '1.2rem', fontWeight: 'bold', borderRadius: '12px',
+                                        boxShadow: '0 4px 12px rgba(var(--primary-rgb), 0.3)',
+                                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem'
+                                    }}
+                                    onClick={() => onAction('checkin', remaining, totalAmount - currentPaidAmount)}
+                                    disabled={isPending}
+                                >
+                                    <span>{remaining > 1 ? `残りの ${remaining}名 を全員入場` : '入場受付と会計を確定'}</span>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: 'normal', opacity: 0.9 }}>
+                                        {totalAmount - currentPaidAmount > 0 ? `受領額: ¥${(totalAmount - currentPaidAmount).toLocaleString()}` : (totalAmount > 0 ? 'お支払い済み' : '無料')}
+                                    </span>
+                                </button>
+                            )}
 
-                            <button
-                                className="btn btn-secondary"
-                                style={{ padding: '0.75rem', fontSize: '0.9rem', border: '1px solid #ddd' }}
-                                onClick={() => setView('CONFIRM_PARTIAL')}
-                                disabled={isPending || remaining <= 1}
-                            >
-                                一部のみ入場・会計...
-                            </button>
+                            {/* 全員入場済み: 取り消しボタンを直接表示 */}
+                            {remaining === 0 && (
+                                <button
+                                    className={styles.resetBtn}
+                                    onClick={() => setView('PARTIAL_RESET')}
+                                    disabled={isPending}
+                                >
+                                    <RotateCcw size={16} />
+                                    入場/支払を取り消す
+                                </button>
+                            )}
 
-                            <button
-                                className="btn btn-secondary"
-                                style={{ padding: '0.5rem', fontSize: '0.8rem', marginTop: 'auto', color: 'var(--text-muted)', border: 'none', background: 'none', textDecoration: 'underline' }}
-                                onClick={() => setView('PARTIAL_RESET')}
-                                disabled={isPending || checkedInCount === 0}
-                            >
-                                入場/支払を取り消す...
-                            </button>
+                            {/* その他の操作アコーディオン */}
+                            {(() => {
+                                // 表示するサブアクションを決定
+                                const showPartial = remaining >= 2;
+                                const showReset = checkedInCount > 0 && remaining > 0;
+                                if (!showPartial && !showReset) return null;
+
+                                return (
+                                    <>
+                                        <button
+                                            type="button"
+                                            className={styles.moreActionsToggle}
+                                            onClick={() => setShowMoreActions(!showMoreActions)}
+                                        >
+                                            <ChevronDown size={14} style={{ transition: 'transform 0.2s', transform: showMoreActions ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                                            その他の操作
+                                        </button>
+                                        <div className={`${styles.moreActionsPanel} ${showMoreActions ? styles.moreActionsPanelOpen : ''}`}>
+                                            <div className={styles.moreActionsCard}>
+                                                {showPartial && (
+                                                    <button
+                                                        type="button"
+                                                        className={styles.moreActionsBtn}
+                                                        onClick={() => setView('CONFIRM_PARTIAL')}
+                                                        disabled={isPending}
+                                                    >
+                                                        <Users size={15} />
+                                                        一部のみ入場・会計
+                                                    </button>
+                                                )}
+                                                {showReset && (
+                                                    <button
+                                                        type="button"
+                                                        className={styles.moreActionsBtnDanger}
+                                                        onClick={() => setView('PARTIAL_RESET')}
+                                                        disabled={isPending}
+                                                    >
+                                                        <RotateCcw size={15} />
+                                                        入場/支払を取り消す
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </>
+                                );
+                            })()}
                         </div>
                     </div>
+
+                    {/* 受付履歴（アコーディオン） */}
+                    {res.logs && res.logs.length > 0 && (
+                        <div style={{ marginTop: '1rem', borderTop: '1px solid var(--card-border)', paddingTop: '0.5rem' }}>
+                            <button
+                                type="button"
+                                onClick={() => setShowLogs(!showLogs)}
+                                style={{
+                                    background: 'none', border: 'none', cursor: 'pointer', padding: '0.4rem 0',
+                                    display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                    fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--text-muted)', width: '100%',
+                                }}
+                            >
+                                <ChevronDown size={14} style={{ transition: 'transform 0.2s', transform: showLogs ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                                受付履歴 ({res.logs.length}件)
+                            </button>
+                            {showLogs && (
+                                <div style={{ fontSize: '0.75rem', padding: '0.25rem 0' }}>
+                                    {res.logs.map((log: any, index: number) => (
+                                        <div key={log.id || `${log.type}-${log.createdAt}-${index}`} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.3rem 0', borderBottom: '1px dashed #f0f0f0' }}>
+                                            <span>
+                                                {log.type === 'CHECKIN' ? <span style={{ color: 'var(--success)' }}>● 入場</span> : <span style={{ color: 'var(--primary)' }}>× 取消</span>}
+                                                {log.count > 0 && ` (${log.count}枚)`}
+                                            </span>
+                                            <span style={{ color: 'var(--slate-500)' }}>
+                                                {(() => {
+                                                    const date = log.createdAt?.toDate ? log.createdAt.toDate() : new Date(log.createdAt);
+                                                    return isNaN(date.getTime()) ? '時刻不明' : date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+                                                })()}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* 固定フッターアクション */}
-                <div style={{
-                    position: 'absolute', bottom: '-1.5rem', right: '-1.5rem', left: '-1.5rem',
-                    padding: '1rem 1.5rem', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)',
-                    borderTop: '1px solid var(--card-border)', display: 'flex', justifyContent: 'flex-end',
-                    borderRadius: '0 0 12px 12px', zIndex: 10, flexShrink: 0
-                }}>
+                <div className={styles.modalFooter}>
                     <button className="btn btn-secondary" style={{ minWidth: '120px' }} onClick={onClose}>閉じる</button>
                 </div>
             </div>
+            {renderMobileCalc()}
+            {/* デスクトップ電卓ポップオーバー（fixed、サイドバーの左横） */}
+            {showKeypad && calcPos && (
+                <div
+                    ref={keypadRef}
+                    className={styles.calcPopover}
+                    style={{ top: calcPos.top, right: calcPos.right }}
+                >
+                    {renderCalcContent(currentTransactionAmount, received, change, setReceivedStr, () => setShowKeypad(false))}
+                </div>
+            )}
         </ModalOverlay>
     )
 }
