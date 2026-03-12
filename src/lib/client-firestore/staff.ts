@@ -25,18 +25,16 @@ export async function generateStaffTokenClient(productionId: string, role: strin
     });
 
     // 主催者のみ閲覧可能な別コレクションにパスコード平文を保存
+    const prodSnap = await getDoc(prodRef);
     const passcodesRef = doc(db, "staffPasscodes", productionId);
-    const passcodesSnap = await getDoc(passcodesRef);
-    if (passcodesSnap.exists()) {
+    try {
         await updateDoc(passcodesRef, {
             [`passcodes.${newToken}`]: autoPasscode,
             updatedAt: serverTimestamp()
         });
-    } else {
-        const prodSnap = await getDoc(prodRef);
-        const userId = prodSnap.data()?.userId;
+    } catch {
         await setDoc(passcodesRef, {
-            userId,
+            userId: prodSnap.data()?.userId,
             passcodes: { [newToken]: autoPasscode },
             updatedAt: serverTimestamp()
         });
@@ -80,16 +78,14 @@ export async function updateStaffTokenPasscodeClient(
 
     // パスコード平文も更新
     const passcodesRef = doc(db, "staffPasscodes", productionId);
-    const passcodesSnap = await getDoc(passcodesRef);
-    if (passcodesSnap.exists()) {
+    try {
         await updateDoc(passcodesRef, {
             [`passcodes.${token}`]: newPasscode,
             updatedAt: serverTimestamp()
         });
-    } else {
-        const userId = prodSnap.data().userId;
+    } catch {
         await setDoc(passcodesRef, {
-            userId,
+            userId: prodSnap.data().userId,
             passcodes: { [token]: newPasscode },
             updatedAt: serverTimestamp()
         });
@@ -109,13 +105,14 @@ export async function revokeStaffTokenClient(productionId: string, token: string
     });
 
     // パスコード平文も削除
-    const passcodesRef = doc(db, "staffPasscodes", productionId);
-    const passcodesSnap = await getDoc(passcodesRef);
-    if (passcodesSnap.exists()) {
+    try {
+        const passcodesRef = doc(db, "staffPasscodes", productionId);
         await updateDoc(passcodesRef, {
             [`passcodes.${token}`]: deleteField(),
             updatedAt: serverTimestamp()
         });
+    } catch {
+        // ドキュメントが存在しない場合は無視
     }
 }
 
@@ -123,11 +120,15 @@ export async function revokeStaffTokenClient(productionId: string, token: string
  * スタッフパスコードを取得する（主催者のみ）
  */
 export async function getStaffPasscode(productionId: string, token: string): Promise<string | null> {
-    const passcodesRef = doc(db, "staffPasscodes", productionId);
-    const passcodesSnap = await getDoc(passcodesRef);
-    if (!passcodesSnap.exists()) return null;
-    const passcodes = passcodesSnap.data().passcodes || {};
-    return passcodes[token] || null;
+    try {
+        const passcodesRef = doc(db, "staffPasscodes", productionId);
+        const passcodesSnap = await getDoc(passcodesRef);
+        if (!passcodesSnap.exists()) return null;
+        const passcodes = passcodesSnap.data().passcodes || {};
+        return passcodes[token] || null;
+    } catch {
+        return null;
+    }
 }
 
 /**
