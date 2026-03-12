@@ -9,7 +9,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useToast } from '@/components/Toast';
 import { Production } from '@/types';
 import { useRouter } from 'next/navigation';
-import { generateStaffTokenClient, revokeStaffTokenClient, updateStaffTokenPasscodeClient } from '@/lib/client-firestore';
+import { generateStaffTokenClient, revokeStaffTokenClient, updateStaffTokenPasscodeClient, getStaffPasscode } from '@/lib/client-firestore';
 
 export default function StaffManagementPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -64,7 +64,7 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
         try {
             const { token, passcode } = await generateStaffTokenClient(production.id, newRole);
             const message = passcode
-                ? `新しいスタッフ用URLを発行しました。\n\n【重要】パスコード：${passcode}\nスタッフに入場チェック画面で入力するよう伝えてください。このパスコードは再表示できません。`
+                ? `新しいスタッフ用URLを発行しました。\n\n【重要】パスコード：${passcode}\nスタッフに入場チェック画面で入力するよう伝えてください。\nパスコードは「確認」ボタンからいつでも確認できます。`
                 : '新しいスタッフ用URLを発行しました。';
             showToast(message, 'success');
         } catch (error: any) {
@@ -89,8 +89,25 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
         }
     };
 
+    const handleShowPasscode = async (token: string) => {
+        if (!production) return;
+        setIsProcessing(true);
+        try {
+            const passcode = await getStaffPasscode(production.id, token);
+            if (passcode) {
+                showToast(`パスコード: ${passcode}`, 'success');
+            } else {
+                showToast('パスコードが見つかりません。「変更」から新しいパスコードを設定してください。', 'warning');
+            }
+        } catch (error: any) {
+            showToast(`取得に失敗しました: ${error.message}`, 'error');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
     const handleUpdatePasscode = async (token: string) => {
-        if (!production) return; // Added null check
+        if (!production) return;
         const newPasscode = prompt('新しいパスコードを入力してください（数字4桁）');
         if (!newPasscode) return;
 
@@ -204,18 +221,26 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
                                                 {role.toUpperCase()}
                                             </span>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                                    パスコード: <strong style={{ fontSize: '1rem', color: 'var(--foreground)', backgroundColor: '#eee', padding: '1px 6px', borderRadius: '4px' }}>{passcode}</strong>
-                                                </span>
+                                                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>パスコード:</span>
                                                 {typeof data !== 'string' && (
-                                                    <button
-                                                        className="btn btn-secondary"
-                                                        style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
-                                                        onClick={() => handleUpdatePasscode(token)}
-                                                        disabled={isProcessing}
-                                                    >
-                                                        変更
-                                                    </button>
+                                                    <>
+                                                        <button
+                                                            className="btn btn-secondary"
+                                                            style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
+                                                            onClick={() => handleShowPasscode(token)}
+                                                            disabled={isProcessing}
+                                                        >
+                                                            確認
+                                                        </button>
+                                                        <button
+                                                            className="btn btn-secondary"
+                                                            style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
+                                                            onClick={() => handleUpdatePasscode(token)}
+                                                            disabled={isProcessing}
+                                                        >
+                                                            変更
+                                                        </button>
+                                                    </>
                                                 )}
                                             </div>
                                         </div>

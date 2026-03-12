@@ -264,6 +264,13 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // スタッフパスコード（平文保存・主催者のみ読み書き可）
+    match /staffPasscodes/{productionId} {
+      allow read: if isSignedIn() && isOwner(resource.data.userId);
+      allow create: if isGoogleUser() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data.userId);
+    }
+
     // 物販レジ締め (MerchandiseCashClosings)
     match /merchandiseCashClosings/{docId} {
       allow read, list: if isSignedIn() && (

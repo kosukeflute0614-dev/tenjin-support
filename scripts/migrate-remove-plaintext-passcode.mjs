@@ -9,25 +9,24 @@
  *   DRY_RUN=false node scripts/migrate-remove-plaintext-passcode.mjs
  */
 
-import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { initializeApp, cert, applicationDefault } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 
-const firebaseConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyDjnmQYlhJ1q7aprhANJcq8FOezLnsBQXk',
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'tenjin-support.firebaseapp.com',
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'tenjin-support',
-};
+// サービスアカウントキーがあればそれを使い、なければ ADC を使う
+try {
+    initializeApp({ projectId: 'tenjin-support', credential: applicationDefault() });
+} catch {
+    initializeApp({ projectId: 'tenjin-support' });
+}
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
+const db = getFirestore();
 const DRY_RUN = process.env.DRY_RUN !== 'false';
 
 async function migrate() {
     console.log(`=== M-1: 平文パスコード削除マイグレーション ===`);
     console.log(`モード: ${DRY_RUN ? 'ドライラン（変更なし）' : '本番実行'}\n`);
 
-    const prodSnap = await getDocs(collection(db, 'productions'));
+    const prodSnap = await db.collection('productions').get();
     let updatedCount = 0;
     let skippedCount = 0;
 
@@ -53,7 +52,7 @@ async function migrate() {
 
         if (needsUpdate) {
             if (!DRY_RUN) {
-                await updateDoc(doc(db, 'productions', prodDoc.id), { staffTokens: cleaned });
+                await db.collection('productions').doc(prodDoc.id).update({ staffTokens: cleaned });
             }
             updatedCount++;
         } else {

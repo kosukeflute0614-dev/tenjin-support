@@ -1,5 +1,5 @@
 import { db } from '@/lib/firebase';
-import { collection, doc, getDoc, getDocs, query, where, updateDoc, serverTimestamp, runTransaction, increment } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, query, where, updateDoc, serverTimestamp, runTransaction, increment } from 'firebase/firestore';
 import { Production, Performance, FirestoreReservation } from '@/types';
 import { hashPasscodeSecure } from '@/app/actions/staff-auth';
 
@@ -23,6 +23,24 @@ export async function generateStaffTokenClient(productionId: string, role: strin
         },
         updatedAt: serverTimestamp()
     });
+
+    // 主催者のみ閲覧可能な別コレクションにパスコード平文を保存
+    const passcodesRef = doc(db, "staffPasscodes", productionId);
+    const passcodesSnap = await getDoc(passcodesRef);
+    if (passcodesSnap.exists()) {
+        await updateDoc(passcodesRef, {
+            [`passcodes.${newToken}`]: autoPasscode,
+            updatedAt: serverTimestamp()
+        });
+    } else {
+        const prodSnap = await getDoc(prodRef);
+        const userId = prodSnap.data()?.userId;
+        await setDoc(passcodesRef, {
+            userId,
+            passcodes: { [newToken]: autoPasscode },
+            updatedAt: serverTimestamp()
+        });
+    }
 
     return { token: newToken, passcode: autoPasscode };
 }
@@ -59,6 +77,23 @@ export async function updateStaffTokenPasscodeClient(
         },
         updatedAt: serverTimestamp()
     });
+
+    // パスコード平文も更新
+    const passcodesRef = doc(db, "staffPasscodes", productionId);
+    const passcodesSnap = await getDoc(passcodesRef);
+    if (passcodesSnap.exists()) {
+        await updateDoc(passcodesRef, {
+            [`passcodes.${token}`]: newPasscode,
+            updatedAt: serverTimestamp()
+        });
+    } else {
+        const userId = prodSnap.data().userId;
+        await setDoc(passcodesRef, {
+            userId,
+            passcodes: { [token]: newPasscode },
+            updatedAt: serverTimestamp()
+        });
+    }
 }
 
 /**
@@ -72,6 +107,27 @@ export async function revokeStaffTokenClient(productionId: string, token: string
         [`staffTokens.${token}`]: deleteField(),
         updatedAt: serverTimestamp()
     });
+
+    // パスコード平文も削除
+    const passcodesRef = doc(db, "staffPasscodes", productionId);
+    const passcodesSnap = await getDoc(passcodesRef);
+    if (passcodesSnap.exists()) {
+        await updateDoc(passcodesRef, {
+            [`passcodes.${token}`]: deleteField(),
+            updatedAt: serverTimestamp()
+        });
+    }
+}
+
+/**
+ * スタッフパスコードを取得する（主催者のみ）
+ */
+export async function getStaffPasscode(productionId: string, token: string): Promise<string | null> {
+    const passcodesRef = doc(db, "staffPasscodes", productionId);
+    const passcodesSnap = await getDoc(passcodesRef);
+    if (!passcodesSnap.exists()) return null;
+    const passcodes = passcodesSnap.data().passcodes || {};
+    return passcodes[token] || null;
 }
 
 /**
