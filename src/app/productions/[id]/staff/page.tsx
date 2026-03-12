@@ -176,9 +176,9 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
                             onChange={(e) => setNewRole(e.target.value as any)}
                             disabled={isProcessing}
                         >
-                            <option value="reception">受付スタッフ（reception）</option>
-                            <option value="merchandise">物販スタッフ（merchandise）</option>
-                            <option value="monitor">来場状況確認・モニター（monitor）</option>
+                            <option value="reception">受付スタッフ</option>
+                            <option value="merchandise">物販スタッフ</option>
+                            <option value="monitor">来場状況確認・モニター</option>
                         </select>
                         <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
                             {newRole === 'reception' ? '※来場チェックインと当日券発行が可能です。' : newRole === 'merchandise' ? '※物販販売とレジ締めが可能です。' : '※来場状況の確認のみ可能です（読み取り専用）。'}
@@ -203,7 +203,8 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         {tokens.map(([token, data]) => {
                             const inviteUrl = `${baseUrl}/staff/${production.id}?token=${token}`;
-                            const role = typeof data === 'string' ? data : data.role;
+                            const roleKey = typeof data === 'string' ? data : data.role;
+                            const roleLabel = roleKey === 'reception' ? '受付スタッフ' : roleKey === 'merchandise' ? '物販スタッフ' : roleKey === 'monitor' ? 'モニター' : roleKey;
                             const passcode = typeof data === 'string' ? '要再発行' : '設定済み';
 
                             return (
@@ -215,10 +216,10 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
                                                 fontWeight: 'bold',
                                                 padding: '2px 8px',
                                                 borderRadius: '4px',
-                                                backgroundColor: role === 'monitor' ? '#f3e8ff' : role === 'merchandise' ? '#fef3c7' : '#f5f5f5',
-                                                color: role === 'monitor' ? '#7c3aed' : role === 'merchandise' ? '#92400e' : '#616161'
+                                                backgroundColor: roleKey === 'monitor' ? '#f3e8ff' : roleKey === 'merchandise' ? '#fef3c7' : '#f5f5f5',
+                                                color: roleKey === 'monitor' ? '#7c3aed' : roleKey === 'merchandise' ? '#92400e' : '#616161'
                                             }}>
-                                                {role.toUpperCase()}
+                                                {roleLabel}
                                             </span>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                 <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>パスコード:</span>
