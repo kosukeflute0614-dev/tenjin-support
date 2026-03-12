@@ -19,6 +19,8 @@ env:
     value: "1:856124178234:web:d6f4900a9ad158259eda03"
   - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
     value: G-73W0EY5CPH
+  - variable: SESSION_SECRET
+    secret: SESSION_SECRET
   - variable: RESEND_API_KEY
     secret: RESEND_API_KEY
   - variable: INVITATION_CODE

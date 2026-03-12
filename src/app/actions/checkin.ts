@@ -21,6 +21,7 @@ export async function addCheckedInTickets(reservationId: string, count: number, 
         if (!resSnap.exists()) throw new Error('予約が見つかりません');
         const reservation = resSnap.data() as FirestoreReservation;
         if (reservation.userId !== userId) throw new Error('Unauthorized');
+        if (reservation.status === 'CANCELED') throw new Error('キャンセル済みの予約は操作できません');
 
         const totalTickets = (reservation.tickets || []).reduce((sum: number, t: any) => sum + (t.count || 0), 0)
         const newCheckedInTickets = Math.min((reservation.checkedInTickets || 0) + count, totalTickets)
@@ -62,6 +63,7 @@ export async function resetCheckIn(reservationId: string, performanceId: string,
         if (!resSnap.exists()) throw new Error('予約が見つかりません');
         const reservation = resSnap.data() as FirestoreReservation;
         if (reservation.userId !== userId) throw new Error('Unauthorized');
+        if (reservation.status === 'CANCELED') throw new Error('キャンセル済みの予約は操作できません');
 
         // Reset tickets' paidCount
         const updatedTickets = reservation.tickets.map(t => ({
@@ -109,6 +111,7 @@ export async function processCheckinWithPayment(
         if (!resSnap.exists()) throw new Error('予約が見つかりません');
         const reservation = resSnap.data() as FirestoreReservation;
         if (reservation.userId !== userId) throw new Error('Unauthorized');
+        if (reservation.status === 'CANCELED') throw new Error('キャンセル済みの予約は操作できません');
 
         const totalTickets = (reservation.tickets || []).reduce((sum: number, t: any) => sum + (t.count || 0), 0)
         const totalAmount = (reservation.tickets || []).reduce((sum: number, t: any) => sum + (t.price * t.count), 0)
@@ -127,7 +130,7 @@ export async function processCheckinWithPayment(
         if (newPaidAmount >= totalAmount) {
             paymentStatus = "PAID"
         } else if (newPaidAmount > 0) {
-            paymentStatus = "PARTIALLY_PAID"
+            paymentStatus = "PARTIAL"
         }
 
         // Update individual ticket types' paidCount within the tickets array
@@ -180,6 +183,7 @@ export async function processPartialReset(
         if (!resSnap.exists()) throw new Error('予約が見つかりません');
         const reservation = resSnap.data() as FirestoreReservation;
         if (reservation.userId !== userId) throw new Error('Unauthorized');
+        if (reservation.status === 'CANCELED') throw new Error('キャンセル済みの予約は操作できません');
 
         const totalTickets = (reservation.tickets || []).reduce((sum: number, t: any) => sum + (t.count || 0), 0)
         const totalAmount = (reservation.tickets || []).reduce((sum: number, t: any) => sum + (t.price * t.count), 0)
@@ -198,7 +202,7 @@ export async function processPartialReset(
         if (newPaidAmount >= totalAmount) {
             paymentStatus = "PAID"
         } else if (newPaidAmount > 0) {
-            paymentStatus = "PARTIALLY_PAID"
+            paymentStatus = "PARTIAL"
         }
 
         // Update individual ticket types' paidCount (decrement)

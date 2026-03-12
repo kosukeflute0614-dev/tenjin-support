@@ -105,6 +105,7 @@ export async function processCheckinWithPaymentClient(
         if (!resSnap.exists()) throw new Error('予約が見つかりません');
         const reservation = resSnap.data() as FirestoreReservation;
         if (reservation.userId !== userId) throw new Error('Unauthorized');
+        if (reservation.status === 'CANCELED') throw new Error('キャンセル済みの予約は操作できません');
 
         const totalTickets = (reservation.tickets || []).reduce((sum: number, t: any) => sum + (t.count || 0), 0);
         const totalAmount = (reservation.tickets || []).reduce((sum: number, t: any) => sum + ((t.price || 0) * (t.count || 0)), 0);
@@ -123,7 +124,7 @@ export async function processCheckinWithPaymentClient(
         if (newPaidAmount >= totalAmount && totalAmount > 0) {
             paymentStatus = "PAID";
         } else if (newPaidAmount > 0) {
-            paymentStatus = "PARTIALLY_PAID";
+            paymentStatus = "PARTIAL";
         }
 
         const updatedTickets = (reservation.tickets || []).map(t => {
@@ -172,6 +173,7 @@ export async function resetCheckInClient(reservationId: string, performanceId: s
         if (!resSnap.exists()) throw new Error('予約が見つかりません');
         const reservation = resSnap.data() as FirestoreReservation;
         if (reservation.userId !== userId) throw new Error('Unauthorized');
+        if (reservation.status === 'CANCELED') throw new Error('キャンセル済みの予約は操作できません');
 
         const updatedTickets = (reservation.tickets || []).map(t => ({
             ...t,
@@ -223,6 +225,7 @@ export async function processPartialResetClient(
         if (!resSnap.exists()) throw new Error('予約が見つかりません');
         const reservation = resSnap.data() as FirestoreReservation;
         if (reservation.userId !== userId) throw new Error('Unauthorized');
+        if (reservation.status === 'CANCELED') throw new Error('キャンセル済みの予約は操作できません');
 
         const totalTickets = (reservation.tickets || []).reduce((sum: number, t: any) => sum + (t.count || 0), 0);
         const totalAmount = (reservation.tickets || []).reduce((sum: number, t: any) => sum + ((t.price || 0) * (t.count || 0)), 0);
@@ -241,7 +244,7 @@ export async function processPartialResetClient(
         if (newPaidAmount >= totalAmount && totalAmount > 0) {
             paymentStatus = "PAID";
         } else if (newPaidAmount > 0) {
-            paymentStatus = "PARTIALLY_PAID";
+            paymentStatus = "PARTIAL";
         }
 
         const updatedTickets = (reservation.tickets || []).map(t => {

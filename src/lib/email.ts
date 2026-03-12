@@ -8,7 +8,7 @@ const resend = process.env.RESEND_API_KEY
     : null;
 
 const FROM_EMAIL = 'Tenjin-Support <no-reply@tenjin-support.com>';
-const REPLY_TO = process.env.REPLY_TO_EMAIL || 'kosuke.flute0614@gmail.com';
+const DEFAULT_REPLY_TO = process.env.REPLY_TO_EMAIL || 'support@tenjin-support.com';
 
 interface ReservationEmailData {
     reservation: FirestoreReservation;
@@ -63,6 +63,7 @@ function buildDefaultConfirmationText(
     reservationId: string,
     ticketDetailsText: string,
     totalAmount: string,
+    replyTo: string,
 ): string {
     return `${customerName} 様
 
@@ -89,7 +90,7 @@ ${ticketDetailsText}
 
 ──────────────────
 ※ このメールは送信専用アドレスから配信しています。
-※ ご不明な点がございましたら ${REPLY_TO} までお問い合わせください。`;
+※ ご不明な点がございましたら ${replyTo} までお問い合わせください。`;
 }
 
 export async function sendReservationConfirmation(data: ReservationEmailData): Promise<void> {
@@ -140,6 +141,7 @@ export async function sendReservationConfirmation(data: ReservationEmailData): P
         .map(r => `${r.name} × ${r.count}枚  ¥${r.subtotal.toLocaleString()}`)
         .join('\n');
 
+    const replyTo = organizerEmail?.trim() || DEFAULT_REPLY_TO;
     let subject: string;
     let text: string;
 
@@ -166,13 +168,14 @@ export async function sendReservationConfirmation(data: ReservationEmailData): P
             reservationId,
             ticketDetailsText,
             `¥${totalAmount.toLocaleString()}`,
+            replyTo,
         );
     }
 
     const sendPayload: Record<string, unknown> = {
         from: FROM_EMAIL,
         to: reservation.customerEmail,
-        replyTo: REPLY_TO,
+        replyTo,
         subject,
         text,
     };
@@ -199,7 +202,7 @@ export async function sendReservationConfirmation(data: ReservationEmailData): P
                 await resend.emails.send({
                     from: FROM_EMAIL,
                     to: organizerEmail.trim(),
-                    replyTo: REPLY_TO,
+                    replyTo: replyTo,
                     subject: `[コピー] ${subject}`,
                     text: `※ このメールは主催者コピーです（送信先: ${reservation.customerEmail}）\n\n${text}`,
                 });
@@ -265,7 +268,7 @@ export async function sendBroadcastEmail(params: {
         const result = await resend.emails.send({
             from: FROM_EMAIL,
             to: params.to,
-            replyTo: REPLY_TO,
+            replyTo: params.organizerEmail?.trim() || DEFAULT_REPLY_TO,
             subject,
             text,
         });

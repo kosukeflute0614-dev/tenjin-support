@@ -8,7 +8,8 @@ import {
     updateDoc,
     doc,
     serverTimestamp,
-    increment
+    increment,
+    runTransaction
 } from "firebase/firestore";
 import { revalidatePath } from 'next/cache'
 import { Production } from "@/types";
@@ -58,26 +59,35 @@ export async function createSameDayTicket(formData: FormData, userId: string) {
         }
     })
 
-    // 予約の作成 (source: SAME_DAY, checkedInAt: now)
-    await addDoc(collection(db, "reservations"), {
-        userId, // Organizer ID
-        performanceId,
-        customerName,
-        customerNameKana,
-        source: "SAME_DAY",
-        checkedInAt: serverTimestamp(),
-        checkedInTickets: totalQuantity,
-        checkinStatus: "CHECKED_IN",
-        status: "CONFIRMED",
-        paymentStatus: "PAID",
-        paidAmount: totalAmount,
-        tickets: ticketDatas,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-    })
-
+    // 予約の作成 (source: SAME_DAY, checkedInAt: now) — トランザクションで原子的に実行
     const performanceRef = doc(db, "performances", performanceId);
-    await updateDoc(performanceRef, { bookedCount: increment(totalQuantity) });
+    const newReservationRef = doc(collection(db, "reservations"));
+
+    await runTransaction(db, async (transaction) => {
+        // 公演回の存在確認
+        const perfSnap = await transaction.get(performanceRef);
+        if (!perfSnap.exists()) throw new Error('公演回が見つかりません');
+
+        transaction.set(newReservationRef, {
+            userId,
+            productionId,
+            performanceId,
+            customerName,
+            customerNameKana,
+            source: "SAME_DAY",
+            checkedInAt: serverTimestamp(),
+            checkedInTickets: totalQuantity,
+            checkinStatus: "CHECKED_IN",
+            status: "CONFIRMED",
+            paymentStatus: "PAID",
+            paidAmount: totalAmount,
+            tickets: ticketDatas,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        });
+
+        transaction.update(performanceRef, { bookedCount: increment(totalQuantity) });
+    });
 
     revalidatePath(`/productions/${productionId}/checkin/${performanceId}`)
 }

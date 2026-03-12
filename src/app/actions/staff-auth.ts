@@ -8,8 +8,12 @@ import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 
 const SALT_ROUNDS = 10;
+const SESSION_SECRET_RAW = process.env.SESSION_SECRET;
+if (!SESSION_SECRET_RAW) {
+    console.error('CRITICAL: SESSION_SECRET environment variable is not set. Staff authentication will fail.');
+}
 const SESSION_SECRET = new TextEncoder().encode(
-    process.env.SESSION_SECRET || 'fallback-dev-secret-change-in-production'
+    SESSION_SECRET_RAW || 'fallback-dev-secret-DO-NOT-USE-IN-PRODUCTION'
 );
 
 // SEC-05: SHA-256 は後方互換用のみ。新規は bcrypt を使用

@@ -313,22 +313,26 @@ export async function cancelReservation(reservationId: string, userId: string) {
     if (!userId) throw new Error('Unauthorized');
     try {
         const reservationRef = doc(db, "reservations", reservationId);
-        const resSnap = await getDoc(reservationRef);
-        if (!resSnap.exists()) throw new Error('Reservation not found');
-        const resData = resSnap.data();
-        if (resData.userId !== userId) throw new Error('Unauthorized');
 
-        const ticketCount = (resData.tickets || []).reduce((sum: number, t: any) => sum + (t.count || 0), 0);
+        await runTransaction(db, async (transaction) => {
+            const resSnap = await transaction.get(reservationRef);
+            if (!resSnap.exists()) throw new Error('Reservation not found');
+            const resData = resSnap.data();
+            if (resData.userId !== userId) throw new Error('Unauthorized');
+            if (resData.status === 'CANCELED') throw new Error('既にキャンセル済みです');
 
-        await updateDoc(reservationRef, {
-            status: 'CANCELED',
-            updatedAt: serverTimestamp(),
+            const ticketCount = (resData.tickets || []).reduce((sum: number, t: any) => sum + (t.count || 0), 0);
+
+            transaction.update(reservationRef, {
+                status: 'CANCELED',
+                updatedAt: serverTimestamp(),
+            });
+
+            if (ticketCount > 0 && resData.performanceId) {
+                const performanceRef = doc(db, "performances", resData.performanceId);
+                transaction.update(performanceRef, { bookedCount: increment(-ticketCount) });
+            }
         });
-
-        if (ticketCount > 0 && resData.performanceId) {
-            const performanceRef = doc(db, "performances", resData.performanceId);
-            await updateDoc(performanceRef, { bookedCount: increment(-ticketCount) });
-        }
 
         revalidatePath('/');
         revalidatePath('/reservations');

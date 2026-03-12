@@ -64,7 +64,7 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
         try {
             const { token, passcode } = await generateStaffTokenClient(production.id, newRole);
             const message = passcode
-                ? `新しいスタッフ用URLを発行しました。\n\n【重要】6桁のパスコードが設定されました：${passcode}\nスタッフに入場チェック画面で入力するよう伝えてください。`
+                ? `新しいスタッフ用URLを発行しました。\n\n【重要】パスコード：${passcode}\nスタッフに入場チェック画面で入力するよう伝えてください。このパスコードは再表示できません。`
                 : '新しいスタッフ用URLを発行しました。';
             showToast(message, 'success');
         } catch (error: any) {
@@ -89,13 +89,13 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
         }
     };
 
-    const handleUpdatePasscode = async (token: string, currentPasscode: string) => {
+    const handleUpdatePasscode = async (token: string) => {
         if (!production) return; // Added null check
-        const newPasscode = prompt(`新しい6桁のパスコードを入力してください（現在の値: ${currentPasscode}）`, currentPasscode);
-        if (!newPasscode || newPasscode === currentPasscode) return;
+        const newPasscode = prompt('新しいパスコードを入力してください（数字4桁）');
+        if (!newPasscode) return;
 
-        if (!/^\d{6}$/.test(newPasscode)) {
-            showToast('パスコードは数字6桁で入力してください。', 'warning');
+        if (!/^\d{4}$/.test(newPasscode)) {
+            showToast('パスコードは数字4桁で入力してください。', 'warning');
             return;
         }
 
@@ -187,7 +187,7 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
                         {tokens.map(([token, data]) => {
                             const inviteUrl = `${baseUrl}/staff/${production.id}?token=${token}`;
                             const role = typeof data === 'string' ? data : data.role;
-                            const passcode = typeof data === 'string' ? '要再発行' : data.passcode;
+                            const passcode = typeof data === 'string' ? '要再発行' : '設定済み';
 
                             return (
                                 <div key={token} style={{ border: '1px solid var(--card-border)', borderRadius: '12px', padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
@@ -211,7 +211,7 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
                                                     <button
                                                         className="btn btn-secondary"
                                                         style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
-                                                        onClick={() => handleUpdatePasscode(token, passcode)}
+                                                        onClick={() => handleUpdatePasscode(token)}
                                                         disabled={isProcessing}
                                                     >
                                                         変更

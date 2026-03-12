@@ -19,7 +19,6 @@ export async function generateStaffTokenClient(productionId: string, role: strin
     await updateDoc(prodRef, {
         [`staffTokens.${newToken}`]: {
             role,
-            passcode: autoPasscode,
             passcodeHashed: hashed
         },
         updatedAt: serverTimestamp()
@@ -56,7 +55,6 @@ export async function updateStaffTokenPasscodeClient(
     await updateDoc(prodRef, {
         [`staffTokens.${token}`]: {
             role,
-            passcode: newPasscode,
             passcodeHashed: hashed
         },
         updatedAt: serverTimestamp()
@@ -180,6 +178,7 @@ export async function processCheckinWithPaymentStaffClient(
         const resSnap = await transaction.get(resRef);
         if (!resSnap.exists()) throw new Error('予約が見つかりません');
         const reservation = resSnap.data() as FirestoreReservation;
+        if (reservation.status === 'CANCELED') throw new Error('キャンセル済みの予約は操作できません');
 
         const totalTickets = (reservation.tickets || []).reduce((sum: number, t: any) => sum + (t.count || 0), 0);
         const totalAmount = (reservation.tickets || []).reduce((sum: number, t: any) => sum + ((t.price || 0) * (t.count || 0)), 0);
@@ -198,7 +197,7 @@ export async function processCheckinWithPaymentStaffClient(
         if (newPaidAmount >= totalAmount && totalAmount > 0) {
             paymentStatus = "PAID";
         } else if (newPaidAmount > 0) {
-            paymentStatus = "PARTIALLY_PAID";
+            paymentStatus = "PARTIAL";
         }
 
         const updatedTickets = (reservation.tickets || []).map(t => {
@@ -250,6 +249,7 @@ export async function resetCheckInStaffClient(
         const resSnap = await transaction.get(resRef);
         if (!resSnap.exists()) throw new Error('予約が見つかりません');
         const reservation = resSnap.data() as FirestoreReservation;
+        if (reservation.status === 'CANCELED') throw new Error('キャンセル済みの予約は操作できません');
 
         const updatedTickets = (reservation.tickets || []).map(t => ({
             ...t,
@@ -299,6 +299,7 @@ export async function processPartialResetStaffClient(
         const resSnap = await transaction.get(resRef);
         if (!resSnap.exists()) throw new Error('予約が見つかりません');
         const reservation = resSnap.data() as FirestoreReservation;
+        if (reservation.status === 'CANCELED') throw new Error('キャンセル済みの予約は操作できません');
 
         const totalTickets = (reservation.tickets || []).reduce((sum: number, t: any) => sum + (t.count || 0), 0);
         const totalAmount = (reservation.tickets || []).reduce((sum: number, t: any) => sum + ((t.price || 0) * (t.count || 0)), 0);
@@ -317,7 +318,7 @@ export async function processPartialResetStaffClient(
         if (newPaidAmount >= totalAmount && totalAmount > 0) {
             paymentStatus = "PAID";
         } else if (newPaidAmount > 0) {
-            paymentStatus = "PARTIALLY_PAID";
+            paymentStatus = "PARTIAL";
         }
 
         const updatedTickets = (reservation.tickets || []).map(t => {

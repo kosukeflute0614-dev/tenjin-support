@@ -111,10 +111,6 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                 setRole(tokenValidation.role || 'reception');
 
                 // セッションチェック (UID を渡す)
-                // productionId ではなく解決された realId を保存する
-                const sessionKey = `staff_session_${realId}`;
-                sessionStorage.setItem('last_staff_production_id', realId);
-                sessionStorage.setItem('last_staff_token', token);
 
                 const sessionValid = await checkStaffSession(realId, token, uid);
                 if (sessionValid) {

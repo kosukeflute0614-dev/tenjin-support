@@ -119,7 +119,7 @@ export interface Production {
     staffTokens?: {
         [token: string]: {
             role: string;
-            passcode: string;
+            passcode?: string; // Legacy: 平文パスコード（新規発行では保存しない）
             passcodeHashed: string;
         } | string; // string is for legacy support during migration
     };
