@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import HeaderNav from '@/components/HeaderNav';
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
@@ -17,7 +18,9 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
     <>
       <header className="global-header">
         <div className="container header-container">
-          <Link href="/" className="logo" style={{ fontWeight: 'bold', textDecoration: 'none', color: 'inherit' }}>Tenjin-Support</Link>
+          <Link href="/" className="logo" style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
+            <Image src="/logo.jpg" alt="Tenjin-Support" width={220} height={55} style={{ objectFit: 'contain' }} priority />
+          </Link>
           <HeaderNav />
         </div>
       </header>

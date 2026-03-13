@@ -12,6 +12,9 @@ const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-serif'
 export const metadata: Metadata = {
   title: 'Tenjin-Support | 演劇公演の制作業務をまるごとサポート',
   description: '予約管理、当日受付、チェックイン、売上集計、アンケートまで。小劇場の公演制作をひとつのアプリで完結。',
+  icons: {
+    icon: '/icon.jpg',
+  },
 }
 
 export default function RootLayout({
