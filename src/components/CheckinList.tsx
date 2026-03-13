@@ -181,43 +181,30 @@ export default function CheckinList({
                                 {showGroupHeader && (
                                     <div className="mobile-card-group-header">{group}</div>
                                 )}
-                                <div className={`mobile-card-item${res.checkinStatus === 'CHECKED_IN' ? ' is-checked-in' : ''}`}>
-                                    <div className="mobile-card-header">
-                                        <div style={{ minWidth: 0, flex: 1 }}>
-                                            <div className="mobile-card-title" style={{ display: 'flex', alignItems: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{res.customerName}</span>
-                                                {hasInvitationTickets(res) && <InvitationBadge />}
-                                            </div>
-                                            <div className="mobile-card-subtitle">{res.customerNameKana}</div>
+                                <div
+                                    className={`mobile-card-item${res.checkinStatus === 'CHECKED_IN' ? ' is-checked-in' : ''}`}
+                                    onClick={() => setSelectedRes(res)}
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    <div className="mobile-card-info">
+                                        <div className="mobile-card-title" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                            <span>{res.customerName}</span>
+                                            {hasInvitationTickets(res) && <InvitationBadge />}
                                         </div>
-                                        <CheckinBadge status={res.checkinStatus} />
-                                    </div>
-                                    <div className="mobile-card-body">
-                                        <div className="mobile-card-row">
-                                            <span className="mobile-card-row-label">内容</span>
-                                            <span className="mobile-card-row-value" style={{ fontSize: '0.85rem' }}>
-                                                {res.tickets?.map((t: any) => `${t.ticketType?.name || '不明な券種'}×${t.count}`).join(', ') || 'チケットなし'}
-                                            </span>
+                                        <div className="mobile-card-tickets">
+                                            {res.tickets?.map((t: any) => `${t.ticketType?.name || '不明'}×${t.count}`).join(', ') || 'チケットなし'}
+                                            {res.checkinStatus !== 'NOT_CHECKED_IN' && ` (${res.checkedInTickets}/${totalTickets}人入場)`}
                                         </div>
-                                        {res.checkinStatus !== 'NOT_CHECKED_IN' && (
-                                            <div className="mobile-card-row">
-                                                <span className="mobile-card-row-label">入場状況</span>
-                                                <span className="mobile-card-row-value">
-                                                    {res.checkedInTickets}/{totalTickets}人
-                                                </span>
-                                            </div>
-                                        )}
                                     </div>
-                                    <div className="mobile-card-footer">
-                                        <button
-                                            className={res.checkinStatus === 'CHECKED_IN' ? "btn btn-secondary" : "btn btn-primary"}
-                                            style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem' }}
-                                            disabled={isPending}
-                                            onClick={() => setSelectedRes(res)}
-                                        >
-                                            {res.checkinStatus === 'CHECKED_IN' ? '詳細/ログ' : '受付する'}
-                                        </button>
-                                    </div>
+                                    {res.checkinStatus === 'CHECKED_IN' && <MobileCheckinTag status="CHECKED_IN" />}
+                                    {res.checkinStatus === 'PARTIALLY_CHECKED_IN' && <MobileCheckinTag status="PARTIALLY_CHECKED_IN" />}
+                                    <button
+                                        className={`${res.checkinStatus === 'CHECKED_IN' ? 'btn btn-secondary' : 'btn btn-primary'} mobile-card-action-btn`}
+                                        disabled={isPending}
+                                        onClick={(e) => { e.stopPropagation(); setSelectedRes(res); }}
+                                    >
+                                        {res.checkinStatus === 'CHECKED_IN' ? '詳細' : '受付'}
+                                    </button>
                                 </div>
                             </Fragment>
                         )
@@ -298,6 +285,35 @@ function CheckinBadge({ status }: { status: string }) {
     }
 
     return <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', background: style.bg, color: style.color, flexShrink: 0, whiteSpace: 'nowrap' as const }}>{iconMap[status] || iconMap.NOT_CHECKED_IN}{style.label}</span>
+}
+
+function MobileCheckinTag({ status }: { status: string }) {
+    if (status === 'CHECKED_IN') {
+        return (
+            <span style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: '24px', height: '24px', borderRadius: '50%',
+                backgroundColor: 'var(--primary)', color: '#fff',
+                fontSize: '0.65rem', fontWeight: 'bold', flexShrink: 0,
+            }}>
+                済
+            </span>
+        )
+    }
+    if (status === 'PARTIALLY_CHECKED_IN') {
+        return (
+            <span style={{
+                display: 'inline-flex', alignItems: 'center',
+                padding: '0.15rem 0.4rem', borderRadius: '4px',
+                backgroundColor: '#fef3c7', color: '#92400e',
+                fontSize: '0.65rem', fontWeight: 'bold', flexShrink: 0,
+                whiteSpace: 'nowrap',
+            }}>
+                一部入場
+            </span>
+        )
+    }
+    return null
 }
 
 // 受付詳細モーダル

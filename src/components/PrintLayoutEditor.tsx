@@ -648,7 +648,7 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
             aria-modal="true"
             aria-label="印刷レイアウトエディタ"
             style={{
-                position: 'fixed', inset: 0, zIndex: 50,
+                position: 'fixed', inset: 0, zIndex: 300,
                 backgroundColor: '#1e1e1e',
                 display: 'flex', flexDirection: 'column',
                 fontFamily: "'Inter', 'Segoe UI', sans-serif",
@@ -736,9 +736,11 @@ export default function PrintLayoutEditor({ questions, templateTitle, templateId
                     borderBottom: isMobile ? '1px solid #e0e0e0' : 'none',
                     display: 'flex', flexDirection: 'column', gap: isMobile ? '1rem' : '2.5rem',
                     padding: isMobile ? '0.75rem 1rem' : '1.5rem 1.25rem',
-                    color: '#333', overflowY: 'auto',
+                    color: '#333',
+                    overflowX: 'hidden',
+                    overflowY: (isMobile && sidebarCollapsed) ? 'hidden' : 'auto',
                     boxShadow: isMobile ? 'none' : 'inset -2px 0 8px rgba(0,0,0,0.02)',
-                    ...(isMobile && sidebarCollapsed ? { maxHeight: '0', padding: '0 1rem', overflow: 'hidden', borderBottom: 'none' } : {}),
+                    ...(isMobile && sidebarCollapsed ? { maxHeight: '0', padding: '0 1rem', borderBottom: 'none' } : {}),
                     ...(isMobile && !sidebarCollapsed ? { maxHeight: '400px' } : {}),
                     transition: isMobile ? 'max-height 0.3s ease, padding 0.3s ease' : undefined,
                 }}>

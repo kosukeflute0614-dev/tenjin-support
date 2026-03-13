@@ -383,6 +383,7 @@ export default function SurveyHubPage({ params }: { params: Promise<{ id: string
                     surveyUrl={surveyUrl}
                     productionTitle={production.title}
                     onCopy={() => showToast('📋 URLをコピーしました')}
+                    onOpenPrintEditor={() => setShowPrintEditor(true)}
                 />
             )}
 
@@ -484,11 +485,12 @@ function typeLabel(type: string): string {
    ── 共有・印刷タブ ──
    ========================================= */
 
-function ShareTab({ template, surveyUrl, productionTitle, onCopy }: {
+function ShareTab({ template, surveyUrl, productionTitle, onCopy, onOpenPrintEditor }: {
     template: SurveyTemplate;
     surveyUrl: string;
     productionTitle: string;
     onCopy: () => void;
+    onOpenPrintEditor: () => void;
 }) {
     if (template.status !== 'active') {
         return (
@@ -510,27 +512,30 @@ function ShareTab({ template, surveyUrl, productionTitle, onCopy }: {
                 onCopy={onCopy}
             />
 
-            {/* 印刷用PDFダウンロード（プレースホルダ） */}
+            {/* 印刷用アンケートPDF */}
             <div style={{
                 padding: '1.5rem', backgroundColor: 'var(--card-bg)',
-                borderRadius: '8px', border: '1px dashed #d1d5db',
+                borderRadius: '8px', border: '1px solid var(--card-border)',
             }}>
                 <h4 style={{ fontSize: '0.95rem', fontWeight: 'bold', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span>🖨️</span> 印刷用アンケートPDF
                 </h4>
                 <p style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '1rem', lineHeight: '1.6' }}>
-                    印刷レイアウトエディタで作成したデザインを、高精度なPDFとしてダウンロードできます。
+                    印刷レイアウトエディタでデザインを編集し、PDFとしてダウンロードできます。
                 </p>
                 <button
-                    disabled
+                    onClick={onOpenPrintEditor}
                     style={{
                         display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
                         padding: '0.6rem 1.2rem', borderRadius: '8px',
-                        border: '1px solid var(--card-border)', backgroundColor: 'var(--secondary)',
-                        color: '#9ca3af', fontSize: '0.85rem', cursor: 'not-allowed',
+                        border: '1px solid #d1d5db', backgroundColor: 'var(--secondary)',
+                        color: '#374151', fontSize: '0.85rem', cursor: 'pointer',
+                        fontWeight: '500', transition: 'all 0.15s',
                     }}
+                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f3f4f6'; e.currentTarget.style.borderColor = '#9ca3af'; }}
+                    onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'var(--secondary)'; e.currentTarget.style.borderColor = '#d1d5db'; }}
                 >
-                    📄 PDFをダウンロード（準備中）
+                    🖨️ 印刷レイアウトを開く
                 </button>
             </div>
         </div>
