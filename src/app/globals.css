@@ -681,6 +681,19 @@ input, select, textarea {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
+
+  .reservation-filters-inputs {
+    flex-direction: column !important;
+  }
+
+  .reservation-page-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .reservation-page-header .btn {
+    text-align: center;
+  }
 }
 
 /* ===== Checkin page mobile optimization ===== */

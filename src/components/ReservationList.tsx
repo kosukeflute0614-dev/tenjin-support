@@ -165,17 +165,17 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
     return (
         <div className="reservation-list-container">
             {/* Filters Row */}
-            <div className="flex-center" style={{
-                justifyContent: 'space-between',
+            <div className="reservation-filters" style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem',
                 marginBottom: '1.5rem',
-                gap: '1rem',
-                flexWrap: 'wrap',
                 backgroundColor: 'var(--background-light)',
                 padding: '1rem',
                 borderRadius: '8px',
                 border: '1px solid var(--card-border)'
             }}>
-                <div style={{ display: 'flex', gap: '1rem', flex: 1, minWidth: '300px' }}>
+                <div className="reservation-filters-inputs" style={{ display: 'flex', gap: '0.75rem' }}>
                     <div style={{ flex: 1 }}>
                         <input
                             type="text"
@@ -196,14 +196,14 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
                             <option value="all">すべての公演回</option>
                             {allPerformances.map(perf => (
                                 <option key={perf.id} value={perf.id}>
-                                    【{perf.productionTitle}】 {formatDateTime(perf.startTime)}
+                                    {formatDateTime(perf.startTime)}
                                 </option>
                             ))}
                         </select>
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                     <button
                         onClick={handleExportCSV}
                         className="btn btn-secondary"
@@ -242,10 +242,6 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
                                 const totalCount = res.tickets.reduce((sum: number, t: any) => sum + (t.count || 0), 0);
                                 const isCanceled = res.status === 'CANCELED';
 
-                                // Client-side Join
-                                const performance = allPerformances.find(p => p.id === res.performanceId);
-                                const productionTitle = performance?.productionTitle || '不明な公演';
-                                const startTime = performance?.startTime;
 
                                 return (
                                     <tr key={res.id} style={{
@@ -258,13 +254,12 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
                                             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{res.customerEmail}</div>
                                         </td>
                                         <td style={{ padding: '1rem' }}>
-                                            <div style={{ fontSize: '0.9rem' }}>
-                                                {res.performance?.productionTitle || '不明な公演'}
-                                            </div>
-                                            {res.performance?.startTime && (
-                                                <div style={{ fontSize: '0.8rem', color: 'var(--primary)' }}>
+                                            {res.performance?.startTime ? (
+                                                <div style={{ fontSize: '0.9rem', color: 'var(--primary)' }}>
                                                     {formatDateTime(res.performance.startTime)}
                                                 </div>
+                                            ) : (
+                                                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>不明</div>
                                             )}
                                         </td>
                                         <td style={{ padding: '1rem' }}>
@@ -336,68 +331,48 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
                                 const isCanceled = res.status === 'CANCELED';
 
                                 return (
-                                    <div key={res.id} className={`mobile-card-item${isCanceled ? ' is-canceled' : ''}`}>
-                                        <div className="mobile-card-header">
-                                            <div>
-                                                <div className="mobile-card-title">{res.customerName}</div>
-                                                {res.customerEmail && (
-                                                    <div className="mobile-card-subtitle">{res.customerEmail}</div>
+                                    <div key={res.id} className={`mobile-card-item${isCanceled ? ' is-canceled' : ''}`} style={{ flexDirection: 'row', alignItems: 'center', padding: '0.4rem 0.75rem', gap: '0.5rem' }}>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
+                                                <span style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{res.customerName}</span>
+                                                {res.customerNameKana && (
+                                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{res.customerNameKana}</span>
                                                 )}
                                             </div>
-                                            <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{totalCount}枚</div>
-                                        </div>
-                                        <div className="mobile-card-body">
-                                            <div className="mobile-card-row">
-                                                <span className="mobile-card-row-label">公演回</span>
-                                                <span className="mobile-card-row-value" style={{ fontSize: '0.85rem', textAlign: 'right' }}>
-                                                    {res.performance?.productionTitle || '不明な公演'}
-                                                    {res.performance?.startTime && (
-                                                        <div style={{ fontSize: '0.8rem', color: 'var(--primary)' }}>
-                                                            {formatDateTime(res.performance.startTime)}
-                                                        </div>
-                                                    )}
-                                                </span>
-                                            </div>
-                                            <div className="mobile-card-row">
-                                                <span className="mobile-card-row-label">内訳</span>
-                                                <span className="mobile-card-row-value" style={{ fontSize: '0.85rem', textAlign: 'right' }}>
+                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.1rem', display: 'flex', flexWrap: 'wrap', gap: '0.25rem 0.5rem' }}>
+                                                {res.performance?.startTime && (
+                                                    <span style={{ color: 'var(--primary)' }}>{formatDate(res.performance.startTime)} {formatTime(res.performance.startTime)}</span>
+                                                )}
+                                                <span>
                                                     {res.tickets.map((t: any, idx: number) => {
                                                         const ticketType = res.performance?.ticketTypes?.find((tt: any) => tt.id === t.ticketTypeId);
-                                                        return (
-                                                            <div key={idx}>{ticketType?.name || '不明な券種'} x {t.count}</div>
-                                                        );
-                                                    })}
-                                                    {res.tickets.length === 0 && '-'}
+                                                        return `${ticketType?.name || '不明'}×${t.count}`;
+                                                    }).join(', ')}
                                                 </span>
                                             </div>
                                         </div>
-                                        <div className="mobile-card-footer">
-                                            {!isCanceled ? (
-                                                <button
-                                                    onClick={() => handleEdit(res)}
-                                                    className="btn btn-secondary"
-                                                    style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem' }}
-                                                >
-                                                    詳細・取消
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    onClick={() => handleRestore(res.id)}
-                                                    className="btn btn-primary"
-                                                    style={{
-                                                        width: '100%',
-                                                        padding: '0.5rem',
-                                                        fontSize: '0.85rem',
-                                                        backgroundColor: 'var(--success)',
-                                                        border: 'none',
-                                                        opacity: isProcessing ? 0.7 : 1
-                                                    }}
-                                                    disabled={isProcessing}
-                                                >
-                                                    {isProcessing ? '処理中' : '予約を復元'}
-                                                </button>
-                                            )}
-                                        </div>
+                                        <div style={{ fontWeight: 'bold', fontSize: '0.95rem', flexShrink: 0 }}>{totalCount}枚</div>
+                                        {!isCanceled ? (
+                                            <button
+                                                onClick={() => handleEdit(res)}
+                                                className="btn btn-secondary mobile-card-action-btn"
+                                            >
+                                                変更
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => handleRestore(res.id)}
+                                                className="btn btn-primary mobile-card-action-btn"
+                                                style={{
+                                                    backgroundColor: 'var(--success)',
+                                                    border: 'none',
+                                                    opacity: isProcessing ? 0.7 : 1
+                                                }}
+                                                disabled={isProcessing}
+                                            >
+                                                {isProcessing ? '...' : '復元'}
+                                            </button>
+                                        )}
                                     </div>
                                 );
                             })}
@@ -496,7 +471,7 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
                                     <select name="performanceId" defaultValue={editingReservation.performanceId} className="input" required>
                                         {allPerformances.map(perf => (
                                             <option key={perf.id} value={perf.id}>
-                                                【{perf.productionTitle}】 {formatDateTime(perf.startTime)}
+                                                {formatDateTime(perf.startTime)}
                                             </option>
                                         ))}
                                     </select>

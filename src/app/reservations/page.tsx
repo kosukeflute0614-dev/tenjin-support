@@ -91,14 +91,14 @@ export default function ReservationsPage() {
                     </Link>
                 </div>
 
-                <div className="flex-center" style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                <div className="reservation-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
                         <h2 className="heading-lg" style={{ margin: 0 }}>予約管理</h2>
                         <p className="text-muted" style={{ marginTop: '0.5rem' }}>
                             全 {reservations.filter(r => r.status !== 'CANCELED').length} 件の予約があります。
                         </p>
                     </div>
-                    <Link href="/reservations/new" className="btn btn-primary" style={{ padding: '0.8rem 2rem', fontSize: '1.1rem', fontWeight: 'bold' }}>
+                    <Link href="/reservations/new" className="btn btn-primary" style={{ padding: '0.8rem 2rem', fontSize: '1.1rem', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
                         + 新規予約登録
                     </Link>
                 </div>
