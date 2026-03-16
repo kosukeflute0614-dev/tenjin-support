@@ -20,7 +20,7 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
     const [production, setProduction] = useState<Production | null>(null);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [newRole, setNewRole] = useState<'reception' | 'merchandise' | 'monitor' | 'cast'>('reception');
+    const [newRole, setNewRole] = useState<'reception' | 'merchandise' | 'monitor' | 'cast' | 'stats'>('reception');
     const [baseUrl, setBaseUrl] = useState('');
     const [revokeTarget, setRevokeTarget] = useState<string | null>(null);
     const [passcodeTarget, setPasscodeTarget] = useState<string | null>(null);
@@ -175,9 +175,10 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
                             <option value="merchandise">物販スタッフ</option>
                             <option value="monitor">来場状況確認・モニター</option>
                             <option value="cast">予約状況確認（読み取り専用）</option>
+                            <option value="stats">予約数確認（読み取り専用）</option>
                         </select>
                         <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                            {newRole === 'reception' ? '※来場チェックインと当日券発行が可能です。' : newRole === 'merchandise' ? '※物販販売とレジ締めが可能です。' : newRole === 'cast' ? '※予約者名と予約数の確認のみ可能です（読み取り専用）。' : '※来場状況の確認のみ可能です（読み取り専用）。'}
+                            {newRole === 'reception' ? '※来場チェックインと当日券発行が可能です。' : newRole === 'merchandise' ? '※物販販売とレジ締めが可能です。' : newRole === 'cast' ? '※予約者名と予約数の確認のみ可能です（読み取り専用）。' : newRole === 'stats' ? '※予約数のみ確認可能です。予約者名は表示されません（読み取り専用）。' : '※来場状況の確認のみ可能です（読み取り専用）。'}
                         </p>
                     </div>
                     <button
@@ -200,7 +201,7 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
                         {tokens.map(([token, data]) => {
                             const inviteUrl = `${baseUrl}/staff/${production.id}?token=${token}`;
                             const roleKey = typeof data === 'string' ? data : data.role;
-                            const roleLabel = roleKey === 'reception' ? '受付スタッフ' : roleKey === 'merchandise' ? '物販スタッフ' : roleKey === 'monitor' ? 'モニター' : roleKey === 'cast' ? '予約状況確認' : roleKey;
+                            const roleLabel = roleKey === 'reception' ? '受付スタッフ' : roleKey === 'merchandise' ? '物販スタッフ' : roleKey === 'monitor' ? 'モニター' : roleKey === 'cast' ? '予約状況確認' : roleKey === 'stats' ? '予約数確認' : roleKey;
                             const passcode = typeof data === 'string' ? '要再発行' : '設定済み';
 
                             return (
@@ -211,8 +212,8 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
                                             fontWeight: 'bold',
                                             padding: '2px 8px',
                                             borderRadius: '4px',
-                                            backgroundColor: roleKey === 'monitor' ? '#f3e8ff' : roleKey === 'merchandise' ? '#fef3c7' : roleKey === 'cast' ? '#e0f2fe' : '#f5f5f5',
-                                            color: roleKey === 'monitor' ? '#7c3aed' : roleKey === 'merchandise' ? '#92400e' : roleKey === 'cast' ? '#0369a1' : '#616161'
+                                            backgroundColor: roleKey === 'monitor' ? '#f3e8ff' : roleKey === 'merchandise' ? '#fef3c7' : roleKey === 'cast' ? '#e0f2fe' : roleKey === 'stats' ? '#ecfdf5' : '#f5f5f5',
+                                            color: roleKey === 'monitor' ? '#7c3aed' : roleKey === 'merchandise' ? '#92400e' : roleKey === 'cast' ? '#0369a1' : roleKey === 'stats' ? '#065f46' : '#616161'
                                         }}>
                                             {roleLabel}
                                         </span>

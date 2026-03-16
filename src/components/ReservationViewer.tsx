@@ -19,9 +19,11 @@ interface Props {
     productionTitle: string;
     performances: Performance[];
     ticketTypes: TicketType[];
+    /** trueにすると予約者リストを非表示にし、予約数のみ表示 */
+    hideNames?: boolean;
 }
 
-export default function ReservationViewer({ productionId, productionTitle, performances, ticketTypes }: Props) {
+export default function ReservationViewer({ productionId, productionTitle, performances, ticketTypes, hideNames = false }: Props) {
     const [allReservations, setAllReservations] = useState<FirestoreReservation[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -79,7 +81,7 @@ export default function ReservationViewer({ productionId, productionTitle, perfo
             <header style={{ backgroundColor: 'var(--card-bg)', padding: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', position: 'sticky', top: 0, zIndex: 100 }}>
                 <div className="container" style={{ maxWidth: '800px' }}>
                     <h1 style={{ fontSize: '1rem', fontWeight: 'bold', margin: 0 }}>{productionTitle}</h1>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>予約状況確認（読み取り専用）</p>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>{hideNames ? '予約数確認' : '予約状況確認'}（読み取り専用）</p>
                 </div>
             </header>
 
@@ -136,7 +138,8 @@ export default function ReservationViewer({ productionId, productionTitle, perfo
                     </div>
                 </div>
 
-                {/* 予約者一覧（全公演混合・ふりがな順） */}
+                {/* 予約者一覧（全公演混合・ふりがな順） — hideNames時は非表示 */}
+                {!hideNames && (
                 <div className="card" style={{ padding: '1.25rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                         <h3 style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--text-muted)', margin: 0 }}>
@@ -195,6 +198,7 @@ export default function ReservationViewer({ productionId, productionTitle, perfo
                         )}
                     </div>
                 </div>
+                )}
             </main>
         </div>
     );
