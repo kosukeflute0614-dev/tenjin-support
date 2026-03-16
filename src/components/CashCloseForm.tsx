@@ -6,6 +6,7 @@ import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { NumberStepper } from '@/components/TouchInputs';
 import { formatCurrency } from '@/lib/format';
 import { useToast } from '@/components/Toast';
+import ConfirmModal from '@/components/ConfirmModal';
 import {
     getPerformancePaidTotalClient,
     saveCashClosingClient,
@@ -87,6 +88,8 @@ export default function CashCloseForm({
     const [inventorySaved, setInventorySaved] = useState(false);
     const [inventoryRemarks, setInventoryRemarks] = useState('');
     const [isInventorySaving, setIsInventorySaving] = useState(false);
+    const [showCashConfirm, setShowCashConfirm] = useState(false);
+    const [showInventoryConfirm, setShowInventoryConfirm] = useState(false);
 
     const { showToast } = useToast();
 
@@ -276,8 +279,6 @@ export default function CashCloseForm({
 
     // Save cash close (金額精算のみ)
     const handleCashSave = async () => {
-        if (!confirm('レジ締めを確定しますか？')) return;
-
         setIsSaving(true);
         try {
             await saveCashClosingClient({
@@ -315,8 +316,6 @@ export default function CashCloseForm({
 
     // Save inventory check (在庫チェックのみ)
     const handleInventorySave = async () => {
-        if (!confirm('在庫チェックを確定しますか？')) return;
-
         setIsInventorySaving(true);
         try {
             const inventoryCheck = buildInventoryCheckData();
@@ -713,7 +712,7 @@ export default function CashCloseForm({
                     {/* 確定ボタン */}
                     <button
                         className="btn btn-primary"
-                        onClick={handleCashSave}
+                        onClick={() => setShowCashConfirm(true)}
                         disabled={isSaving}
                         style={{
                             width: '100%',
@@ -865,7 +864,7 @@ export default function CashCloseForm({
                     {/* 在庫チェック確定ボタン */}
                     <button
                         className="btn btn-primary"
-                        onClick={handleInventorySave}
+                        onClick={() => setShowInventoryConfirm(true)}
                         disabled={isInventorySaving}
                         style={{
                             width: '100%',
@@ -879,6 +878,25 @@ export default function CashCloseForm({
                     </button>
                 </>
             )}
+
+            <ConfirmModal
+                isOpen={showCashConfirm}
+                title="レジ締め確定"
+                message="レジ締めを確定しますか？"
+                confirmLabel="確定する"
+                onConfirm={() => { setShowCashConfirm(false); handleCashSave(); }}
+                onCancel={() => setShowCashConfirm(false)}
+                safe
+            />
+            <ConfirmModal
+                isOpen={showInventoryConfirm}
+                title="在庫チェック確定"
+                message="在庫チェックを確定しますか？"
+                confirmLabel="確定する"
+                onConfirm={() => { setShowInventoryConfirm(false); handleInventorySave(); }}
+                onCancel={() => setShowInventoryConfirm(false)}
+                safe
+            />
         </div>
     );
 }

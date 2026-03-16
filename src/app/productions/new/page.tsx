@@ -345,7 +345,8 @@ export default function NewProductionPage() {
                                                 className="input"
                                                 value={perf.capacity}
                                                 onChange={(e) => updatePerformance(perf.id, 'capacity', Math.max(1, parseInt(e.target.value) || 1))}
-                                                onFocus={(e) => e.target.select()}
+                                                onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
+                                                onBlur={(e) => { if (e.target.value === '') { e.target.value = '1'; updatePerformance(perf.id, 'capacity', 1); } }}
                                                 min={1}
                                                 style={{ height: '50px', marginBottom: 0 }}
                                             />
@@ -431,7 +432,8 @@ export default function NewProductionPage() {
                                                 className="input"
                                                 value={ticket.advancePrice}
                                                 onChange={(e) => updateTicket(ticket.id, 'advancePrice', Math.max(0, parseInt(e.target.value) || 0))}
-                                                onFocus={(e) => e.target.select()}
+                                                onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
+                                                onBlur={(e) => { if (e.target.value === '') { e.target.value = '0'; updateTicket(ticket.id, 'advancePrice', 0); } }}
                                                 min={0}
                                                 style={{ marginBottom: 0 }}
                                             />
@@ -445,7 +447,8 @@ export default function NewProductionPage() {
                                                 className="input"
                                                 value={ticket.doorPrice}
                                                 onChange={(e) => updateTicket(ticket.id, 'doorPrice', Math.max(0, parseInt(e.target.value) || 0))}
-                                                onFocus={(e) => e.target.select()}
+                                                onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
+                                                onBlur={(e) => { if (e.target.value === '') { e.target.value = '0'; updateTicket(ticket.id, 'doorPrice', 0); } }}
                                                 min={0}
                                                 style={{ marginBottom: 0 }}
                                             />

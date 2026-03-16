@@ -1,13 +1,26 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+
 interface ConfirmModalProps {
     isOpen: boolean;
     title: string;
     message: string;
     confirmLabel?: string;
     cancelLabel?: string;
-    onConfirm: () => void;
+    onConfirm: ((inputValue?: string) => void);
     onCancel: () => void;
+    /** trueにすると確認ボタンの色が赤(危険操作)ではなくプライマリカラーになる */
+    safe?: boolean;
+    /** 入力フィールドを表示する場合の設定 */
+    input?: {
+        placeholder?: string;
+        type?: string;
+        inputMode?: 'text' | 'numeric' | 'tel';
+        maxLength?: number;
+        pattern?: string;
+        validate?: (value: string) => string | null;
+    };
 }
 
 export default function ConfirmModal({
@@ -18,8 +31,32 @@ export default function ConfirmModal({
     cancelLabel = 'キャンセル',
     onConfirm,
     onCancel,
+    safe = false,
+    input,
 }: ConfirmModalProps) {
+    const [inputValue, setInputValue] = useState('');
+    const [inputError, setInputError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            setInputValue('');
+            setInputError(null);
+        }
+    }, [isOpen]);
+
     if (!isOpen) return null;
+
+    const handleConfirm = () => {
+        if (input) {
+            if (input.validate) {
+                const error = input.validate(inputValue);
+                if (error) { setInputError(error); return; }
+            }
+            onConfirm(inputValue);
+        } else {
+            onConfirm();
+        }
+    };
 
     return (
         <div
@@ -58,6 +95,24 @@ export default function ConfirmModal({
                     }}>
                         {message}
                     </p>
+                    {input && (
+                        <div style={{ marginTop: '1rem' }}>
+                            <input
+                                type={input.type || 'text'}
+                                inputMode={input.inputMode}
+                                maxLength={input.maxLength}
+                                pattern={input.pattern}
+                                placeholder={input.placeholder}
+                                value={inputValue}
+                                onChange={(e) => { setInputValue(e.target.value); setInputError(null); }}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleConfirm(); }}
+                                className="input"
+                                autoFocus
+                                style={{ width: '100%', fontSize: '1.1rem', textAlign: 'center', letterSpacing: input.inputMode === 'numeric' ? '0.3rem' : undefined }}
+                            />
+                            {inputError && <p style={{ color: '#d32f2f', fontSize: '0.8rem', marginTop: '0.5rem' }}>{inputError}</p>}
+                        </div>
+                    )}
                 </div>
                 <div style={{
                     padding: '1rem 1.5rem',
@@ -76,11 +131,10 @@ export default function ConfirmModal({
                     </button>
                     <button
                         className="btn btn-primary"
-                        onClick={onConfirm}
+                        onClick={handleConfirm}
                         style={{
                             padding: '0.5rem 1.25rem',
-                            background: '#d32f2f',
-                            borderColor: '#d32f2f',
+                            ...(safe ? {} : { background: '#d32f2f', borderColor: '#d32f2f' }),
                         }}
                     >
                         {confirmLabel}

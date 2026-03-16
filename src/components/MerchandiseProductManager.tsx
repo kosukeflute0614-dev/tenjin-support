@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { serializeDocs } from '@/lib/firestore-utils';
@@ -8,6 +8,7 @@ import { MerchandiseProduct } from '@/types';
 import { fetchMerchandiseProductsClient, deleteMerchandiseProductClient, updateMerchandiseProductClient } from '@/lib/client-firestore';
 import MerchandiseProductForm from './MerchandiseProductForm';
 import { useToast } from '@/components/Toast';
+import ConfirmModal from '@/components/ConfirmModal';
 import styles from '@/components/merchandise.module.css';
 
 interface Props {
@@ -22,6 +23,8 @@ export default function MerchandiseProductManager({ productionId, userId, invent
     const [showForm, setShowForm] = useState(false);
     const [editingProduct, setEditingProduct] = useState<MerchandiseProduct | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<MerchandiseProduct | null>(null);
     const { showToast } = useToast();
 
     // Initial fetch + real-time listener
@@ -59,19 +62,26 @@ export default function MerchandiseProductManager({ productionId, userId, invent
         };
     }, [productionId]);
 
-    const handleDelete = async (product: MerchandiseProduct) => {
-        if (!confirm(`「${product.name}」を削除してもよろしいですか？`)) return;
+    const confirmDelete = (product: MerchandiseProduct) => {
+        setDeleteTarget(product);
+        setShowDeleteConfirm(true);
+    };
 
-        setDeletingId(product.id);
+    const handleDelete = useCallback(async () => {
+        if (!deleteTarget) return;
+
+        setShowDeleteConfirm(false);
+        setDeletingId(deleteTarget.id);
         try {
-            await deleteMerchandiseProductClient(product.id);
+            await deleteMerchandiseProductClient(deleteTarget.id);
             showToast('商品を削除しました', 'success');
         } catch {
             showToast('商品の削除に失敗しました', 'error');
         } finally {
             setDeletingId(null);
+            setDeleteTarget(null);
         }
-    };
+    }, [deleteTarget, showToast]);
 
     const handleToggleActive = async (product: MerchandiseProduct) => {
         try {
@@ -212,7 +222,7 @@ export default function MerchandiseProductManager({ productionId, userId, invent
                                         </button>
                                         <button
                                             className={`btn btn-danger-outline ${styles.actionBtn}`}
-                                            onClick={() => handleDelete(product)}
+                                            onClick={() => confirmDelete(product)}
                                             disabled={deletingId === product.id}
                                         >
                                             {deletingId === product.id ? '削除中...' : '削除'}
@@ -224,6 +234,15 @@ export default function MerchandiseProductManager({ productionId, userId, invent
                     })}
                 </div>
             )}
+
+            <ConfirmModal
+                isOpen={showDeleteConfirm}
+                title="商品の削除"
+                message={deleteTarget ? `「${deleteTarget.name}」を削除してもよろしいですか？` : ''}
+                confirmLabel="削除する"
+                onConfirm={handleDelete}
+                onCancel={() => { setShowDeleteConfirm(false); setDeleteTarget(null); }}
+            />
         </div>
     );
 }

@@ -331,7 +331,8 @@ export function SmartNumberInput({
                 className="smart-input"
                 required={required}
                 autoComplete="off"
-                onFocus={(e) => e.target.select()}
+                onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
+                onBlur={(e) => { if (e.target.value === '') e.target.value = '0'; }}
             />
             <style jsx>{`
                 .smart-input-container {

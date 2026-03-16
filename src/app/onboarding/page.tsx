@@ -388,7 +388,8 @@ export default function OnboardingPage() {
                                                 className="input"
                                                 value={perf.capacity}
                                                 onChange={(e) => updatePerformance(perf.id, 'capacity', Math.max(1, parseInt(e.target.value) || 1))}
-                                                onFocus={(e) => e.target.select()}
+                                                onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
+                                                onBlur={(e) => { if (e.target.value === '') { e.target.value = '1'; updatePerformance(perf.id, 'capacity', 1); } }}
                                                 min={1}
                                                 style={{ height: '50px', marginBottom: 0 }}
                                             />

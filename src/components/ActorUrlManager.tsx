@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useAuth } from './AuthProvider';
@@ -8,6 +8,7 @@ import { useToast } from '@/components/Toast';
 import { addActorClient, deleteActorClient } from '@/lib/client-firestore';
 import { Production, Actor } from '@/types';
 import { Link2, ChevronDown, ChevronUp, Copy, Trash2, UserPlus, Users } from 'lucide-react';
+import ConfirmModal from '@/components/ConfirmModal';
 
 type Props = {
     production: Production;
@@ -21,6 +22,8 @@ export default function ActorUrlManager({ production }: Props) {
     const [isProcessing, setIsProcessing] = useState(false);
     const [actorReservations, setActorReservations] = useState<{ [actorId: string]: number }>({});
     const [baseUrl, setBaseUrl] = useState('');
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -66,18 +69,26 @@ export default function ActorUrlManager({ production }: Props) {
         }
     };
 
-    const handleDeleteActor = async (actorId: string) => {
-        if (!user || !confirm('この役者（窓口）を削除しますか？')) return;
+    const confirmDeleteActor = (actorId: string) => {
+        if (!user) return;
+        setDeleteTargetId(actorId);
+        setShowDeleteConfirm(true);
+    };
 
+    const handleDeleteActor = useCallback(async () => {
+        if (!user || !deleteTargetId) return;
+
+        setShowDeleteConfirm(false);
         setIsProcessing(true);
         try {
-            await deleteActorClient(production.id, actorId, user.uid);
+            await deleteActorClient(production.id, deleteTargetId, user.uid);
         } catch (err) {
             showToast('削除に失敗しました。', 'error');
         } finally {
             setIsProcessing(false);
+            setDeleteTargetId(null);
         }
-    };
+    }, [user, deleteTargetId, production.id, showToast]);
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
@@ -264,7 +275,7 @@ export default function ActorUrlManager({ production }: Props) {
                                                 URLをコピー
                                             </button>
                                             <button
-                                                onClick={() => handleDeleteActor(actor.id)}
+                                                onClick={() => confirmDeleteActor(actor.id)}
                                                 className="btn"
                                                 style={{
                                                     display: 'inline-flex',
@@ -295,6 +306,15 @@ export default function ActorUrlManager({ production }: Props) {
                     </p>
                 </div>
             </div>
+
+            <ConfirmModal
+                isOpen={showDeleteConfirm}
+                title="役者・窓口の削除"
+                message="この役者（窓口）を削除しますか？"
+                confirmLabel="削除する"
+                onConfirm={handleDeleteActor}
+                onCancel={() => { setShowDeleteConfirm(false); setDeleteTargetId(null); }}
+            />
         </div>
     );
 }
