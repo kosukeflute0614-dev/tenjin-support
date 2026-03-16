@@ -8,6 +8,7 @@ import { Production } from '@/types';
 import { useToast } from '@/components/Toast';
 import { toDate } from '@/lib/firestore-utils';
 import styles from '@/app/productions/productions.module.css';
+import ConfirmModal from '@/components/ConfirmModal';
 
 type Props = {
     productions: Production[];
@@ -21,20 +22,18 @@ function MoreMenu({ productionId, productionTitle, onDeleted }: {
 }) {
     const [open, setOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
     const handleDelete = async () => {
-        if (confirm(`「${productionTitle}」を削除してもよろしいですか？\nこの操作は取り消せません。`)) {
-            setIsDeleting(true);
-            setOpen(false);
-            try {
-                await deleteProductionClient(productionId);
-                onDeleted();
-            } catch {
-                setIsDeleting(false);
-            }
-        } else {
-            setOpen(false);
+        setIsDeleting(true);
+        setOpen(false);
+        setShowDeleteConfirm(false);
+        try {
+            await deleteProductionClient(productionId);
+            onDeleted();
+        } catch {
+            setIsDeleting(false);
         }
     };
 
@@ -63,13 +62,21 @@ function MoreMenu({ productionId, productionTitle, onDeleted }: {
                         </Link>
                         <button
                             className={`${styles.moreMenuItem} ${styles.moreMenuDanger}`}
-                            onClick={handleDelete}
+                            onClick={() => { setOpen(false); setShowDeleteConfirm(true); }}
                         >
                             🗑️ 公演を削除
                         </button>
                     </div>
                 </>
             )}
+            <ConfirmModal
+                isOpen={showDeleteConfirm}
+                title="公演を削除"
+                message={`「${productionTitle}」を削除してもよろしいですか？\nこの操作は取り消せません。`}
+                confirmLabel="削除する"
+                onConfirm={handleDelete}
+                onCancel={() => setShowDeleteConfirm(false)}
+            />
         </div>
     );
 }

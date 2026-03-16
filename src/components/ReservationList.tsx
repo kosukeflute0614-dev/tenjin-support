@@ -496,7 +496,8 @@ export default function ReservationList({ reservations, bookingOptions }: Props)
                                                         name={`ticket_${tt.id}`}
                                                         defaultValue={existing ? existing.count : 0}
                                                         min="0"
-                                                        onFocus={(e) => e.target.select()}
+                                                        onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
+                                                        onBlur={(e) => { if (e.target.value === '') e.target.value = '0'; }}
                                                         className="input"
                                                         style={{ width: '70px', textAlign: 'right' }}
                                                     />

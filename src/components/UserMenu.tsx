@@ -4,11 +4,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from './AuthProvider';
 import Link from 'next/link';
 import { Theater, Settings, LogOut, ChevronDown, ChevronUp, BookOpen, HelpCircle, Mail } from 'lucide-react';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function UserMenu() {
     const { user, profile, isOrganizer, loginWithGoogle, logout } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [hoverItem, setHoverItem] = useState<string | null>(null);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
     // 外部クリックでメニューを閉じる
@@ -35,9 +37,7 @@ export default function UserMenu() {
     }, [isOpen]);
 
     const handleLogout = async () => {
-        if (confirm('ログアウトしますか？')) {
-            await logout();
-        }
+        await logout();
     };
 
     // 共通のスタイル定数（CSS変数参照）
@@ -202,7 +202,7 @@ export default function UserMenu() {
                                 marginTop: '0.25rem'
                             }}>
                                 <button
-                                    onClick={() => { handleLogout(); setIsOpen(false); }}
+                                    onClick={() => { setShowLogoutConfirm(true); setIsOpen(false); }}
                                     style={itemStyle('logout')}
                                     onMouseEnter={() => setHoverItem('logout')}
                                     onMouseLeave={() => setHoverItem(null)}
@@ -214,6 +214,16 @@ export default function UserMenu() {
                         </div>
                     </div>
                 )}
+
+                <ConfirmModal
+                    isOpen={showLogoutConfirm}
+                    title="ログアウト"
+                    message="ログアウトしますか？"
+                    confirmLabel="ログアウト"
+                    onConfirm={() => { setShowLogoutConfirm(false); handleLogout(); }}
+                    onCancel={() => setShowLogoutConfirm(false)}
+                    safe
+                />
             </div>
         );
     }

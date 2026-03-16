@@ -10,6 +10,7 @@ import { useToast } from '@/components/Toast';
 import { Production } from '@/types';
 import { useRouter } from 'next/navigation';
 import { generateStaffTokenClient, revokeStaffTokenClient, updateStaffTokenPasscodeClient, getStaffPasscode } from '@/lib/client-firestore';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function StaffManagementPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -21,6 +22,8 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
     const [isProcessing, setIsProcessing] = useState(false);
     const [newRole, setNewRole] = useState<'reception' | 'merchandise' | 'monitor' | 'cast'>('reception');
     const [baseUrl, setBaseUrl] = useState('');
+    const [revokeTarget, setRevokeTarget] = useState<string | null>(null);
+    const [passcodeTarget, setPasscodeTarget] = useState<string | null>(null);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -76,8 +79,6 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
 
     const handleRevokeToken = async (token: string) => {
         if (!user || !production) return;
-        if (!confirm('このスタッフ用URLを無効化しますか？以降、このURLからはアクセスできなくなります。')) return;
-
         setIsProcessing(true);
         try {
             await revokeStaffTokenClient(production.id, token);
@@ -86,6 +87,7 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
             showToast(`無効化に失敗しました: ${error.message}`, 'error');
         } finally {
             setIsProcessing(false);
+            setRevokeTarget(null);
         }
     };
 
@@ -106,16 +108,8 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
         }
     };
 
-    const handleUpdatePasscode = async (token: string) => {
+    const handleUpdatePasscode = async (token: string, newPasscode: string) => {
         if (!production) return;
-        const newPasscode = prompt('新しいパスコードを入力してください（数字4桁）');
-        if (!newPasscode) return;
-
-        if (!/^\d{4}$/.test(newPasscode)) {
-            showToast('パスコードは数字4桁で入力してください。', 'warning');
-            return;
-        }
-
         setIsProcessing(true);
         try {
             await updateStaffTokenPasscodeClient(production.id, token, newPasscode);
@@ -124,6 +118,7 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
             showToast(`更新に失敗しました: ${error.message}`, 'error');
         } finally {
             setIsProcessing(false);
+            setPasscodeTarget(null);
         }
     };
 
@@ -209,76 +204,71 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
                             const passcode = typeof data === 'string' ? '要再発行' : '設定済み';
 
                             return (
-                                <div key={token} style={{ border: '1px solid var(--card-border)', borderRadius: '12px', padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
-                                    <div style={{ flex: '1 1 250px', minWidth: 0 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.5rem' }}>
-                                            <span style={{
-                                                fontSize: '0.75rem',
-                                                fontWeight: 'bold',
-                                                padding: '2px 8px',
-                                                borderRadius: '4px',
-                                                backgroundColor: roleKey === 'monitor' ? '#f3e8ff' : roleKey === 'merchandise' ? '#fef3c7' : roleKey === 'cast' ? '#e0f2fe' : '#f5f5f5',
-                                                color: roleKey === 'monitor' ? '#7c3aed' : roleKey === 'merchandise' ? '#92400e' : roleKey === 'cast' ? '#0369a1' : '#616161'
-                                            }}>
-                                                {roleLabel}
-                                            </span>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>パスコード:</span>
-                                                {typeof data !== 'string' && (
-                                                    <>
-                                                        <button
-                                                            className="btn btn-secondary"
-                                                            style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
-                                                            onClick={() => handleShowPasscode(token)}
-                                                            disabled={isProcessing}
-                                                        >
-                                                            確認
-                                                        </button>
-                                                        <button
-                                                            className="btn btn-secondary"
-                                                            style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
-                                                            onClick={() => handleUpdatePasscode(token)}
-                                                            disabled={isProcessing}
-                                                        >
-                                                            変更
-                                                        </button>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                            <input
-                                                readOnly
-                                                value={inviteUrl}
-                                                className="input"
-                                                style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', backgroundColor: '#f9f9f9' }}
-                                                onClick={(e) => (e.target as HTMLInputElement).select()}
-                                            />
-                                            <button
-                                                className="btn btn-secondary"
-                                                style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
-                                                onClick={() => copyToClipboard(inviteUrl)}
-                                            >
-                                                コピー
-                                            </button>
+                                <div key={token} style={{ border: '1px solid var(--card-border)', borderRadius: '12px', padding: '1.25rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.75rem' }}>
+                                        <span style={{
+                                            fontSize: '0.75rem',
+                                            fontWeight: 'bold',
+                                            padding: '2px 8px',
+                                            borderRadius: '4px',
+                                            backgroundColor: roleKey === 'monitor' ? '#f3e8ff' : roleKey === 'merchandise' ? '#fef3c7' : roleKey === 'cast' ? '#e0f2fe' : '#f5f5f5',
+                                            color: roleKey === 'monitor' ? '#7c3aed' : roleKey === 'merchandise' ? '#92400e' : roleKey === 'cast' ? '#0369a1' : '#616161'
+                                        }}>
+                                            {roleLabel}
+                                        </span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>パスコード:</span>
+                                            {typeof data !== 'string' && (
+                                                <>
+                                                    <button
+                                                        className="btn btn-secondary"
+                                                        style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
+                                                        onClick={() => handleShowPasscode(token)}
+                                                        disabled={isProcessing}
+                                                    >
+                                                        確認
+                                                    </button>
+                                                    <button
+                                                        className="btn btn-secondary"
+                                                        style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
+                                                        onClick={() => setPasscodeTarget(token)}
+                                                        disabled={isProcessing}
+                                                    >
+                                                        変更
+                                                    </button>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
-                                    <button
-                                        onClick={() => handleRevokeToken(token)}
-                                        disabled={isProcessing}
-                                        style={{
-                                            background: 'none',
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            fontSize: '1.2rem',
-                                            padding: '0.5rem',
-                                            color: '#ff4d4f',
-                                            opacity: isProcessing ? 0.5 : 1
-                                        }}
-                                        title="無効化"
-                                    >
-                                        🗑️
-                                    </button>
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                        <input
+                                            readOnly
+                                            value={inviteUrl}
+                                            className="input"
+                                            style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', backgroundColor: '#f9f9f9', flex: 1 }}
+                                            onClick={(e) => (e.target as HTMLInputElement).select()}
+                                        />
+                                        <button
+                                            className="btn btn-secondary"
+                                            style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
+                                            onClick={() => copyToClipboard(inviteUrl)}
+                                        >
+                                            コピー
+                                        </button>
+                                        <button
+                                            onClick={() => setRevokeTarget(token)}
+                                            disabled={isProcessing}
+                                            className="btn btn-secondary"
+                                            style={{
+                                                padding: '0.4rem 0.8rem',
+                                                fontSize: '0.85rem',
+                                                whiteSpace: 'nowrap',
+                                                opacity: isProcessing ? 0.5 : 1,
+                                            }}
+                                        >
+                                            削除
+                                        </button>
+                                    </div>
                                 </div>
                             );
                         })}
@@ -293,9 +283,36 @@ export default function StaffManagementPage({ params }: { params: Promise<{ id: 
                 <ul style={{ fontSize: '0.9rem', color: 'var(--slate-600)', lineHeight: '1.6', paddingLeft: '1.2rem' }}>
                     <li>発行したURLをコピーして、現場スタッフのLINEやメールに送ってください。</li>
                     <li>スタッフはログイン不要で、即座に受付や制作管理画面にアクセスできます。</li>
-                    <li>万が一URLが漏洩したり、公演が終了した場合は、ゴミ箱アイコンからURLを無効化してください。</li>
+                    <li>万が一URLが漏洩したり、公演が終了した場合は、「削除」ボタンからURLを無効化してください。</li>
                 </ul>
             </div>
+
+            <ConfirmModal
+                isOpen={revokeTarget !== null}
+                title="URLを無効化"
+                message="このスタッフ用URLを無効化しますか？以降、このURLからはアクセスできなくなります。"
+                confirmLabel="無効化する"
+                onConfirm={() => revokeTarget && handleRevokeToken(revokeTarget)}
+                onCancel={() => setRevokeTarget(null)}
+            />
+
+            <ConfirmModal
+                isOpen={passcodeTarget !== null}
+                title="パスコードの変更"
+                message="新しいパスコードを入力してください（数字4桁）"
+                confirmLabel="変更する"
+                safe
+                onConfirm={(value) => passcodeTarget && value && handleUpdatePasscode(passcodeTarget, value)}
+                onCancel={() => setPasscodeTarget(null)}
+                input={{
+                    placeholder: '0000',
+                    type: 'text',
+                    inputMode: 'numeric',
+                    maxLength: 4,
+                    pattern: '[0-9]*',
+                    validate: (v) => /^\d{4}$/.test(v) ? null : 'パスコードは数字4桁で入力してください。',
+                }}
+            />
         </div>
     );
 }
