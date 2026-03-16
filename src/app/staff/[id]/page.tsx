@@ -14,6 +14,7 @@ import { useToast } from '@/components/Toast';
 import CheckinList from '@/components/CheckinList';
 import SameDayTicketForm from '@/components/SameDayTicketForm';
 import AttendanceStatus from '@/components/AttendanceStatus';
+import ReservationViewer from '@/components/ReservationViewer';
 import CashCloseForm from '@/components/CashCloseForm';
 import MerchandiseSalesForm from '@/components/MerchandiseSalesForm';
 import BottomNav from '@/components/BottomNav';
@@ -343,6 +344,18 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
         );
     }
 
+    // 予約状況確認ロール: キャスト向け読み取り専用UI（公演回選択不要）
+    if (role === 'cast') {
+        return (
+            <ReservationViewer
+                productionId={resolvedProductionId || productionId}
+                productionTitle={production?.title || ''}
+                performances={production?.performances || []}
+                ticketTypes={production?.ticketTypes || []}
+            />
+        );
+    }
+
     // メインUI
     if (!selectedPerformanceId) {
         // 公演選択画面
@@ -359,7 +372,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
                         <div>
                             <h1 style={{ fontSize: '1rem', fontWeight: 'bold', margin: 0 }}>{production?.title}</h1>
                             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
-                                スタッフ用ポータル ({role === 'monitor' ? 'モニター' : role === 'merchandise' ? '物販' : '受付'})
+                                スタッフ用ポータル ({role === 'monitor' ? 'モニター' : role === 'merchandise' ? '物販' : role === 'cast' ? '予約状況確認' : '受付'})
                             </p>
                         </div>
                     </div>
@@ -367,7 +380,7 @@ export default function StaffPortalPage({ params }: { params: Promise<{ id: stri
 
                 <main className="container" style={{ maxWidth: '600px', marginTop: '2rem' }}>
                     <div className="card" style={{ padding: '1.5rem' }}>
-                        <h2 className="heading-md" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>{role === 'monitor' ? '確認する公演を選択してください' : role === 'merchandise' ? '物販を行う公演を選択してください' : '受付する公演を選択してください'}</h2>
+                        <h2 className="heading-md" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>{role === 'monitor' ? '確認する公演を選択してください' : role === 'merchandise' ? '物販を行う公演を選択してください' : role === 'cast' ? '予約状況を確認する公演を選択してください' : '受付する公演を選択してください'}</h2>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             {sortedPerformances.map(perf => {
                                 const d = perf.startTime ? toDate(perf.startTime) : new Date();
