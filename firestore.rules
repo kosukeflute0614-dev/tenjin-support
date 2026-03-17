@@ -47,9 +47,9 @@ service cloud.firestore {
 
     // 公演（Production）
     match /productions/{productionId} {
-      // 予約フォームまたはトークン保持者は get 可能
-      allow get: if true; 
-      allow list: if isSignedIn();
+      // 予約フォームからの customId 検索を含め、公演情報は公開
+      allow get: if true;
+      allow list: if true;
       allow create: if isGoogleUser();
       allow update, delete: if isOwner(resource.data.userId);
     }
