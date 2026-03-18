@@ -274,8 +274,8 @@ export default function PublicReservationForm({ production, promoterId }: Props)
                                     min="0" max="10"
                                     value={ticketCounts[ticket.id] || 0}
                                     onChange={(e) => handleTicketChange(ticket.id, parseInt(e.target.value) || 0)}
-                                    onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
-                                    onBlur={(e) => { if (e.target.value === '') { e.target.value = '0'; handleTicketChange(ticket.id, 0); } }}
+                                    onFocus={(e) => e.target.select()}
+                                    onBlur={(e) => { if (e.target.value === '') handleTicketChange(ticket.id, 0); }}
                                     className="input"
                                     style={{ width: '70px', textAlign: 'right', marginBottom: 0 }}
                                 />
