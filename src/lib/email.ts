@@ -115,10 +115,12 @@ export async function sendReservationConfirmation(data: ReservationEmailData): P
         month: 'long',
         day: 'numeric',
         weekday: 'short',
+        timeZone: 'Asia/Tokyo',
     });
     const formattedTime = startDate.toLocaleTimeString('ja-JP', {
         hour: '2-digit',
         minute: '2-digit',
+        timeZone: 'Asia/Tokyo',
     });
     const performanceDate = `${formattedDate} ${formattedTime}`;
 
